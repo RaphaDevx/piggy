@@ -73,10 +73,13 @@ export function useScanner() {
 
     try {
       if (source === 'scan') {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-        const { default: DocumentScanner } = require('react-native-document-scanner-plugin');
-        const { scannedImages } = await DocumentScanner.scanDocument({ maxNumDocuments: 1 });
-        imageUri = scannedImages?.[0] ?? null;
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Kein Kamera-Zugriff', 'Bitte erlaube den Kamera-Zugriff in den iPhone-Einstellungen.');
+          return;
+        }
+        const res = await ImagePicker.launchCameraAsync({ quality: 1, allowsEditing: false });
+        imageUri = res.canceled ? null : (res.assets?.[0]?.uri ?? null);
       } else if (source === 'library') {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {

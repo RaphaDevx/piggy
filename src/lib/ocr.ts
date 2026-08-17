@@ -1,11 +1,11 @@
 /**
- * ocr.ts — Lokale OCR-Verarbeitung mit ML Kit (kein API-Call nötig)
+ * ocr.ts — Lokale OCR via Apple Vision Framework (kein API-Call, 100% on-device)
  *
- * Ersetzt die kostenpflichtige Claude Vision API.
- * Exportiert processReceiptImage mit identischem Interface zu claude.ts.
+ * iOS: Apple VNRecognizeTextRequest (Neural Engine, offline, datenschutzkonform)
+ * Android: Google ML Kit (Fallback)
  */
 
-import TextRecognition from '@react-native-ml-kit/text-recognition';
+import TextRecognition from '@dariyd/react-native-text-recognition';
 import * as ImageManipulator from 'expo-image-manipulator';
 import type { ParsedReceipt, ParsedReceiptItem } from '../types/receipt';
 import { generateMarkdown } from './markdown';
@@ -290,9 +290,10 @@ export async function processReceiptImage(
     ? await cropImage(imageUri, cropRegion)
     : imageUri;
 
-  // 2. OCR via ML Kit
-  const result = await TextRecognition.recognize(processUri);
-  const rawText = result.text ?? '';
+  // 2. OCR via Apple Vision Framework (iOS) / ML Kit (Android)
+  // @dariyd/react-native-text-recognition gibt string[] zurück (eine Zeile pro Element)
+  const lines = await TextRecognition.recognize(processUri);
+  const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
 
   if (!rawText.trim()) {
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
