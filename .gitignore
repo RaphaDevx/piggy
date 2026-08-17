@@ -5,6 +5,13 @@
 expo-env.d.ts
 # @end expo-cli
 
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.expo/
+
 .env
 .env.local
 
