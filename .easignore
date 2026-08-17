@@ -1,0 +1,7 @@
+scraper/
+.claude/
+business/
+dist/
+**/*.java
+**/*.jar
+**/*.class
