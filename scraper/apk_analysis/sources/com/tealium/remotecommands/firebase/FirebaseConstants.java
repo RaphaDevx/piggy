@@ -1,0 +1,55 @@
+package com.tealium.remotecommands.firebase;
+
+/* loaded from: classes2.dex */
+public final class FirebaseConstants {
+    public static final String SEPARATOR = ",";
+    public static final String TAG = "Tealium-Firebase";
+
+    public static final class Commands {
+        public static final String CONFIGURE = "config";
+        public static final String LOG_EVENT = "logevent";
+        public static final String RESET_DATA = "resetdata";
+        public static final String SET_SCREEN_NAME = "setscreenname";
+        public static final String SET_USER_ID = "setuserid";
+        public static final String SET_USER_PROPERTY = "setuserproperty";
+
+        private Commands() {
+        }
+    }
+
+    public static final class ItemProperties {
+        public static final String BRAND = "param_item_brand";
+        public static final String CATEGORY = "param_item_category";
+        public static final String ID = "param_item_id";
+        public static final String INDEX = "param_index";
+        public static final String LIST = "param_item_list";
+        public static final String LOCATION_ID = "param_item_location_id";
+        public static final String NAME = "param_item_name";
+        public static final String PRICE = "param_price";
+        public static final String QUANTITY = "param_quantity";
+        public static final String VARIANT = "param_item_variant";
+
+        private ItemProperties() {
+        }
+    }
+
+    public static final class Keys {
+        public static final String ANALYTICS_ENABLED = "firebase_analytics_enabled";
+        public static final String COMMAND_NAME = "command_name";
+        public static final String EVENT_NAME = "firebase_event_name";
+        public static final String EVENT_PARAMS = "event";
+        public static final String ITEMS_PARAMS = "items";
+        public static final String LOG_LEVEL = "firebase_log_level";
+        public static final String MIN_SECONDS = "firebase_session_minimum_seconds";
+        public static final String SCREEN_CLASS = "firebase_screen_class";
+        public static final String SCREEN_NAME = "firebase_screen_name";
+        public static final String SESSION_TIMEOUT = "firebase_session_timeout_seconds";
+        public static final String TAG_EVENT_PARAMS = "firebase_event_params";
+        public static final String USER_ID = "firebase_user_id";
+        public static final String USER_PROPERTY_NAME = "firebase_property_name";
+        public static final String USER_PROPERTY_VALUE = "firebase_property_value";
+
+        private Keys() {
+        }
+    }
+}

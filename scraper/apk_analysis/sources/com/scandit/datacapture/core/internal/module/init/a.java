@@ -1,0 +1,38 @@
+package com.scandit.datacapture.core.internal.module.init;
+
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
+import kotlin.jvm.internal.FunctionReference;
+import kotlin.jvm.internal.Intrinsics;
+import kotlin.jvm.internal.Reflection;
+import kotlin.reflect.KDeclarationContainer;
+
+/* loaded from: classes2.dex */
+public final /* synthetic */ class a extends FunctionReference implements Function1 {
+    public a(Object obj) {
+        super(1, obj);
+    }
+
+    @Override // kotlin.jvm.internal.CallableReference, kotlin.reflect.KCallable
+    public final String getName() {
+        return "storeLog";
+    }
+
+    @Override // kotlin.jvm.internal.CallableReference
+    public final KDeclarationContainer getOwner() {
+        return Reflection.getOrCreateKotlinClass(e.class);
+    }
+
+    @Override // kotlin.jvm.internal.CallableReference
+    public final String getSignature() {
+        return "storeLog(Ljava/lang/String;)V";
+    }
+
+    @Override // kotlin.jvm.functions.Function1
+    public final Object invoke(Object obj) {
+        String p0 = (String) obj;
+        Intrinsics.checkNotNullParameter(p0, "p0");
+        ((e) this.receiver).a(p0);
+        return Unit.INSTANCE;
+    }
+}

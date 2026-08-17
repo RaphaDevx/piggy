@@ -1,0 +1,23 @@
+[allowlist]
+description = "False positives in Piggy source code"
+paths = [
+  '''scraper/apk_analysis''',
+  '''package-lock\.json''',
+]
+regexes = [
+  # React Native auth form — state variables, not real secrets
+  '''password.*useState''',
+  '''useState.*password''',
+  # Supabase auth methods — not secrets
+  '''signInWithPassword''',
+  '''signInWithIdToken''',
+  '''identityToken''',
+  # Expo/React Native UI patterns
+  '''secureTextEntry''',
+  '''KeyboardAvoidingView''',
+  # Placeholder text in docs
+  '''<dein-anthropic-key>''',
+  '''console\.anthropic\.com''',
+  # Generic words used in non-secret context
+  '''Client-ID/Secret eintragen''',
+]

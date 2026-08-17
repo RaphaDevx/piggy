@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Piggy",
+    "slug": "piggy",
+    "version": "1.0.0",
+    "scheme": "piggy",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.heartbeat.piggy",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Piggy benötigt Kamera-Zugriff zum Fotografieren von Quittungen.",
+        "NSPhotoLibraryUsageDescription": "Piggy benötigt Zugriff auf deine Fotos um Quittungsbilder zu laden.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0A0F"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Piggy benötigt Kamera-Zugriff zum Fotografieren von Quittungen.",
+          "microphonePermission": false,
+          "photosPermission": "Piggy benötigt Zugriff auf deine Fotos um Quittungsbilder zu laden."
+        }
+      ],
+      [
+        "react-native-document-scanner-plugin",
+        {
+          "cameraPermission": "Allow Piggy to access your camera to scan receipts"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Piggy to save receipt images.",
+          "savePhotosPermission": "Allow Piggy to save receipt images."
+        }
+      ],
+      "expo-web-browser",
+      "expo-apple-authentication"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ce4f36f5-7d48-4ade-9096-cce470832904"
+      }
+    },
+    "owner": "raphadevx"
+  }
+}
