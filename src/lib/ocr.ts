@@ -1,19 +1,31 @@
 /**
- * ocr.ts — Lokale OCR via Apple Vision Framework (kein API-Call, 100% on-device)
+ * ocr.ts — Hybrid OCR-Pipeline
  *
- * iOS: Apple VNRecognizeTextRequest (Neural Engine, offline, datenschutzkonform)
- * Android: Google ML Kit (Fallback)
+ * Priorität:
+ * 1. processing_mode === 'on_device' UND Foundation Models verfügbar
+ *    → Vision OCR → Foundation Models parse
+ * 2. processing_mode === 'edge' ODER Foundation Models nicht verfügbar
+ *    → Bild in scan_queue einreihen → return {type:'queued', queueId}
+ * 3. Kein Login (offline fallback)
+ *    → lokaler Regex-Parser (parseReceiptText)
  */
 
 import TextRecognition from '@dariyd/react-native-text-recognition';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 import type { ParsedReceipt, ParsedReceiptItem } from '../types/receipt';
 import { generateMarkdown } from './markdown';
+import { supabase } from './supabase';
+import { FoundationModels } from '../native/FoundationModels';
 
-export interface ProcessResult {
-  receipt: ParsedReceipt;
-  markdown: string;
-}
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+
+// ── Public result type ────────────────────────────────────────────────────────
+
+export type ProcessResult =
+  | { type: 'done'; receipt: ParsedReceipt; markdown: string }
+  | { type: 'queued'; queueId: string };
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
@@ -230,7 +242,7 @@ function parseItems(lines: string[]): ParsedReceiptItem[] {
   return items;
 }
 
-// ── Haupt-Parser ─────────────────────────────────────────────────────────────
+// ── Haupt-Parser (Offline-Fallback) ─────────────────────────────────────────
 
 export function parseReceiptText(rawText: string): ParsedReceipt {
   const lines     = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -279,29 +291,160 @@ async function cropImage(imageUri: string, crop: CropRegion | null): Promise<str
   }
 }
 
-// ── Öffentliches Interface (kompatibel mit claude.ts) ───────────────────────
+// ── Base64 helpers ───────────────────────────────────────────────────────────
 
-export async function processReceiptImage(
+async function imageToBase64(uri: string): Promise<string> {
+  if (Platform.OS === 'web') {
+    const resp = await fetch(uri);
+    const blob = await resp.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  return FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
+}
+
+// ── Queue-Pfad ───────────────────────────────────────────────────────────────
+
+async function enqueueForEdge(
   imageUri: string,
-  cropRegion?: CropRegion | null
-): Promise<ProcessResult> {
-  // 1. Optional croppen
-  const processUri = cropRegion
-    ? await cropImage(imageUri, cropRegion)
-    : imageUri;
+  userId: string,
+  accessToken: string,
+): Promise<string> {
+  // 1. Bild → base64 → Storage hochladen
+  const base64 = await imageToBase64(imageUri);
+  const isPng   = imageUri.toLowerCase().endsWith('.png');
+  const ext     = isPng ? 'png' : 'jpg';
+  const mime    = isPng ? 'image/png' : 'image/jpeg';
+  const uuid    = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const storagePath = `${userId}/${uuid}.${ext}`;
 
-  // 2. OCR via Apple Vision Framework (iOS) / ML Kit (Android)
-  // @dariyd/react-native-text-recognition gibt string[] zurück (eine Zeile pro Element)
-  const lines = await TextRecognition.recognize(processUri);
+  // Decode base64 to bytes for Storage upload
+  const binaryStr = atob(base64);
+  const fileBytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) fileBytes[i] = binaryStr.charCodeAt(i);
+
+  const { error: uploadError } = await supabase.storage
+    .from('receipts')
+    .upload(storagePath, fileBytes, { contentType: mime });
+
+  if (uploadError) {
+    throw new Error(`Storage upload failed: ${uploadError.message}`);
+  }
+
+  // 2. scan_queue Eintrag anlegen
+  const { data: queueRow, error: insertError } = await supabase
+    .from('scan_queue')
+    .insert({ user_id: userId, image_path: storagePath, status: 'pending' })
+    .select('id')
+    .single();
+
+  if (insertError || !queueRow) {
+    throw new Error(`Queue insert failed: ${insertError?.message}`);
+  }
+
+  const queueId = queueRow.id as string;
+
+  // 3. Edge Function aufrufen (fire-and-forget)
+  fetch(`${SUPABASE_URL}/functions/v1/scan-receipt`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ queue_id: queueId }),
+  }).catch(() => {
+    // fire-and-forget; Realtime-Subscription in ScanQueueMonitor zeigt Ergebnis
+  });
+
+  return queueId;
+}
+
+// ── On-Device-Pfad ───────────────────────────────────────────────────────────
+
+async function processOnDevice(imageUri: string): Promise<{ receipt: ParsedReceipt; markdown: string }> {
+  // Vision OCR
+  const lines   = await TextRecognition.recognize(imageUri);
   const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
 
   if (!rawText.trim()) {
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
   }
 
-  // 3. Text parsen
-  const receipt  = parseReceiptText(rawText);
-  const markdown = generateMarkdown(receipt);
+  // Foundation Models parse
+  try {
+    const jsonStr = await FoundationModels.parseReceiptText(rawText);
+    const receipt = JSON.parse(jsonStr) as ParsedReceipt;
+    receipt.items = (receipt.items ?? []).map((item: ParsedReceiptItem) => ({
+      ...item,
+      unit:       item.unit ?? 'Stk',
+      unit_price: item.unit_price ?? item.total_price,
+      tags:       item.tags ?? [],
+    }));
+    return { receipt, markdown: generateMarkdown(receipt) };
+  } catch {
+    // Foundation Models nicht verfügbar oder Stub — Fallback auf Regex-Parser
+    const receipt = parseReceiptText(rawText);
+    return { receipt, markdown: generateMarkdown(receipt) };
+  }
+}
 
-  return { receipt, markdown };
+// ── Öffentliches Interface ───────────────────────────────────────────────────
+
+export async function processReceiptImage(
+  imageUri: string,
+  cropRegion?: CropRegion | null,
+): Promise<ProcessResult> {
+  const processUri = cropRegion
+    ? await cropImage(imageUri, cropRegion)
+    : imageUri;
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // Logged in: hybrid pipeline
+  if (session) {
+    const userId = session.user.id;
+
+    // Fetch processing_mode from profile
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('processing_mode')
+      .eq('id', userId)
+      .single();
+
+    const processingMode = (profileData?.processing_mode as string | null) ?? 'on_device';
+
+    // Path 1: on_device — always shows review screen
+    if (processingMode !== 'edge') {
+      const available = await FoundationModels.isAvailable();
+      if (available) {
+        const { receipt, markdown } = await processOnDevice(processUri);
+        return { type: 'done', receipt, markdown };
+      }
+      // Foundation Models not available → local OCR + regex, still show review screen
+      const lines   = await TextRecognition.recognize(processUri);
+      const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
+      if (!rawText.trim()) {
+        throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
+      }
+      const receipt = parseReceiptText(rawText);
+      return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+    }
+
+    // Path 2: edge (only when explicitly set in profile)
+    const queueId = await enqueueForEdge(processUri, userId, session.access_token);
+    return { type: 'queued', queueId };
+  }
+
+  // Path 3: no login — offline regex fallback
+  const lines   = await TextRecognition.recognize(processUri);
+  const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
+  if (!rawText.trim()) {
+    throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
+  }
+  const receipt = parseReceiptText(rawText);
+  return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
 }
