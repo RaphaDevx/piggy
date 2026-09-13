@@ -402,64 +402,31 @@ export async function processReceiptImage(
     ? await cropImage(imageUri, cropRegion)
     : imageUri;
 
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // Logged in: hybrid pipeline
-  if (session) {
-    const userId = session.user.id;
-
-    // Fetch processing_mode from profile
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('processing_mode')
-      .eq('id', userId)
-      .single();
-
-    const processingMode = (profileData?.processing_mode as string | null) ?? 'on_device';
-
-    // Path 1: on_device — always shows review screen
-    if (processingMode !== 'edge') {
-      // Apple Vision OCR → text lines
-      const lines   = await TextRecognition.recognize(processUri);
-      const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
-
-      if (!rawText.trim()) {
-        throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
-      }
-
-      // Try Foundation Models (on-device LLM, iOS 18.4+) for better parsing
-      // Falls back to regex parser if unavailable or stub
-      let receipt: ParsedReceipt;
-      try {
-        const available = await FoundationModels.isAvailable();
-        if (!available) throw new Error('not available');
-        const jsonStr = await FoundationModels.parseReceiptText(rawText);
-        const parsed = JSON.parse(jsonStr) as ParsedReceipt;
-        parsed.items = (parsed.items ?? []).map((item) => ({
-          ...item,
-          unit:       item.unit ?? 'Stk',
-          unit_price: item.unit_price ?? item.total_price,
-          tags:       item.tags ?? [],
-        }));
-        receipt = parsed;
-      } catch {
-        receipt = parseReceiptText(rawText);
-      }
-
-      return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
-    }
-
-    // Path 2: edge (only when explicitly set in profile)
-    const queueId = await enqueueForEdge(processUri, userId, session.access_token);
-    return { type: 'queued', queueId };
-  }
-
-  // Path 3: no login — offline regex fallback
+  // Always on-device: Apple Vision OCR → Foundation Models (iOS 18.4+) → regex
+  // Never use edge/queue — that path skips the review screen entirely
   const lines   = await TextRecognition.recognize(processUri);
   const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
+
   if (!rawText.trim()) {
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
   }
-  const receipt = parseReceiptText(rawText);
+
+  let receipt: ParsedReceipt;
+  try {
+    const available = await FoundationModels.isAvailable();
+    if (!available) throw new Error('not available');
+    const jsonStr = await FoundationModels.parseReceiptText(rawText);
+    const parsed = JSON.parse(jsonStr) as ParsedReceipt;
+    parsed.items = (parsed.items ?? []).map((item) => ({
+      ...item,
+      unit:       item.unit ?? 'Stk',
+      unit_price: item.unit_price ?? item.total_price,
+      tags:       item.tags ?? [],
+    }));
+    receipt = parsed;
+  } catch {
+    receipt = parseReceiptText(rawText);
+  }
+
   return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
 }

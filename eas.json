@@ -1,9 +1,14 @@
 {
   "cli": {
-    "version": ">= 12.0.0",
+    "version": ">= 13.0.0",
     "appVersionSource": "local"
   },
   "build": {
+    "local": {
+      "ios": {
+        "simulator": true
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
@@ -15,10 +20,26 @@
       "distribution": "internal"
     },
     "production": {
-      "resourceClass": "medium"
+      "credentialsSource": "remote",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "raphaelk01@outlook.de",
+        "ascAppId": "6802367826",
+        "appleTeamId": "H6X9JDXF96",
+        "ascApiKeyIssuerId": "574f04c9-0353-4156-9ad6-28ffe3f42850",
+        "ascApiKeyId": "56XGD2G938",
+        "ascApiKeyPath": "/Users/Builder/private/AuthKey_56XGD2G938.p8",
+        "groups": ["Internal Testers", "Raphael Private Beta"]
+      }
+    }
   }
 }
