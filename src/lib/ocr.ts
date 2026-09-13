@@ -419,18 +419,33 @@ export async function processReceiptImage(
 
     // Path 1: on_device — always shows review screen
     if (processingMode !== 'edge') {
-      const available = await FoundationModels.isAvailable();
-      if (available) {
-        const { receipt, markdown } = await processOnDevice(processUri);
-        return { type: 'done', receipt, markdown };
-      }
-      // Foundation Models not available → local OCR + regex, still show review screen
+      // Apple Vision OCR → text lines
       const lines   = await TextRecognition.recognize(processUri);
       const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
+
       if (!rawText.trim()) {
         throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
       }
-      const receipt = parseReceiptText(rawText);
+
+      // Try Foundation Models (on-device LLM, iOS 18.4+) for better parsing
+      // Falls back to regex parser if unavailable or stub
+      let receipt: ParsedReceipt;
+      try {
+        const available = await FoundationModels.isAvailable();
+        if (!available) throw new Error('not available');
+        const jsonStr = await FoundationModels.parseReceiptText(rawText);
+        const parsed = JSON.parse(jsonStr) as ParsedReceipt;
+        parsed.items = (parsed.items ?? []).map((item) => ({
+          ...item,
+          unit:       item.unit ?? 'Stk',
+          unit_price: item.unit_price ?? item.total_price,
+          tags:       item.tags ?? [],
+        }));
+        receipt = parsed;
+      } catch {
+        receipt = parseReceiptText(rawText);
+      }
+
       return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
     }
 

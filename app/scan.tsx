@@ -13,9 +13,9 @@ import {
 import Svg, { Line, Rect } from 'react-native-svg';
 import { Ionicons } from '@/components/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../src/lib/supabase';
-import { processReceiptImage } from '../src/lib/claude';
+import { processReceiptImage, ProcessResult } from '../src/lib/claude';
 import { generateMarkdown } from '../src/lib/markdown';
 import { getTagColor, ALL_TAGS } from '../src/lib/categories';
 import { C, R, S, card } from '../src/constants/design';
@@ -344,11 +344,11 @@ const cropStyles = StyleSheet.create({
 type Step = 'crop' | 'processing' | 'review' | 'saving';
 
 export default function ScanScreen() {
-  const { uri } = useLocalSearchParams<{ uri: string }>();
+  const { uri, precropped } = useLocalSearchParams<{ uri: string; precropped?: string }>();
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
 
-  const [step, setStep]         = useState<Step>('crop');
+  const [step, setStep]         = useState<Step>(precropped === '1' ? 'processing' : 'crop');
   const [receipt, setReceipt]   = useState<ParsedReceipt | null>(null);
   const [markdown, setMarkdown] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -361,25 +361,42 @@ export default function ScanScreen() {
       Image.getSize(
         uri,
         (w, h) => setImageSize({ width: w, height: h }),
-        () => {} // Fallback: defaults
+        () => {}
       );
     }
   }, [uri]);
+
+  // DocumentScanner already cropped — start processing immediately
+  useEffect(() => {
+    if (precropped === '1' && uri) {
+      startProcessing(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startProcessing = useCallback(async (cropRegion: CropRegion | null) => {
     if (!uri) return;
     setStep('processing');
     setErrorMsg('');
     try {
-      const result = await processReceiptImage(uri, cropRegion ?? undefined);
+      const result: ProcessResult = await processReceiptImage(uri, cropRegion ?? undefined);
+
+      if (result.type === 'queued') {
+        // Edge-Queue-Pfad: zur Quittungen-Liste navigieren, Monitor zeigt Fortschritt
+        router.replace('/(tabs)/quittungen' as any);
+        return;
+      }
+
+      // done-Pfad: direkt zum Review-Screen
       setReceipt(result.receipt);
       setMarkdown(result.markdown);
       setStep('review');
     } catch (err: unknown) {
-      setErrorMsg((err as Error)?.message ?? 'Verarbeitung fehlgeschlagen');
+      const msg = (err as Error)?.message ?? '';
+      setErrorMsg(msg || 'Verarbeitung fehlgeschlagen');
       setStep('crop');
     }
-  }, [uri]);
+  }, [uri, router]);
 
   const saveReceipt = useCallback(async () => {
     if (!receipt) return;
@@ -506,7 +523,7 @@ export default function ScanScreen() {
         <Text style={styles.processingPig}>🐷</Text>
         <ActivityIndicator size="large" color={C.gold} style={{ marginTop: 8 }} />
         <Text style={styles.processingText}>Piggy liest deine Quittung…</Text>
-        <Text style={styles.processingHint}>Dauert meist 1–3 Sekunden</Text>
+        <Text style={styles.processingHint}>Bild wird hochgeladen &amp; in die Warteschlange eingereiht</Text>
       </View>
     );
   }

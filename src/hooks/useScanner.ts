@@ -3,20 +3,20 @@ import { Alert, InteractionManager, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import DocumentScanner from 'react-native-document-scanner-plugin';
 
-const isNative     = Platform.OS !== 'web';
-const isExpoGo     = isNative && Constants.appOwnership === 'expo';
+const isNative      = Platform.OS !== 'web';
+const isExpoGo      = isNative && Constants.appOwnership === 'expo';
 const hasDocScanner = isNative && !isExpoGo;
 
 export const ALL_SCAN_SOURCES = [
   { key: 'scan'    as const, label: 'Quittung scannen', icon: 'scan-outline'   as const, color: '#FF9F0A', nativeOnly: true  },
-  { key: 'camera'  as const, label: 'Kamera',           icon: 'camera-outline' as const, color: '#0A84FF', nativeOnly: false },
   { key: 'library' as const, label: 'Bild hochladen',   icon: 'images-outline' as const, color: '#30D158', nativeOnly: false },
 ];
 
 export const SCAN_SOURCES = ALL_SCAN_SOURCES.filter((s) => hasDocScanner || !s.nativeOnly);
 
-export type ScanSource = (typeof ALL_SCAN_SOURCES)[number]['key'];
+export type ScanSource = 'scan' | 'library';
 
 export function useScanner() {
   const router   = useRouter();
@@ -55,11 +55,7 @@ export function useScanner() {
 
     // Web path — use native file/camera input
     if (Platform.OS === 'web') {
-      if (source === 'camera') {
-        launchWebPicker('environment');
-      } else {
-        launchWebPicker('');
-      }
+      launchWebPicker('');
       setPendingSource(null);
       return;
     }
@@ -73,28 +69,19 @@ export function useScanner() {
 
     try {
       if (source === 'scan') {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Kein Kamera-Zugriff', 'Bitte erlaube den Kamera-Zugriff in den iPhone-Einstellungen.');
-          return;
-        }
-        const res = await ImagePicker.launchCameraAsync({ quality: 1, allowsEditing: false });
-        imageUri = res.canceled ? null : (res.assets?.[0]?.uri ?? null);
-      } else if (source === 'library') {
+        const { scannedImages, status } = await DocumentScanner.scanDocument({
+          croppedImageQuality: 100,
+          maxNumDocuments: 1,
+        });
+        if (status === 'cancel') return;
+        imageUri = scannedImages?.[0] ?? null;
+      } else {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
           Alert.alert('Kein Zugriff', 'Bitte erlaube den Zugriff auf die Mediathek in den iPhone-Einstellungen.');
           return;
         }
         const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
-        imageUri = res.canceled ? null : (res.assets?.[0]?.uri ?? null);
-      } else {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Kein Kamera-Zugriff', 'Bitte erlaube den Kamera-Zugriff in den iPhone-Einstellungen.');
-          return;
-        }
-        const res = await ImagePicker.launchCameraAsync({ quality: 0.9, allowsEditing: false });
         imageUri = res.canceled ? null : (res.assets?.[0]?.uri ?? null);
       }
     } catch (err: unknown) {
@@ -110,7 +97,8 @@ export function useScanner() {
     }
 
     if (!imageUri) return;
-    router.push({ pathname: '/scan', params: { uri: imageUri } });
+    // DocumentScanner already crops + corrects perspective → skip manual crop overlay
+    router.push({ pathname: '/scan', params: { uri: imageUri, precropped: source === 'scan' ? '1' : '0' } });
   }, [closeSheet, launchWebPicker, router]);
 
   return { sheetOpen, openSheet, closeSheet, launch, pendingSource };
