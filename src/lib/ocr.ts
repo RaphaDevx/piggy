@@ -10,7 +10,7 @@
  *    → lokaler Regex-Parser (parseReceiptText)
  */
 
-import TextRecognition from '@dariyd/react-native-text-recognition';
+import { recognizeText } from '@dariyd/react-native-text-recognition';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
@@ -367,8 +367,8 @@ async function enqueueForEdge(
 
 async function processOnDevice(imageUri: string): Promise<{ receipt: ParsedReceipt; markdown: string }> {
   // Vision OCR
-  const lines   = await TextRecognition.recognize(imageUri);
-  const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
+  const result  = await recognizeText(imageUri, { recognitionLevel: 'line' });
+  const rawText = result.fullText ?? '';
 
   if (!rawText.trim()) {
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
@@ -404,8 +404,8 @@ export async function processReceiptImage(
 
   // Always on-device: Apple Vision OCR → Foundation Models (iOS 18.4+) → regex
   // Never use edge/queue — that path skips the review screen entirely
-  const lines   = await TextRecognition.recognize(processUri);
-  const rawText = Array.isArray(lines) ? lines.join('\n') : (lines as string);
+  const ocrResult = await recognizeText(processUri, { recognitionLevel: 'line' });
+  const rawText   = ocrResult.fullText ?? '';
 
   if (!rawText.trim()) {
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
