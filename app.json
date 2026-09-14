@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.heartbeat.piggy",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "infoPlist": {
         "NSCameraUsageDescription": "Piggy benötigt Kamera-Zugriff zum Fotografieren von Quittungen.",
         "NSPhotoLibraryUsageDescription": "Piggy benötigt Zugriff auf deine Fotos um Quittungsbilder zu laden.",

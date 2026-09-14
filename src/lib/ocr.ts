@@ -65,23 +65,33 @@ function extractPaymentMethod(lines: string[]): { method: string; card: string |
 
   if (/twint/i.test(text)) return { method: 'TWINT', card: null };
 
+  // PostFinance / PostCard (Schweizer Postbank-Karte)
+  const pcMatch = text.match(/(?:postcard|post\s*finance|yellowone|pfcard)[\s\S]{0,30}(\d{4})/i);
+  if (pcMatch) return { method: 'Karte', card: `PostCard ···· ${pcMatch[1]}` };
+  if (/postcard|post\s*finance|yellowone|pfcard/i.test(text)) return { method: 'Karte', card: 'PostCard' };
+
   const visaMatch = text.match(/visa[\s\S]{0,20}(\d{4})/i);
   if (visaMatch) return { method: 'Karte', card: `Visa ···· ${visaMatch[1]}` };
 
-  const mcMatch = text.match(/mastercard[\s\S]{0,20}(\d{4})/i);
+  const mcMatch = text.match(/mastercard|maestro/i)
+    ? text.match(/(?:mastercard|maestro)[\s\S]{0,20}(\d{4})/i)
+    : null;
   if (mcMatch) return { method: 'Karte', card: `Mastercard ···· ${mcMatch[1]}` };
+  if (/mastercard/i.test(text)) return { method: 'Karte', card: 'Mastercard' };
+  if (/maestro/i.test(text))    return { method: 'Karte', card: 'Maestro' };
 
   // Allgemeine Karte mit letzten 4 Ziffern
   const cardMatch = text.match(/karte[\s\S]{0,30}(\d{4})/i)
     ?? text.match(/card[\s\S]{0,30}(\d{4})/i)
-    ?? text.match(/debit[\s\S]{0,30}(\d{4})/i);
+    ?? text.match(/debit[\s\S]{0,30}(\d{4})/i)
+    ?? text.match(/kredit[\s\S]{0,30}(\d{4})/i);
   if (cardMatch) return { method: 'Karte', card: `···· ${cardMatch[1]}` };
 
   if (/bar|cash|bargeld/i.test(text)) return { method: 'Bargeld', card: null };
   if (/rechnung|invoice/i.test(text)) return { method: 'Rechnung', card: null };
 
   // Karte ohne Nummer erkannt
-  if (/karte|card|ec|debit|kredit/i.test(text)) return { method: 'Karte', card: null };
+  if (/karte|card|ec[\s\b]|debit|kredit/i.test(text)) return { method: 'Karte', card: null };
 
   return { method: 'Unbekannt', card: null };
 }
@@ -125,18 +135,53 @@ function extractTotal(lines: string[]): number {
   return amounts.length > 0 ? Math.max(...amounts) : 0;
 }
 
+// Bekannte Schweizer/DE Läden mit kanonischem Display-Namen
+const KNOWN_STORES: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /coop\s*city/i,           name: 'Coop City' },
+  { pattern: /citypark/i,              name: 'Coop City' },
+  { pattern: /\bcoop\b/i,              name: 'Coop' },
+  { pattern: /migros/i,                name: 'Migros' },
+  { pattern: /denner/i,                name: 'Denner' },
+  { pattern: /volg/i,                  name: 'Volg' },
+  { pattern: /spar\b/i,                name: 'Spar' },
+  { pattern: /aldi/i,                  name: 'Aldi' },
+  { pattern: /lidl/i,                  name: 'Lidl' },
+  { pattern: /manor/i,                 name: 'Manor' },
+  { pattern: /globus/i,                name: 'Globus' },
+  { pattern: /interdiscount/i,         name: 'Interdiscount' },
+  { pattern: /mediamarkt/i,            name: 'MediaMarkt' },
+  { pattern: /digitec/i,               name: 'Digitec' },
+  { pattern: /galaxus/i,               name: 'Galaxus' },
+  { pattern: /apotheke/i,              name: 'Apotheke' },
+  { pattern: /pharmacie/i,             name: 'Pharmacie' },
+  { pattern: /mcdonalds|mcdonald/i,    name: "McDonald's" },
+  { pattern: /starbucks/i,             name: 'Starbucks' },
+  { pattern: /ikea/i,                  name: 'IKEA' },
+  { pattern: /hornbach/i,              name: 'Hornbach' },
+  { pattern: /post\b/i,                name: 'Post' },
+  { pattern: /sbb/i,                   name: 'SBB' },
+  { pattern: /h\s*&\s*m\b/i,           name: 'H&M' },
+  { pattern: /zara\b/i,                name: 'Zara' },
+];
+
 function extractStoreName(lines: string[]): string {
-  // Die ersten 3–5 nicht-leeren Zeilen enthalten meist den Ladennamen
+  const fullText = lines.join(' ');
+
+  // 1. Bekannten Store im gesamten Text suchen
+  for (const { pattern, name } of KNOWN_STORES) {
+    if (pattern.test(fullText)) return name;
+  }
+
+  // 2. Erste nicht-leere Zeilen als Kandidaten (Firmenname steht oft oben)
   const candidates = lines
     .slice(0, 8)
     .map((l) => l.trim())
     .filter((l) => l.length > 2 && l.length < 60)
-    // Keine Zeilen mit nur Zahlen oder typischen Header-Inhalten
-    .filter((l) => !/^\d+$/.test(l) && !/^(Quittung|Receipt|Kassenbon|Datum|Date)/i.test(l));
+    .filter((l) => !/^\d+$/.test(l) && !/^(Quittung|Receipt|Kassenbon|Datum|Date|Tel|Fax|CHF|www\.)/i.test(l));
 
   if (candidates.length === 0) return 'Unbekannt';
 
-  // Bevorzuge Zeile in ALL CAPS (Firmenname)
+  // ALL CAPS bevorzugen (typischer Firmenname auf Quittung)
   const capsLine = candidates.find((l) => l === l.toUpperCase() && l.length > 3);
   return capsLine ?? candidates[0];
 }
@@ -144,14 +189,16 @@ function extractStoreName(lines: string[]): string {
 function guessStoreCategory(storeName: string, text: string): string {
   const combined = (storeName + ' ' + text).toLowerCase();
   if (/migros|coop|aldi|lidl|spar|denner|volg|rewe|edeka|supermarkt/i.test(combined)) return 'Supermarkt';
+  if (/coop\s*city|citypark|manor|globus|warenhaus|kaufhaus/i.test(combined)) return 'Warenhaus';
   if (/drogerie|dm |rossmann|müller|parfümerie/i.test(combined)) return 'Drogerie';
   if (/apotheke|pharmacy|pharma/i.test(combined)) return 'Apotheke';
   if (/bäckerei|bakery|konditorei|confiserie/i.test(combined)) return 'Bäckerei';
   if (/restaurant|bistro|café|cafe|mcdonalds|burger|pizza|sushi/i.test(combined)) return 'Restaurant';
-  if (/tankstelle|petrol|shell|bp |esso|agrola/i.test(combined)) return 'Tankstelle';
+  if (/tankstelle|petrol|shell|bp |esso|agrola|tamoil/i.test(combined)) return 'Tankstelle';
   if (/baumarkt|hornbach|ikea|obi /i.test(combined)) return 'Baumarkt';
-  if (/h&m|zara|uniqlo|kleidung|fashion|manor/i.test(combined)) return 'Kleidung';
-  if (/mediamarkt|galaxus|digitec|electronics/i.test(combined)) return 'Elektronik';
+  if (/h&m|zara|uniqlo|kleidung|fashion/i.test(combined)) return 'Kleidung';
+  if (/mediamarkt|galaxus|digitec|interdiscount|electronics/i.test(combined)) return 'Elektronik';
+  if (/post\b|sbb|billett/i.test(combined)) return 'Transport & Post';
   return 'Diverses';
 }
 
