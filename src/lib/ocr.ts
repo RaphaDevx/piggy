@@ -520,27 +520,70 @@ export async function processReceiptImage(
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
   }
 
-  // 2. Gemini — strukturiert den OCR-Text (user's key aus Supabase-Profil)
+  // 2. Foundation Models (Apple Intelligence, iOS 18.4+, iPhone 15 Pro+)
+  try {
+    const available = await FoundationModels.isAvailable();
+    if (available) {
+      const jsonStr = await FoundationModels.parseReceiptText(rawText);
+      const parsed  = JSON.parse(jsonStr) as ParsedReceipt;
+      parsed.items  = (parsed.items ?? []).map((item) => ({
+        ...item,
+        unit:       item.unit ?? 'Stk',
+        unit_price: item.unit_price ?? item.total_price,
+        tags:       item.tags ?? [],
+      }));
+      return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed) };
+    }
+  } catch {
+    // nicht verfügbar oder Fehler → weiter
+  }
+
+  // 3. Gemini — BYOK (direkter API-Call) oder Demo-Key (via Edge Function, max. 5)
   try {
     const { data: sessionData } = await supabase.auth.getSession();
+    const token  = sessionData?.session?.access_token;
     const userId = sessionData?.session?.user?.id;
-    if (userId) {
+
+    if (userId && token) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('gemini_api_key')
         .eq('id', userId)
         .single();
-      const geminiKey = (profile as any)?.gemini_api_key?.trim();
-      if (geminiKey) {
-        const receipt = await callGeminiText(rawText, geminiKey);
+      const byokKey = (profile as any)?.gemini_api_key?.trim();
+
+      if (byokKey) {
+        // 3a. Eigener Key — direkter Gemini-Call (kein Server involviert)
+        const receipt = await callGeminiText(rawText, byokKey);
         return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+      } else {
+        // 3b. Demo-Key — via Edge Function (trackt Nutzung, max. 5 Scans)
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/scan-receipt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ ocr_text: rawText }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.result) {
+            const receipt = data.result as ParsedReceipt;
+            receipt.items = (receipt.items ?? []).map((item: ParsedReceiptItem) => ({
+              ...item,
+              unit:       item.unit ?? 'Stk',
+              unit_price: item.unit_price ?? item.total_price,
+              tags:       item.tags ?? [],
+            }));
+            return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+          }
+        }
+        // 402 = Demo-Limit erreicht → Regex-Fallback
       }
     }
   } catch {
-    // Kein Key oder Netzwerkfehler → Regex-Fallback
+    // Netzwerkfehler → Regex-Fallback
   }
 
-  // 3. Regex-Fallback (offline / kein Gemini-Key)
+  // 4. Regex-Fallback (offline / Demo-Limit erreicht)
   const receipt = parseReceiptText(rawText);
   return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
 }
