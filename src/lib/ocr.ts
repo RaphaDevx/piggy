@@ -439,6 +439,69 @@ async function processOnDevice(imageUri: string): Promise<{ receipt: ParsedRecei
   }
 }
 
+// ── Gemini-Pfad (Text → strukturiertes Receipt) ──────────────────────────────
+
+const GEMINI_PROMPT = `Du bist ein Quittungs-Scanner für Schweizer und deutsche Quittungen.
+
+Analysiere diesen OCR-Text einer Quittung und extrahiere alle Daten. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt – kein Text davor oder danach, keine Markdown-Codeblöcke.
+
+JSON-Struktur:
+{
+  "store_name": "Name des Geschäfts",
+  "store_category": "Supermarkt|Warenhaus|Drogerie|Apotheke|Baumarkt|Bäckerei|Restaurant|Tankstelle|Elektronik|Kleidung|Diverses",
+  "date": "YYYY-MM-DD oder null",
+  "total_amount": Gesamtbetrag als Zahl,
+  "currency": "CHF oder EUR",
+  "payment_method": "Karte|Bargeld|TWINT|Rechnung|Unbekannt",
+  "payment_card": "z.B. Visa ···· 4242, PostCard ···· 1234 oder null",
+  "items": [
+    {
+      "name": "Artikelname",
+      "quantity": Anzahl als Zahl,
+      "unit": "Stk|kg|g|L|ml|Pack",
+      "unit_price": Stückpreis als Zahl,
+      "total_price": Gesamtpreis dieses Artikels als Zahl,
+      "tags": ["Tag1", "Tag2"]
+    }
+  ]
+}
+
+Verfügbare Tags: Lebensmittel, Gemüse & Obst, Milchprodukte, Fleisch & Fisch, Backwaren, Tiefkühlkost, Konserven, Grundnahrungsmittel, Snacks & Süsswaren, Getränke, Alkohol, Kaffee & Tee, Haushalt, Reinigung, Hygiene, Körperpflege, Medikamente, Nahrungsergänzung, Kleidung, Elektronik, Diverses
+
+Regeln:
+- PostCard = PostFinance-Debitkarte (Schweiz)
+- Alle Preise als Dezimalzahl ohne Währungssymbol
+- Wenn kein Datum erkennbar: null
+- Rabatte mit negativem Preis erfassen
+
+OCR-Text:
+`;
+
+async function callGeminiText(rawText: string, apiKey: string): Promise<ParsedReceipt> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: GEMINI_PROMPT + rawText }] }],
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+
+  const data = await res.json();
+  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  const receipt = JSON.parse(json) as ParsedReceipt;
+  receipt.items = (receipt.items ?? []).map((item) => ({
+    ...item,
+    unit:       item.unit ?? 'Stk',
+    unit_price: item.unit_price ?? item.total_price,
+    tags:       item.tags ?? [],
+  }));
+  return receipt;
+}
+
 // ── Öffentliches Interface ───────────────────────────────────────────────────
 
 export async function processReceiptImage(
@@ -449,8 +512,7 @@ export async function processReceiptImage(
     ? await cropImage(imageUri, cropRegion)
     : imageUri;
 
-  // Always on-device: Apple Vision OCR → Foundation Models (iOS 18.4+) → regex
-  // Never use edge/queue — that path skips the review screen entirely
+  // 1. Vision OCR — on-device, kein Netzwerk nötig
   const ocrResult = await recognizeText(processUri, { recognitionLevel: 'line' });
   const rawText   = ocrResult.fullText ?? '';
 
@@ -458,22 +520,27 @@ export async function processReceiptImage(
     throw new Error('Kein Text erkannt. Bitte Quittung erneut fotografieren.');
   }
 
-  let receipt: ParsedReceipt;
+  // 2. Gemini — strukturiert den OCR-Text (user's key aus Supabase-Profil)
   try {
-    const available = await FoundationModels.isAvailable();
-    if (!available) throw new Error('not available');
-    const jsonStr = await FoundationModels.parseReceiptText(rawText);
-    const parsed = JSON.parse(jsonStr) as ParsedReceipt;
-    parsed.items = (parsed.items ?? []).map((item) => ({
-      ...item,
-      unit:       item.unit ?? 'Stk',
-      unit_price: item.unit_price ?? item.total_price,
-      tags:       item.tags ?? [],
-    }));
-    receipt = parsed;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('gemini_api_key')
+        .eq('id', userId)
+        .single();
+      const geminiKey = (profile as any)?.gemini_api_key?.trim();
+      if (geminiKey) {
+        const receipt = await callGeminiText(rawText, geminiKey);
+        return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+      }
+    }
   } catch {
-    receipt = parseReceiptText(rawText);
+    // Kein Key oder Netzwerkfehler → Regex-Fallback
   }
 
+  // 3. Regex-Fallback (offline / kein Gemini-Key)
+  const receipt = parseReceiptText(rawText);
   return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
 }
