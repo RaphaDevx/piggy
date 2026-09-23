@@ -20,3 +20,4 @@ scraper/.env
 scraper/.session.json
 scraper/receipts/
 scraper/debug/
+scraper/apk_analysis/
