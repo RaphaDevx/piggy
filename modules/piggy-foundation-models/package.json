@@ -1,0 +1,9 @@
+{
+  "name": "piggy-foundation-models",
+  "version": "1.0.0",
+  "description": "Apple Foundation Models bridge for Piggy",
+  "main": "index.ts",
+  "scripts": {},
+  "keywords": [],
+  "license": "MIT"
+}

@@ -22,3 +22,9 @@ scraper/receipts/
 scraper/debug/
 scraper/apk_analysis/
 scraper/jadx/
+
+# Inbox / private receipt images
+01_Inbox/
+
+# Supabase temp / generated
+supabase/.temp/

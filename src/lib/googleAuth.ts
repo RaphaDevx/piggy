@@ -1,54 +1,63 @@
 import { Platform } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from './supabase';
+import { linkIdentityWithIdToken } from './authLinking';
 
 export type GoogleAuthMode = 'signin' | 'link';
 
-/**
- * Führt den Google-OAuth-Flow aus — entweder als Login/Registrierung ('signin')
- * oder um Google als zusätzliche Identität an das eingeloggte Konto zu hängen ('link').
- * 'link' setzt voraus, dass im Supabase-Projekt "Allow manual linking" aktiv ist.
- */
+// iOS native client (no client secret needed, uses PKCE)
+const IOS_CLIENT_ID = '844663909104-0gbgnks89b3ggosos53qfu4f4e7tp4mr.apps.googleusercontent.com';
+// Reversed iOS client ID — registered as URL scheme in app.json
+const IOS_REDIRECT_SCHEME = 'com.googleusercontent.apps.844663909104-0gbgnks89b3ggosos53qfu4f4e7tp4mr';
+
+const GOOGLE_DISCOVERY: AuthSession.DiscoveryDocument = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+};
+
 export async function runGoogleOAuth(mode: GoogleAuthMode): Promise<{ error?: string }> {
-  const oauthOptions = { provider: 'google' as const };
-
   if (Platform.OS === 'web') {
+    const opts = { provider: 'google' as const, options: { redirectTo: window.location.origin } };
     const { error } = mode === 'signin'
-      ? await supabase.auth.signInWithOAuth({ ...oauthOptions, options: { redirectTo: window.location.origin } })
-      : await supabase.auth.linkIdentity({ ...oauthOptions, options: { redirectTo: window.location.origin } });
-    if (error) return { error: error.message };
-    return {}; // Browser leitet weiter — fertig
+      ? await supabase.auth.signInWithOAuth(opts)
+      : await supabase.auth.linkIdentity(opts);
+    return error ? { error: error.message } : {};
   }
 
-  // Native: In-App-Browser öffnen, danach Tokens aus dem Redirect extrahieren
-  const redirectTo = makeRedirectUri({ scheme: 'piggy', path: 'auth/callback' });
-  const { data, error } = mode === 'signin'
-    ? await supabase.auth.signInWithOAuth({ ...oauthOptions, options: { redirectTo, skipBrowserRedirect: true } })
-    : await supabase.auth.linkIdentity({ ...oauthOptions, options: { redirectTo, skipBrowserRedirect: true } });
+  // iOS: direct Google PKCE flow → avoids Supabase redirect URI entirely
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: IOS_REDIRECT_SCHEME });
 
-  if (error || !data?.url) {
-    return { error: error?.message ?? 'OAuth fehlgeschlagen' };
+  const request = new AuthSession.AuthRequest({
+    clientId: IOS_CLIENT_ID,
+    scopes: ['openid', 'profile', 'email'],
+    redirectUri,
+    usePKCE: true,
+  });
+
+  await request.makeAuthUrlAsync(GOOGLE_DISCOVERY);
+  const result = await request.promptAsync(GOOGLE_DISCOVERY);
+
+  if (result.type === 'cancel' || result.type === 'dismiss') return {};
+  if (result.type !== 'success') return { error: 'Google Sign-In abgebrochen' };
+
+  const tokenResponse = await AuthSession.exchangeCodeAsync(
+    {
+      clientId: IOS_CLIENT_ID,
+      code: result.params.code,
+      redirectUri,
+      extraParams: { code_verifier: request.codeVerifier! },
+    },
+    GOOGLE_DISCOVERY,
+  );
+
+  const idToken = tokenResponse.idToken;
+  if (!idToken) return { error: 'Kein ID-Token von Google erhalten' };
+
+  if (mode === 'link') {
+    return linkIdentityWithIdToken('google', idToken);
   }
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type === 'success') {
-    const hash = result.url.split('#')[1] ?? '';
-    const params: Record<string, string> = {};
-    hash.split('&').forEach((p) => {
-      const [k, v] = p.split('=');
-      if (k && v) params[k] = decodeURIComponent(v);
-    });
-    if (params.access_token && params.refresh_token) {
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: params.access_token,
-        refresh_token: params.refresh_token,
-      });
-      if (sessionError) return { error: sessionError.message };
-    } else if (params.error_description) {
-      return { error: decodeURIComponent(params.error_description) };
-    }
-  }
-
-  return {};
+  const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
+  return error ? { error: error.message } : {};
 }

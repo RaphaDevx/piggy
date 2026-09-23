@@ -58,7 +58,16 @@ export default function LoginScreen() {
           provider: 'apple',
           token: credential.identityToken,
         });
-        if (error) Alert.alert('Fehler', error.message);
+        if (error) {
+          if (error.message.toLowerCase().includes('not enabled') || error.message.toLowerCase().includes('provider')) {
+            Alert.alert(
+              'Apple Sign-In nicht aktiviert',
+              'Apple-Anmeldung wird noch eingerichtet. Bitte verwende E-Mail oder Google.',
+            );
+          } else {
+            Alert.alert('Fehler', error.message);
+          }
+        }
       }
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
