@@ -19,7 +19,7 @@ import { processReceiptImage, ProcessResult } from '../src/lib/claude';
 import { generateMarkdown } from '../src/lib/markdown';
 import { getTagColor, ALL_TAGS } from '../src/lib/categories';
 import { C, R, S, card } from '../src/constants/design';
-import type { ParsedReceipt, ParsedReceiptItem } from '../src/types/receipt';
+import type { ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
 import type { CropRegion } from '../src/lib/ocr';
 
 // ── NumericInput ────────────────────────────────────────────────────────────
@@ -348,10 +348,13 @@ export default function ScanScreen() {
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
 
-  const [step, setStep]         = useState<Step>(precropped === '1' ? 'processing' : 'crop');
-  const [receipt, setReceipt]   = useState<ParsedReceipt | null>(null);
-  const [markdown, setMarkdown] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [step, setStep]             = useState<Step>(precropped === '1' ? 'processing' : 'crop');
+  const [receipt, setReceipt]       = useState<ParsedReceipt | null>(null);
+  const [markdown, setMarkdown]     = useState('');
+  const [errorMsg, setErrorMsg]     = useState('');
+  const [processedUri, setProcessedUri] = useState<string | null>(null);
+  const [rawOcrText, setRawOcrText]     = useState('');
+  const [showExtra, setShowExtra]       = useState(false);
 
   // Bildgrösse für Crop-Berechnungen
   const [imageSize, setImageSize] = useState({ width: SCREEN_W, height: SCREEN_H });
@@ -390,6 +393,8 @@ export default function ScanScreen() {
       // done-Pfad: direkt zum Review-Screen
       setReceipt(result.receipt);
       setMarkdown(result.markdown);
+      setProcessedUri(result.processedUri);
+      setRawOcrText(result.rawText);
       setStep('review');
     } catch (err: unknown) {
       const msg = (err as Error)?.message ?? '';
@@ -406,50 +411,69 @@ export default function ScanScreen() {
     const userId = userData.user?.id;
     if (!userId) { setStep('review'); return; }
 
+    const ts = Date.now();
     let imageUrl: string | null = null;
+    let originalImageUrl: string | null = null;
+
     try {
-      if (Platform.OS !== 'web' && uri) {
-        const ext  = uri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
-        const path = `${userId}/${Date.now()}.${ext}`;
-        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-        const fileData = decodeBase64(base64);
-        const { error: uploadError } = await supabase.storage
-          .from('receipt-images')
-          .upload(path, fileData, { contentType: `image/${ext}` });
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from('receipt-images').getPublicUrl(path);
-          imageUrl = urlData?.publicUrl ?? null;
+      if (Platform.OS !== 'web') {
+        // Upload cropped/processed image as primary (best for display)
+        const srcUri = processedUri ?? uri ?? '';
+        if (srcUri) {
+          const ext  = srcUri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+          const path = `${userId}/${ts}.${ext}`;
+          const base64 = await FileSystem.readAsStringAsync(srcUri, { encoding: 'base64' });
+          const { error } = await supabase.storage
+            .from('receipt-images')
+            .upload(path, decodeBase64(base64), { contentType: `image/${ext}` });
+          if (!error) {
+            imageUrl = supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
+          }
+        }
+        // Upload original only if different from processed (manual-crop path)
+        if (uri && processedUri && uri !== processedUri) {
+          const origExt  = uri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+          const origPath = `${userId}/${ts}_orig.${origExt}`;
+          const origBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+          const { error: origError } = await supabase.storage
+            .from('receipt-images')
+            .upload(origPath, decodeBase64(origBase64), { contentType: `image/${origExt}` });
+          if (!origError) {
+            originalImageUrl = supabase.storage.from('receipt-images').getPublicUrl(origPath).data?.publicUrl ?? null;
+          }
         }
       } else if (Platform.OS === 'web' && uri?.startsWith('blob:')) {
         const resp = await fetch(uri);
         const blob = await resp.blob();
         const ext  = blob.type === 'image/png' ? 'png' : 'jpg';
-        const path = `${userId}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
+        const path = `${userId}/${ts}.${ext}`;
+        const { error } = await supabase.storage
           .from('receipt-images')
           .upload(path, blob, { contentType: blob.type });
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from('receipt-images').getPublicUrl(path);
-          imageUrl = urlData?.publicUrl ?? null;
+        if (!error) {
+          imageUrl = supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
         }
       }
     } catch {
-      // non-critical
+      // non-critical — receipt still saves without image
     }
 
     const { data: receiptRow, error: receiptError } = await supabase
       .from('receipts')
       .insert({
-        user_id:          userId,
-        receipt_date:     receipt.date,
-        store_name:       receipt.store_name,
-        store_category:   receipt.store_category,
-        total_amount:     receipt.total_amount,
-        currency:         receipt.currency,
-        payment_method:   receipt.payment_method,
-        payment_card:     receipt.payment_card,
-        image_url:        imageUrl,
-        markdown_content: generateMarkdown(receipt),
+        user_id:            userId,
+        receipt_date:       receipt.date,
+        store_name:         receipt.store_name,
+        store_category:     receipt.store_category,
+        total_amount:       receipt.total_amount,
+        currency:           receipt.currency,
+        payment_method:     receipt.payment_method,
+        payment_card:       receipt.payment_card,
+        image_url:          imageUrl,
+        original_image_url: originalImageUrl,
+        raw_ocr_text:       rawOcrText || null,
+        extra_fields:       receipt.extra ?? null,
+        markdown_content:   generateMarkdown(receipt),
       })
       .select('id')
       .single();
@@ -475,7 +499,7 @@ export default function ScanScreen() {
     }
 
     router.replace({ pathname: '/receipt/[id]', params: { id: receiptRow.id } });
-  }, [receipt, uri, router]);
+  }, [receipt, uri, processedUri, rawOcrText, router]);
 
   function updateItem(index: number, patch: Partial<ParsedReceiptItem>) {
     setReceipt((prev) => {
@@ -629,6 +653,47 @@ export default function ScanScreen() {
                 placeholder="Visa ···· 1234" placeholderTextColor={C.textTertiary} />
             </View>
           </View>
+
+          {/* Weitere Details (collapsible) */}
+          <TouchableOpacity
+            style={styles.extraToggle}
+            onPress={() => setShowExtra((v) => !v)}
+          >
+            <Text style={styles.extraToggleText}>Weitere Details</Text>
+            <Ionicons name={showExtra ? 'chevron-up' : 'chevron-down'} size={16} color={C.textTertiary} />
+          </TouchableOpacity>
+
+          {showExtra && (
+            <View style={styles.extraSection}>
+              {(
+                [
+                  { key: 'cashier_number', label: 'Kassierer-Nr' },
+                  { key: 'receipt_number', label: 'Bon-Nr' },
+                  { key: 'vat_number',     label: 'MwSt-Nr / UID' },
+                  { key: 'store_address',  label: 'Adresse' },
+                  { key: 'store_email',    label: 'E-Mail' },
+                  { key: 'store_phone',    label: 'Telefon' },
+                  { key: 'store_website',  label: 'Website' },
+                ] as { key: keyof ReceiptExtraFields; label: string }[]
+              ).map(({ key, label }) => (
+                <View key={key}>
+                  <Text style={styles.fieldLabel}>{label}</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={(receipt.extra?.[key] ?? '') as string}
+                    onChangeText={(v) =>
+                      setReceipt((p) =>
+                        p ? { ...p, extra: { ...p.extra, [key]: v || null } as ReceiptExtraFields } : p
+                      )
+                    }
+                    placeholder="—"
+                    placeholderTextColor={C.textTertiary}
+                    autoCapitalize="none"
+                  />
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Items */}
@@ -767,4 +832,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: `${C.gold}44`,
   },
   addItemText: { color: C.gold, fontSize: S.md, fontWeight: '600' },
+
+  extraToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  extraToggleText: { fontSize: S.sm, fontWeight: '600', color: C.textTertiary },
+  extraSection: { gap: 10, paddingTop: 4 },
 });

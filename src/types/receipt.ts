@@ -1,3 +1,13 @@
+export interface ReceiptExtraFields {
+  cashier_number: string | null;
+  receipt_number: string | null;
+  vat_number: string | null;
+  store_address: string | null;
+  store_email: string | null;
+  store_phone: string | null;
+  store_website: string | null;
+}
+
 export interface Receipt {
   id: string;
   user_id: string;
@@ -9,6 +19,9 @@ export interface Receipt {
   payment_method: string | null;
   payment_card: string | null;
   image_url: string | null;
+  original_image_url: string | null;
+  raw_ocr_text: string | null;
+  extra_fields: ReceiptExtraFields | null;
   markdown_content: string | null;
   notes: string | null;
   created_at: string;
@@ -35,6 +48,7 @@ export interface ParsedReceipt {
   payment_method: string;
   payment_card: string | null;
   items: ParsedReceiptItem[];
+  extra?: ReceiptExtraFields | null;
 }
 
 export interface ParsedReceiptItem {

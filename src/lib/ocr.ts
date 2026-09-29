@@ -24,7 +24,7 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 // ── Public result type ────────────────────────────────────────────────────────
 
 export type ProcessResult =
-  | { type: 'done'; receipt: ParsedReceipt; markdown: string }
+  | { type: 'done'; receipt: ParsedReceipt; markdown: string; rawText: string; processedUri: string }
   | { type: 'queued'; queueId: string };
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -330,11 +330,12 @@ async function cropImage(imageUri: string, crop: CropRegion | null): Promise<str
     const result = await ImageManipulator.manipulateAsync(
       imageUri,
       [{ crop }],
-      { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
+      // compress: 1.0 preserves full color fidelity — important for receipts on non-white paper
+      { compress: 1.0, format: ImageManipulator.SaveFormat.JPEG }
     );
     return result.uri;
   } catch {
-    return imageUri; // Fallback: Original
+    return imageUri;
   }
 }
 
@@ -463,7 +464,16 @@ JSON-Struktur:
       "total_price": Gesamtpreis dieses Artikels als Zahl,
       "tags": ["Tag1", "Tag2"]
     }
-  ]
+  ],
+  "extra": {
+    "cashier_number": "Kassierer-/Kassen-Nr oder null",
+    "receipt_number": "Bon-/Quittungsnummer oder null",
+    "vat_number": "MwSt-Nr/UID des Geschäfts oder null",
+    "store_address": "Vollständige Adresse oder null",
+    "store_email": "E-Mail-Adresse des Geschäfts oder null",
+    "store_phone": "Telefonnummer oder null",
+    "store_website": "Website-URL oder null"
+  }
 }
 
 Verfügbare Tags: Lebensmittel, Gemüse & Obst, Milchprodukte, Fleisch & Fisch, Backwaren, Tiefkühlkost, Konserven, Grundnahrungsmittel, Snacks & Süsswaren, Getränke, Alkohol, Kaffee & Tee, Haushalt, Reinigung, Hygiene, Körperpflege, Medikamente, Nahrungsergänzung, Kleidung, Elektronik, Diverses
@@ -473,6 +483,7 @@ Regeln:
 - Alle Preise als Dezimalzahl ohne Währungssymbol
 - Wenn kein Datum erkennbar: null
 - Rabatte mit negativem Preis erfassen
+- Alle extra-Felder auf null setzen wenn nicht auf Quittung vorhanden
 
 OCR-Text:
 `;
@@ -532,13 +543,13 @@ export async function processReceiptImage(
         unit_price: item.unit_price ?? item.total_price,
         tags:       item.tags ?? [],
       }));
-      return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed) };
+      return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed), rawText, processedUri: processUri };
     }
   } catch {
     // nicht verfügbar oder Fehler → weiter
   }
 
-  // 3. Gemini — BYOK (direkter API-Call) oder Demo-Key (via Edge Function, max. 5)
+  // 3. Gemini — BYOK (direkter API-Call) oder Demo-Key (via Edge Function)
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token  = sessionData?.session?.access_token;
@@ -555,9 +566,9 @@ export async function processReceiptImage(
       if (byokKey) {
         // 3a. Eigener Key — direkter Gemini-Call (kein Server involviert)
         const receipt = await callGeminiText(rawText, byokKey);
-        return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+        return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
       } else {
-        // 3b. Demo-Key — via Edge Function (trackt Nutzung, max. 5 Scans)
+        // 3b. Demo-Key — via Edge Function (trackt Nutzung, max. Tageslimit)
         const res = await fetch(`${SUPABASE_URL}/functions/v1/scan-receipt`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -573,7 +584,7 @@ export async function processReceiptImage(
               unit_price: item.unit_price ?? item.total_price,
               tags:       item.tags ?? [],
             }));
-            return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+            return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
           }
         }
         // 402 = Demo-Limit erreicht → Regex-Fallback
@@ -585,5 +596,5 @@ export async function processReceiptImage(
 
   // 4. Regex-Fallback (offline / Demo-Limit erreicht)
   const receipt = parseReceiptText(rawText);
-  return { type: 'done', receipt, markdown: generateMarkdown(receipt) };
+  return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
 }

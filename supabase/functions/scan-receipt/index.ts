@@ -1,8 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const SERVER_GEMINI_KEY   = Deno.env.get('GEMINI_API_KEY') ?? '';
+const SERVER_ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +38,16 @@ JSON-Struktur:
       "total_price": Gesamtpreis dieses Artikels als Zahl,
       "tags": ["Tag1", "Tag2"]
     }
-  ]
+  ],
+  "extra": {
+    "cashier_number": "Kassierer-/Kassen-Nr oder null",
+    "receipt_number": "Bon-/Quittungsnummer oder null",
+    "vat_number": "MwSt-Nr/UID des Geschäfts oder null",
+    "store_address": "Vollständige Adresse oder null",
+    "store_email": "E-Mail-Adresse des Geschäfts oder null",
+    "store_phone": "Telefonnummer oder null",
+    "store_website": "Website-URL oder null"
+  }
 }
 
 Verfügbare Tags (weise jedem Artikel 1-3 passende Tags zu):
@@ -55,7 +64,49 @@ Regeln:
 - Bei unleserlichen Teilen: beste Schätzung verwenden
 - Alle Preise als Dezimalzahl ohne Währungssymbol (3.50 nicht "CHF 3.50")
 - Wenn kein Datum erkennbar: null
-- PostCard, PostFinance, YELLOWONE, Maestro → payment_method: "Karte", payment_card entsprechend`;
+- PostCard, PostFinance, YELLOWONE, Maestro → payment_method: "Karte", payment_card entsprechend
+- Alle extra-Felder auf null setzen wenn nicht auf Quittung vorhanden`;
+
+// ── LLM-Aufrufe ──────────────────────────────────────────────────────────────
+
+async function callAnthropic(ocrText: string, apiKey: string, model: string): Promise<unknown> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type':      'application/json',
+      'x-api-key':         apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: RECEIPT_PROMPT + '\n\nOCR-Text:\n' + ocrText }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text: string = data?.content?.[0]?.text ?? '';
+  const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  return JSON.parse(json);
+}
+
+async function callGemini(ocrText: string, apiKey: string, model: string): Promise<unknown> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: RECEIPT_PROMPT + '\n\nOCR-Text:\n' + ocrText }] }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  return JSON.parse(json);
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
@@ -73,66 +124,52 @@ Deno.serve(async (req: Request) => {
   if (authError || !user) return jsonResponse({ error: 'Invalid token' }, 401);
 
   const body = await req.json().catch(() => ({}));
+  if (!body.ocr_text) return jsonResponse({ error: 'ocr_text erforderlich' }, 400);
 
-  if (body.ocr_text) {
-    // Konfiguration aus app_settings lesen
-    const { data: settingsRows } = await adminClient
-      .from('app_settings')
-      .select('key, value');
-    const cfg: Record<string, string> = Object.fromEntries(
-      (settingsRows ?? []).map((r: any) => [r.key, r.value])
-    );
-    const freeLimit   = parseInt(cfg['free_scans_limit'] ?? '10', 10);
-    const activeModel = cfg['active_model'] ?? 'gemini-2.0-flash';
+  // Konfiguration aus app_settings
+  const { data: settingsRows } = await adminClient.from('app_settings').select('key, value');
+  const cfg: Record<string, string> = Object.fromEntries(
+    (settingsRows ?? []).map((r: any) => [r.key, r.value])
+  );
+  const freeLimit   = parseInt(cfg['free_scans_limit'] ?? '10', 10);
+  const activeModel = cfg['active_model'] ?? 'claude-3-5-haiku-20241022';
 
-    // BYOK-Check
-    const { data: profileData } = await adminClient
-      .from('profiles')
-      .select('gemini_api_key')
-      .eq('id', user.id)
-      .single();
-    const byokKey = (profileData as any)?.gemini_api_key?.trim() || '';
+  // BYOK-Check: Gemini Key vom User?
+  const { data: profileData } = await adminClient
+    .from('profiles')
+    .select('gemini_api_key')
+    .eq('id', user.id)
+    .single();
+  const byokKey = (profileData as any)?.gemini_api_key?.trim() || '';
 
-    let geminiKey: string;
-
+  try {
     if (byokKey) {
-      geminiKey = byokKey;
-    } else {
-      // Atomarer Check + Increment via RPC
-      const { data: allowed, error: rpcError } = await adminClient
-        .rpc('check_and_increment_scan', { user_uuid: user.id, daily_limit: freeLimit });
-
-      if (rpcError || !allowed) {
-        return jsonResponse({
-          error:      'demo_limit_reached',
-          message:    `Tageslimit von ${freeLimit} kostenlosen Scans erreicht. Morgen wieder verfügbar oder eigenen Gemini API Key im Profil hinterlegen.`,
-          demo_limit: freeLimit,
-        }, 402);
-      }
-      geminiKey = SERVER_GEMINI_KEY;
-      if (!geminiKey) return jsonResponse({ error: 'Kein Server-Key konfiguriert' }, 503);
-    }
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${geminiKey}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: RECEIPT_PROMPT + '\n\nOCR-Text:\n' + body.ocr_text }] }],
-        }),
-      });
-      if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
-      const data    = await res.json();
-      const text    = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      const json    = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-      const receipt = JSON.parse(json);
-
+      // BYOK: User hat eigenen Gemini Key hinterlegt → direkter Call, kein Limit
+      const receipt = await callGemini(body.ocr_text, byokKey, 'gemini-2.0-flash');
       return jsonResponse({ status: 'done', result: receipt });
-    } catch (err) {
-      return jsonResponse({ error: (err as Error).message }, 500);
     }
-  }
 
-  return jsonResponse({ error: 'ocr_text erforderlich' }, 400);
+    // Server-Key: atomarer Scan-Zähler
+    const { data: allowed, error: rpcError } = await adminClient
+      .rpc('check_and_increment_scan', { user_uuid: user.id, daily_limit: freeLimit });
+
+    if (rpcError || !allowed) {
+      return jsonResponse({
+        error:      'demo_limit_reached',
+        message:    `Tageslimit von ${freeLimit} kostenlosen Scans erreicht. Morgen wieder verfügbar oder eigenen Gemini API Key im Profil hinterlegen.`,
+        demo_limit: freeLimit,
+      }, 402);
+    }
+
+    if (!SERVER_ANTHROPIC_KEY) return jsonResponse({ error: 'Kein Server-Key konfiguriert' }, 503);
+
+    // Server-Key: Anthropic (Claude Haiku — schnell, günstig)
+    const receipt = await callAnthropic(body.ocr_text, SERVER_ANTHROPIC_KEY, activeModel);
+    return jsonResponse({ status: 'done', result: receipt });
+
+  } catch (err) {
+    const msg = (err as Error).message;
+    console.error('scan-receipt error:', msg);
+    return jsonResponse({ error: msg }, 500);
+  }
 });
