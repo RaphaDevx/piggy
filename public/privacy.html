@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piggy – Datenschutzerklärung / Privacy Policy</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a; line-height: 1.7; }
+  h1 { font-size: 2em; font-weight: 800; margin-bottom: 0.2em; }
+  h2 { font-size: 1.2em; font-weight: 700; margin-top: 2em; color: #333; }
+  p, li { color: #444; }
+  .lang-switch { display: flex; gap: 12px; margin-bottom: 32px; }
+  .lang-btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; background: #f0f0f0; }
+  .lang-btn.active { background: #1a1a1a; color: #fff; }
+  section { display: none; }
+  section.active { display: block; }
+  .updated { font-size: 0.9em; color: #888; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<h1>🐷 Piggy</h1>
+<div class="lang-switch">
+  <button class="lang-btn active" onclick="show('de')">Deutsch</button>
+  <button class="lang-btn" onclick="show('en')">English</button>
+</div>
+
+<section id="de" class="active">
+  <p class="updated">Zuletzt aktualisiert: September 2026</p>
+  <h2>1. Verantwortliche Stelle</h2>
+  <p>Raphael Kaufmann, Schweiz · raphaelk01@outlook.de</p>
+  <h2>2. Welche Daten wir erheben</h2>
+  <ul>
+    <li><strong>Konto-Daten:</strong> E-Mail-Adresse, Name (bei Anmeldung via Google oder Apple ID)</li>
+    <li><strong>Quittungsdaten:</strong> Fotos von Quittungen, erkannte Texte (Händler, Betrag, Datum, Artikel)</li>
+    <li><strong>Nutzungsdaten:</strong> Erstellte Projekte, Kategorien, Notizen zu Ausgaben</li>
+  </ul>
+  <h2>3. Wozu wir die Daten verwenden</h2>
+  <ul>
+    <li>Speicherung und Anzeige deiner Quittungen und Ausgaben</li>
+    <li>Texterkennung (OCR) auf deinen Quittungsfotos</li>
+    <li>Authentifizierung via E-Mail, Google Sign-In oder Apple Sign-In</li>
+  </ul>
+  <h2>4. Datenspeicherung</h2>
+  <p>Alle Daten werden in der <strong>Schweiz (eu-central-2)</strong> auf Supabase-Servern gespeichert. Quittungsfotos werden in verschlüsseltem Supabase Storage abgelegt. Zugriff auf deine Daten haben nur die in Abschnitt 6 genannten Dienstleister (Auftragsverarbeiter), soweit dies für den Betrieb der App nötig ist; wir verkaufen keine Daten.</p>
+  <h2>5. Kamera- und Fotobibliothek-Zugriff</h2>
+  <p>Die App benötigt Kamera-Zugriff ausschließlich für das Fotografieren von Quittungen. Fotos werden nur auf ausdrückliche Nutzeraktion aufgenommen und nicht automatisch gespeichert oder geteilt.</p>
+    <h2>6. KI-Verarbeitung</h2>
+  <p>Beim Scannen wird der per Apple Vision <strong>auf deinem Gerät</strong> erkannte Quittungstext an <strong>Google Gemini</strong> (Google LLC / Google Ireland Limited, Gemini API) übermittelt, um Händler, Betrag, Datum und Artikel zu strukturieren. In einem alternativen Verarbeitungsweg sowie beim Import von <strong>Kontoauszügen</strong> (PDF/Bild) werden das Bild bzw. das Dokument an <strong>Anthropic</strong> (Claude API) übermittelt. Wenn du einen eigenen Gemini-API-Key hinterlegst, geht der Text direkt von deinem Gerät an Google, unter deinem eigenen Konto. Die Anbieter verwenden Daten aus der API-Nutzung laut ihren API-Bedingungen nicht zum Training ihrer Modelle.</p>
+  <p>Die Übermittlung erfolgt erst nach deiner ausdrücklichen Einwilligung in der App. Du kannst die Einwilligung jederzeit widerrufen; danach wird nur noch die lokale Regex-Erkennung auf dem Gerät verwendet.</p>
+  <h2>7. Drittanbieter</h2>
+  <ul>
+    <li><strong>Supabase:</strong> Datenbankspeicherung (Schweiz)</li>
+    <li><strong>Google (Gemini API) / Anthropic (Claude API):</strong> KI-Verarbeitung, siehe Abschnitt 6</li>
+    <li><strong>Apple Sign-In / Google Sign-In:</strong> Authentifizierung (optional)</li>
+  </ul>
+    <h2>8. Konto löschen</h2>
+  <p>In der App unter <strong>Profil → „Konto löschen“</strong>. Dabei werden dein Konto sowie alle Quittungen, Bilder, Kontoauszüge, Projekte, Freundschaften und Splits unwiderruflich gelöscht. Bei Apple-Login wird zusätzlich die Apple-Verknüpfung widerrufen.</p>
+  <h2>9. Deine Rechte</h2>
+  <p>Du kannst dein Konto und alle gespeicherten Daten jederzeit in der App löschen (siehe Abschnitt 8). Anfragen an: raphaelk01@outlook.de</p>
+  <h2>10. Kontakt</h2>
+  <p>Raphael Kaufmann · raphaelk01@outlook.de</p>
+</section>
+
+<section id="en">
+  <p class="updated">Last updated: September 2026</p>
+  <h2>1. Controller</h2>
+  <p>Raphael Kaufmann, Switzerland · raphaelk01@outlook.de</p>
+  <h2>2. Data We Collect</h2>
+  <ul>
+    <li><strong>Account data:</strong> Email address, name (when signing in via Google or Apple ID)</li>
+    <li><strong>Receipt data:</strong> Photos of receipts, recognized text (merchant, amount, date, items)</li>
+    <li><strong>Usage data:</strong> Projects, categories, expense notes</li>
+  </ul>
+  <h2>3. How We Use Your Data</h2>
+  <ul>
+    <li>Storing and displaying your receipts and expenses</li>
+    <li>OCR text recognition on your receipt photos</li>
+    <li>Authentication via email, Google Sign-In, or Apple Sign-In</li>
+  </ul>
+  <h2>4. Data Storage</h2>
+  <p>All data is stored in <strong>Switzerland (eu-central-2)</strong> on Supabase servers. Receipt photos are stored in encrypted Supabase Storage. Only the service providers listed in section 6 (processors) have access to your data, and only as far as needed to operate the app; we never sell data.</p>
+  <h2>5. Camera and Photo Library Access</h2>
+  <p>The app requires camera access solely for photographing receipts. Photos are only taken on explicit user action and are never automatically stored or shared.</p>
+    <h2>6. AI Processing</h2>
+  <p>When you scan, the receipt text recognized <strong>on your device</strong> by Apple Vision is sent to <strong>Google Gemini</strong> (Google LLC / Google Ireland Limited, Gemini API) to structure merchant, amount, date and items. In an alternative processing path and when importing <strong>bank statements</strong> (PDF/image), the image or document is sent to <strong>Anthropic</strong> (Claude API). If you provide your own Gemini API key, the text goes directly from your device to Google under your own account. According to their API terms, the providers do not use API data to train their models.</p>
+  <p>Data is only transmitted after your explicit consent in the app. You can withdraw consent at any time; afterwards only local on-device regex recognition is used.</p>
+  <h2>7. Third Parties</h2>
+  <ul>
+    <li><strong>Supabase:</strong> Database storage (Switzerland)</li>
+    <li><strong>Google (Gemini API) / Anthropic (Claude API):</strong> AI processing, see section 6</li>
+    <li><strong>Apple Sign-In / Google Sign-In:</strong> Authentication (optional)</li>
+  </ul>
+    <h2>8. Delete Account</h2>
+  <p>In the app under <strong>Profile → "Delete account"</strong>. This irreversibly deletes your account and all receipts, images, bank statements, projects, friendships and splits. With Apple sign-in, the Apple link is additionally revoked.</p>
+  <h2>9. Your Rights</h2>
+  <p>You can delete your account and all stored data at any time in the app (see section 8). Contact: raphaelk01@outlook.de</p>
+  <h2>10. Contact</h2>
+  <p>Raphael Kaufmann · raphaelk01@outlook.de</p>
+</section>
+
+<script>
+function show(lang) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(lang).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

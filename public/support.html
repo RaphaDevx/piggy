@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piggy – Support</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a; line-height: 1.7; }
+  h1 { font-size: 2em; font-weight: 800; margin-bottom: 0.2em; }
+  h2 { font-size: 1.2em; font-weight: 700; margin-top: 2em; color: #333; }
+  p, li { color: #444; }
+  .lang-switch { display: flex; gap: 12px; margin-bottom: 32px; }
+  .lang-btn { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; background: #f0f0f0; }
+  .lang-btn.active { background: #1a1a1a; color: #fff; }
+  section { display: none; }
+  section.active { display: block; }
+  .updated { font-size: 0.9em; color: #888; margin-bottom: 2em; }
+</style>
+</head>
+<body>
+<h1>🐷 Piggy</h1>
+<div class="lang-switch">
+  <button class="lang-btn active" onclick="show('de')">Deutsch</button>
+  <button class="lang-btn" onclick="show('en')">English</button>
+</div>
+
+<section id="de" class="active">
+  <h2>Über Piggy</h2>
+  <p>Piggy ist eine App zum Scannen von Quittungen und zum Verwalten deiner Ausgaben: Betrag, Händler, Datum und Artikel werden automatisch erfasst, Ausgaben lassen sich in Projekten organisieren und mit Freunden teilen.</p>
+  <h2>Kontakt</h2>
+  <p>Fragen, Probleme oder Feedback: <a href="mailto:raphaelk01@outlook.de">raphaelk01@outlook.de</a></p>
+  <h2>Häufige Fragen</h2>
+  <p><strong>Wie scanne ich eine Quittung?</strong><br>Im Scan-Tab die Quittung fotografieren oder ein Bild aus der Fotomediathek wählen. Piggy erkennt die Daten automatisch; du kannst sie vor dem Speichern prüfen und korrigieren.</p>
+  <p><strong>Wie lösche ich mein Konto?</strong><br>In der App unter Profil → „Konto löschen“. Konto und alle zugehörigen Daten werden unwiderruflich gelöscht.</p>
+  <p><strong>Was passiert mit meinen Daten?</strong><br>Deine Daten werden in der Schweiz gespeichert und nicht verkauft. Details, auch zur KI-Verarbeitung, findest du in der <a href="privacy.html">Datenschutzerklärung</a>.</p>
+  <h2>Datenschutz</h2>
+  <p><a href="privacy.html">Datenschutzerklärung</a></p>
+</section>
+
+<section id="en">
+  <h2>About Piggy</h2>
+  <p>Piggy is an app for scanning receipts and managing your expenses: amount, merchant, date and items are captured automatically, expenses can be organized into projects and shared with friends.</p>
+  <h2>Contact</h2>
+  <p>Questions, problems or feedback: <a href="mailto:raphaelk01@outlook.de">raphaelk01@outlook.de</a></p>
+  <h2>FAQ</h2>
+  <p><strong>How do I scan a receipt?</strong><br>In the Scan tab, take a photo of the receipt or pick an image from your photo library. Piggy recognizes the data automatically; you can review and correct it before saving.</p>
+  <p><strong>How do I delete my account?</strong><br>In the app under Profile → "Delete account". Your account and all associated data are irreversibly deleted.</p>
+  <p><strong>What happens to my data?</strong><br>Your data is stored in Switzerland and never sold. Details, including AI processing, are in the <a href="privacy.html">Privacy Policy</a>.</p>
+  <h2>Privacy</h2>
+  <p><a href="privacy.html">Privacy Policy</a></p>
+</section>
+
+<script>
+function show(lang) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(lang).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

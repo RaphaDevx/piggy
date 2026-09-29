@@ -17,6 +17,7 @@ import { Platform } from 'react-native';
 import type { ParsedReceipt, ParsedReceiptItem } from '../types/receipt';
 import { generateMarkdown } from './markdown';
 import { supabase } from './supabase';
+import { ensureAiConsent } from './aiConsent';
 import { FoundationModels } from '../native/FoundationModels';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -549,13 +550,13 @@ export async function processReceiptImage(
     // nicht verfügbar oder Fehler → weiter
   }
 
-  // 3. Gemini — BYOK (direkter API-Call) oder Demo-Key (via Edge Function)
+  // 3. Gemini — BYOK (direkter API-Call) oder Demo-Key (via Edge Function), nur mit Einwilligung
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token  = sessionData?.session?.access_token;
     const userId = sessionData?.session?.user?.id;
 
-    if (userId && token) {
+    if (userId && token && await ensureAiConsent()) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('gemini_api_key')

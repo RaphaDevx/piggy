@@ -17,12 +17,15 @@ import { useFriends } from '../../src/hooks/useFriends';
 import { useProfileCards } from '../../src/hooks/useSharedReceipts';
 import { Toast } from '../../src/components/Toast';
 import { FoundationModels } from '../../src/native/FoundationModels';
+import { getAiConsent, setAiConsent } from '../../src/lib/aiConsent';
 
 export default function ProfilScreen() {
   const insets  = useSafeAreaInsets();
   const router  = useRouter();
   const [email, setEmail]   = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [aiConsent, setAiConsentState] = useState(false);
   const [googleLinked, setGoogleLinked] = useState(false);
   const [appleLinked, setAppleLinked]   = useState(false);
   const [identityCount, setIdentityCount] = useState(0);
@@ -92,7 +95,13 @@ export default function ProfilScreen() {
   // Check Foundation Models availability on mount
   useEffect(() => {
     FoundationModels.isAvailable().then(setOnDeviceAvailable);
+    getAiConsent().then((c) => setAiConsentState(c === 'granted'));
   }, []);
+
+  async function toggleAiConsent(granted: boolean) {
+    setAiConsentState(granted);
+    await setAiConsent(granted ? 'granted' : 'denied');
+  }
 
   useFocusEffect(useCallback(() => { loadAccount(); }, [loadAccount]));
 
@@ -108,6 +117,48 @@ export default function ProfilScreen() {
         },
       },
     ]);
+  }
+
+  // App Store Guideline 5.1.1(v): Konto in der App löschbar
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Konto löschen',
+      'Dein Konto und alle Daten (Quittungen, Bilder, Kontoauszüge, Projekte, Freunde, Splits) werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        { text: 'Endgültig löschen', style: 'destructive', onPress: deleteAccount },
+      ],
+    );
+  }
+
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      // Apple verlangt beim Löschen den Widerruf des Sign-in-with-Apple-Tokens.
+      // Dafür braucht der Server einen frischen Authorization Code.
+      let appleAuthorizationCode: string | undefined;
+      if (appleLinked && Platform.OS === 'ios') {
+        try {
+          const credential = await AppleAuthentication.signInAsync();
+          appleAuthorizationCode = credential.authorizationCode ?? undefined;
+        } catch (e: any) {
+          if (e.code === 'ERR_REQUEST_CANCELED') return;
+          throw e;
+        }
+      }
+
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: { confirm: 'DELETE', apple_authorization_code: appleAuthorizationCode },
+      });
+      if (error) throw error;
+
+      await supabase.auth.signOut({ scope: 'local' });
+      router.replace('/(auth)/login' as any);
+    } catch {
+      Alert.alert('Fehler', 'Konto konnte nicht gelöscht werden. Bitte versuche es erneut oder kontaktiere raphaelk01@outlook.de.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function saveName() {
@@ -477,6 +528,16 @@ export default function ProfilScreen() {
             <Text style={[styles.rowText, { color: C.error }]}>Abmelden</Text>
             <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
           </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={confirmDeleteAccount} disabled={deleting}>
+            <View style={[styles.iconBox, { backgroundColor: '#FF3B3012' }]}>
+              {deleting
+                ? <ActivityIndicator size="small" color={C.error} />
+                : <Ionicons name="trash-outline" size={20} color={C.error} />}
+            </View>
+            <Text style={[styles.rowText, { color: C.error }]}>Konto löschen</Text>
+            <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -484,6 +545,19 @@ export default function ProfilScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Verarbeitung</Text>
         <View style={[card, styles.cardInner]}>
+
+          {/* KI-Einwilligung (Guideline 5.1.2) */}
+          <View style={styles.row}>
+            <View style={[styles.iconBox, { backgroundColor: aiConsent ? '#34C75912' : C.bgAccent }]}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={aiConsent ? '#34C759' : C.textTertiary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowText}>KI-Erkennung erlauben</Text>
+              <Text style={styles.rowSub}>Quittungstext an Google Gemini, Kontoauszüge an Anthropic Claude</Text>
+            </View>
+            <Switch value={aiConsent} onValueChange={toggleAiConsent} />
+          </View>
+          <View style={styles.divider} />
 
           {/* Edge Computing */}
           <TouchableOpacity style={styles.row} onPress={() => saveProcessingMode('edge')}>

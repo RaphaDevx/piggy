@@ -3,6 +3,10 @@ jest.mock('./src/lib/supabase', () => ({
   supabase: { from: jest.fn(), storage: { from: jest.fn() }, auth: { getSession: jest.fn() } },
 }));
 
+jest.mock('./src/lib/aiConsent', () => ({
+  ensureAiConsent: jest.fn().mockResolvedValue(true),
+}));
+
 jest.mock('./src/lib/markdown', () => ({
   generateMarkdown: jest.fn().mockReturnValue('## Quittung\n'),
 }));

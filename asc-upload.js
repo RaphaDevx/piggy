@@ -15,7 +15,7 @@ const KEY_PATH   = '/home/raphael/K-Dev/private/AuthKey_56XGD2G938.p8';
 const APP_ID     = '6802367826';
 const VERSION_ID = 'adc71d9b-b1fc-4bd3-a705-54c1042b8e85';
 const DE_LOC_ID  = 'd70c2e5e-682c-4b8b-9efe-4b10b891d8d7';
-const SS_DIR     = '/home/raphael/Piggy/screenshots/appstore';
+const SS_DIR     = path.join(__dirname, 'screenshots', 'appstore');
 
 const SCREENSHOTS = {
   APP_IPHONE_69: ['6.9-1-home.png','6.9-2-quittungen.png','6.9-3-profil.png','6.9-4-projekte.png'],
@@ -127,7 +127,7 @@ async function main() {
         keywords: 'ausgaben,quittungen,budget,finanzen,scanner,haushalt,belege,kosten',
         marketingUrl: null,
         promotionalText: 'Neu: Automatische Texterkennung direkt beim Fotografieren',
-        supportUrl: 'https://piggy-38h.pages.dev',
+        supportUrl: 'https://piggy-38h.pages.dev/support.html',
       },
     },
   };
@@ -157,7 +157,7 @@ async function main() {
     keywords: 'expenses,receipts,budget,finance,scanner,spending,tracker,bills',
     marketingUrl: null,
     promotionalText: 'New: Automatic text recognition when you take a photo',
-    supportUrl: 'https://piggy-38h.pages.dev',
+    supportUrl: 'https://piggy-38h.pages.dev/support.html',
   };
 
   if (enLocId) {

@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from './supabase';
+import { ensureAiConsent } from './aiConsent';
 import type { ParsedStatement, AccountType } from '../types/bank';
 
 async function fileToBase64(uri: string, fallbackMimeType: string): Promise<{ base64: string; mimeType: string }> {
@@ -35,6 +36,9 @@ export async function processStatementFile(
   mimeType: string,
   accountType: AccountType
 ): Promise<ParsedStatement> {
+  if (!await ensureAiConsent()) {
+    throw new Error('Kontoauszug-Analyse braucht die KI-Einwilligung (Profil → Verarbeitung).');
+  }
   const { base64, mimeType: resolvedMime } = await fileToBase64(uri, mimeType);
 
   const { data, error } = await supabase.functions.invoke('process-statement', {
