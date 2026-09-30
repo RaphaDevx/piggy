@@ -119,7 +119,7 @@ async function uploadNativeImage(srcUri: string, path: string, ext: string): Pro
       const base64 = await FileSystem.readAsStringAsync(srcUri, { encoding: 'base64' });
       const { error } = await supabase.storage
         .from('receipt-images')
-        .upload(path, decodeBase64(base64), { contentType: `image/${ext}`, upsert: true });
+        .upload(path, decodeBase64(base64), { contentType: ext === 'jpg' ? 'image/jpeg' : `image/${ext}`, upsert: true });
       if (error) throw error;
       return supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
     } catch (e) {
