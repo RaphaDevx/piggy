@@ -557,12 +557,12 @@ export async function processReceiptImage(
     const userId = sessionData?.session?.user?.id;
 
     if (userId && token && await ensureAiConsent()) {
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: settings } = await supabase
+        .from('user_settings')
         .select('gemini_api_key')
-        .eq('id', userId)
-        .single();
-      const byokKey = (profile as any)?.gemini_api_key?.trim();
+        .eq('user_id', userId)
+        .maybeSingle();
+      const byokKey = settings?.gemini_api_key?.trim();
 
       if (byokKey) {
         // 3a. Eigener Key — direkter Gemini-Call (kein Server involviert)

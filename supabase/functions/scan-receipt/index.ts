@@ -132,15 +132,15 @@ Deno.serve(async (req: Request) => {
     (settingsRows ?? []).map((r: any) => [r.key, r.value])
   );
   const freeLimit   = parseInt(cfg['free_scans_limit'] ?? '10', 10);
-  const activeModel = cfg['active_model'] ?? 'claude-3-5-haiku-20241022';
+  const activeModel = cfg['active_model'] ?? 'claude-haiku-4-5-20251001';
 
   // BYOK-Check: Gemini Key vom User?
-  const { data: profileData } = await adminClient
-    .from('profiles')
+  const { data: settingsData } = await adminClient
+    .from('user_settings')
     .select('gemini_api_key')
-    .eq('id', user.id)
-    .single();
-  const byokKey = (profileData as any)?.gemini_api_key?.trim() || '';
+    .eq('user_id', user.id)
+    .maybeSingle();
+  const byokKey = settingsData?.gemini_api_key?.trim() || '';
 
   try {
     if (byokKey) {

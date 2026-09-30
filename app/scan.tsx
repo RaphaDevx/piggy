@@ -101,6 +101,34 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
+const UPLOAD_ATTEMPTS = 2;
+
+function confirmAsync(title: string, message: string, cancelText: string, okText: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: cancelText, style: 'cancel', onPress: () => resolve(false) },
+      { text: okText, onPress: () => resolve(true) },
+    ], { cancelable: false });
+  });
+}
+
+/** Lädt eine lokale Bilddatei nach receipt-images hoch; liefert die URL oder null. */
+async function uploadNativeImage(srcUri: string, path: string, ext: string): Promise<string | null> {
+  for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(srcUri, { encoding: 'base64' });
+      const { error } = await supabase.storage
+        .from('receipt-images')
+        .upload(path, decodeBase64(base64), { contentType: `image/${ext}`, upsert: true });
+      if (error) throw error;
+      return supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
+    } catch (e) {
+      console.warn(`receipt image upload failed (attempt ${attempt})`, (e as Error)?.message);
+    }
+  }
+  return null;
+}
+
 // ── CropOverlay ──────────────────────────────────────────────────────────────
 
 interface Corner { x: number; y: number }
@@ -411,6 +439,25 @@ export default function ScanScreen() {
     const userId = userData.user?.id;
     if (!userId) { setStep('review'); return; }
 
+    // Duplikat-Hinweis: gleicher Laden, Betrag und Datum schon gespeichert?
+    let dupQuery = supabase
+      .from('receipts')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('total_amount', receipt.total_amount)
+      .ilike('store_name', receipt.store_name.replace(/[\\%_]/g, '\\$&'));
+    dupQuery = receipt.date ? dupQuery.eq('receipt_date', receipt.date) : dupQuery.is('receipt_date', null);
+    const { data: duplicates } = await dupQuery.limit(1);
+    if (duplicates?.length) {
+      const saveAnyway = await confirmAsync(
+        'Mögliches Duplikat',
+        `Eine Quittung von ${receipt.store_name} über ${receipt.total_amount.toFixed(2)} ${receipt.currency} mit diesem Datum ist schon gespeichert.`,
+        'Abbrechen',
+        'Trotzdem speichern',
+      );
+      if (!saveAnyway) { setStep('review'); return; }
+    }
+
     const ts = Date.now();
     let imageUrl: string | null = null;
     let originalImageUrl: string | null = null;
@@ -420,27 +467,22 @@ export default function ScanScreen() {
         // Upload cropped/processed image as primary (best for display)
         const srcUri = processedUri ?? uri ?? '';
         if (srcUri) {
-          const ext  = srcUri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
-          const path = `${userId}/${ts}.${ext}`;
-          const base64 = await FileSystem.readAsStringAsync(srcUri, { encoding: 'base64' });
-          const { error } = await supabase.storage
-            .from('receipt-images')
-            .upload(path, decodeBase64(base64), { contentType: `image/${ext}` });
-          if (!error) {
-            imageUrl = supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
+          const ext = srcUri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+          imageUrl = await uploadNativeImage(srcUri, `${userId}/${ts}.${ext}`, ext);
+          if (!imageUrl) {
+            const saveWithoutImage = await confirmAsync(
+              'Bild nicht hochgeladen',
+              'Das Quittungsbild konnte nicht hochgeladen werden. Ohne Bild speichern?',
+              'Zurück',
+              'Ohne Bild speichern',
+            );
+            if (!saveWithoutImage) { setStep('review'); return; }
           }
         }
         // Upload original only if different from processed (manual-crop path)
-        if (uri && processedUri && uri !== processedUri) {
-          const origExt  = uri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
-          const origPath = `${userId}/${ts}_orig.${origExt}`;
-          const origBase64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-          const { error: origError } = await supabase.storage
-            .from('receipt-images')
-            .upload(origPath, decodeBase64(origBase64), { contentType: `image/${origExt}` });
-          if (!origError) {
-            originalImageUrl = supabase.storage.from('receipt-images').getPublicUrl(origPath).data?.publicUrl ?? null;
-          }
+        if (imageUrl && uri && processedUri && uri !== processedUri) {
+          const origExt = uri.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+          originalImageUrl = await uploadNativeImage(uri, `${userId}/${ts}_orig.${origExt}`, origExt);
         }
       } else if (Platform.OS === 'web' && uri?.startsWith('blob:')) {
         const resp = await fetch(uri);

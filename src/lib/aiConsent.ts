@@ -2,7 +2,7 @@
  * aiConsent.ts — Einwilligung zur KI-Verarbeitung durch Drittanbieter
  * (App Store Guideline 5.1.2: Weitergabe an Third-Party-AI nur mit Zustimmung).
  *
- * Quittungstext → Google Gemini, Kontoauszüge → Anthropic Claude.
+ * Quittungstext + Kontoauszüge → Anthropic Claude; mit eigenem Key Quittungstext → Google Gemini.
  * Ohne Einwilligung bleibt die Quittungserkennung lokal (Apple Intelligence / Regex).
  */
 import { Alert } from 'react-native';
@@ -29,8 +29,9 @@ export async function ensureAiConsent(): Promise<boolean> {
   const granted = await new Promise<boolean>((resolve) => {
     Alert.alert(
       'KI-Erkennung erlauben?',
-      'Für eine genauere Erkennung sendet Piggy den erkannten Quittungstext an Google Gemini. ' +
-        'Importierte Kontoauszüge werden von Anthropic Claude analysiert. ' +
+      'Für eine genauere Erkennung sendet Piggy den erkannten Quittungstext an Anthropic (Claude). ' +
+        'Mit eigenem Gemini-Key geht er stattdessen an Google Gemini. ' +
+        'Importierte Kontoauszüge werden ebenfalls von Anthropic analysiert. ' +
         'Die Anbieter nutzen die Daten nicht zum Training. ' +
         'Ohne Zustimmung erkennt Piggy Quittungen nur auf deinem Gerät. ' +
         'Du kannst das jederzeit im Profil ändern.',

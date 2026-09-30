@@ -76,18 +76,15 @@ export default function ProfilScreen() {
     supabase.from('user_settings').select('claude_api_key').single().then(({ data }) => {
       setClaudeKeySet(!!data?.claude_api_key);
     });
-    // Load processing mode and gemini key from profiles
+    // Processing mode from profiles; BYOK key lives in user_settings (own-row RLS)
     supabase.auth.getUser().then(async ({ data: userData }) => {
       if (!userData.user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('processing_mode, gemini_api_key')
-        .eq('id', userData.user.id)
-        .single();
-      if (data) {
-        setProcessingMode((data.processing_mode as 'edge' | 'on_device') ?? 'edge');
-        setGeminiKeySaved(!!data.gemini_api_key);
-      }
+      const [{ data }, { data: settings }] = await Promise.all([
+        supabase.from('profiles').select('processing_mode').eq('id', userData.user.id).single(),
+        supabase.from('user_settings').select('gemini_api_key').eq('user_id', userData.user.id).maybeSingle(),
+      ]);
+      if (data) setProcessingMode((data.processing_mode as 'edge' | 'on_device') ?? 'edge');
+      setGeminiKeySaved(!!settings?.gemini_api_key);
     });
     reloadProfile();
   }, [reloadProfile]);
@@ -302,9 +299,8 @@ export default function ProfilScreen() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase
-        .from('profiles')
-        .update({ gemini_api_key: trimmed })
-        .eq('id', user.id);
+        .from('user_settings')
+        .upsert({ user_id: user.id, gemini_api_key: trimmed }, { onConflict: 'user_id' });
       setGeminiKeySaved(true);
       setGeminiKey('');
     }
@@ -553,7 +549,7 @@ export default function ProfilScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowText}>KI-Erkennung erlauben</Text>
-              <Text style={styles.rowSub}>Quittungstext an Google Gemini, Kontoauszüge an Anthropic Claude</Text>
+              <Text style={styles.rowSub}>Quittungstext und Kontoauszüge an Anthropic Claude, mit eigenem Key an Google Gemini</Text>
             </View>
             <Switch value={aiConsent} onValueChange={toggleAiConsent} />
           </View>
@@ -565,8 +561,8 @@ export default function ProfilScreen() {
               <Ionicons name="cloud-outline" size={20} color={processingMode === 'edge' ? C.gold : C.textTertiary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowText}>Edge Computing (Gemini)</Text>
-              <Text style={styles.rowSub}>Quittungen werden via Gemini 2.0 Flash verarbeitet</Text>
+              <Text style={styles.rowText}>Cloud-KI</Text>
+              <Text style={styles.rowSub}>Claude Haiku (Gratis-Scans) oder Gemini mit eigenem Key</Text>
             </View>
             {processingMode === 'edge' && (
               <Ionicons name="checkmark-circle" size={20} color={C.gold} />
