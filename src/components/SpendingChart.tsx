@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { SpendingByTag } from '../types/receipt';
-import { getTagColor } from '../lib/categories';
+import { getTagColor, normalizeCategory } from '../lib/categories';
+import { categoryLabel } from '../lib/taxonomy';
+import { useLocale } from '../hooks/useLocale';
 import { C, R, S } from '../constants/design';
 
 interface Props {
@@ -9,6 +11,7 @@ interface Props {
 }
 
 export default function SpendingChart({ data, currency }: Props) {
+  const locale = useLocale();
   if (data.length === 0) return null;
 
   const top = [...data].sort((a, b) => b.total - a.total).slice(0, 6);
@@ -19,10 +22,11 @@ export default function SpendingChart({ data, currency }: Props) {
       {top.map((item) => {
         const pct = Math.max((item.total / max) * 100, 4);
         const color = getTagColor(item.tag);
+        const label = categoryLabel(normalizeCategory(item.tag), locale);
         return (
           <View key={item.tag} style={styles.row}>
             <Text style={styles.label} numberOfLines={1}>
-              {item.tag.length > 14 ? item.tag.slice(0, 13) + '…' : item.tag}
+              {label.length > 14 ? label.slice(0, 13) + '…' : label}
             </Text>
             <View style={styles.barTrack}>
               <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: color }]} />

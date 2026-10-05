@@ -37,6 +37,8 @@ export interface ReceiptItem {
   unit_price: number | null;
   total_price: number | null;
   tags: string[];
+  subcategory?: string | null;
+  is_adjustment?: boolean;
 }
 
 export interface ParsedReceipt {
@@ -58,6 +60,8 @@ export interface ParsedReceiptItem {
   unit_price: number;
   total_price: number;
   tags: string[];
+  subcategory?: string | null;
+  is_adjustment?: boolean;
 }
 
 export interface ReceiptWithItems extends Receipt {

@@ -1,4 +1,4 @@
-import { buildFinanceProfile, weekOf } from './profile';
+import { buildFinanceProfile, buildNatureBreakdown, weekOf } from './profile';
 import type { FinanceReceipt, FinanceTransaction } from './finance';
 
 const tx = (id: string, booking_date: string, amount: number, description: string, extra: Partial<FinanceTransaction> = {}): FinanceTransaction =>
@@ -72,5 +72,54 @@ describe('buildFinanceProfile', () => {
       savingsRate: null, topCategories: [], fixedCostShare: null,
       periodStart: null, periodEnd: null, monthsCovered: 0,
     });
+  });
+});
+
+describe('buildNatureBreakdown', () => {
+  const receipt = (id: string, date: string, total: number, items: FinanceReceipt['items']): FinanceReceipt =>
+    ({ id, receipt_date: date, currency: 'CHF', total_amount: total, items });
+
+  test('verknüpfte Buchung wird anteilig nach Artikeln der Quittung aufgeteilt', () => {
+    const r = receipt('r1', '2026-03-01', 100, [
+      { total_price: 60, tags: ['Lebensmittel'], subcategory: 'food.dairy' },
+      { total_price: 30, tags: ['Getränke'], subcategory: 'drinks.soft' },
+      { total_price: 10, tags: ['Einrichtung'], subcategory: 'home.kitchen' },
+    ]);
+    const b = buildNatureBreakdown([tx('1', '2026-03-01', -100, 'Migros')], [r], [{ transaction_id: '1', receipt_id: 'r1' }]);
+    expect(b.amounts).toEqual({ essential: 60, treat: 30, occasional: 10 });
+    expect(b.total).toBe(100);
+    expect(b.shares.essential).toBeCloseTo(0.6);
+  });
+
+  test('keine Doppelzählung: verknüpfte Quittung zählt nur über die Buchung', () => {
+    const r = receipt('r1', '2026-03-01', 100, [{ total_price: 100, tags: ['Lebensmittel'], subcategory: 'food.snacks' }]);
+    const b = buildNatureBreakdown([tx('1', '2026-03-01', -100, 'Migros')], [r], [{ transaction_id: '1', receipt_id: 'r1' }]);
+    expect(b.total).toBe(100);
+    expect(b.amounts.treat).toBe(100);
+  });
+
+  test('Quittung ohne Buchung zählt über ihre Artikel; ohne Unterkategorie gilt die Hauptkategorie', () => {
+    const r = receipt('r2', '2026-03-02', 50, [
+      { total_price: 25, tags: ['Einrichtung'], subcategory: null },
+      { total_price: 25, tags: ['Lebensmittel'] },
+    ]);
+    const b = buildNatureBreakdown([], [r], []);
+    expect(b.amounts).toEqual({ essential: 25, treat: 0, occasional: 25 });
+  });
+
+  test('Buchung ohne Quittung nach Kategorie; Umbuchung und Einkommen zählen nicht', () => {
+    const b = buildNatureBreakdown([
+      tx('1', '2026-03-01', -40, 'Restaurant Sonne'),
+      tx('2', '2026-03-02', -900, 'Zahlung Kreditkarte Viseca LSV'),
+      tx('3', '2026-03-03', 5000, 'Lohn März'),
+      tx('4', '2026-03-04', -1500, 'Mietzins Verwaltung'),
+    ], [], []);
+    expect(b.amounts).toEqual({ essential: 1500, treat: 40, occasional: 0 });
+  });
+
+  test('from/to filtert, leere Daten ergeben Nullen', () => {
+    const b = buildNatureBreakdown([tx('1', '2026-01-01', -40, 'Restaurant Sonne')], [], [], { from: '2026-02-01' });
+    expect(b.total).toBe(0);
+    expect(b.shares.essential).toBe(0);
   });
 });

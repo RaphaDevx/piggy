@@ -2,10 +2,17 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { useFinanceProfile, PROFILE_RANGES } from '../hooks/useFinanceProfile';
 import { C, R, S, card } from '../constants/design';
 import { getCategoryColor } from '../lib/categories';
+import { categoryLabel, natureLabel, type Nature } from '../lib/taxonomy';
+import { useLocale } from '../hooks/useLocale';
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const MONTH_COUNT = 6;
 const WEEK_COUNT = 8;
+const NATURES: Array<{ key: Nature; color: string }> = [
+  { key: 'essential', color: C.success },
+  { key: 'treat', color: C.gold },
+  { key: 'occasional', color: C.warning },
+];
 
 function chf(n: number) { return `CHF ${Math.round(n).toLocaleString('de-CH')}`; }
 function pct(n: number | null) { return n == null ? '—' : `${Math.round(n * 100)} %`; }
@@ -16,7 +23,8 @@ function monthLabel(period: string) {
 function weekLabel(period: string) { return `KW ${period.split('-W')[1] ?? period}`; }
 
 export default function ProfileView() {
-  const { profile, range, setRange, loading } = useFinanceProfile();
+  const { profile, nature, range, setRange, loading } = useFinanceProfile();
+  const locale = useLocale();
 
   if (loading && profile.monthly.length === 0) {
     return <View style={styles.loadingBox}><ActivityIndicator color={C.gold} /></View>;
@@ -113,6 +121,27 @@ export default function ProfileView() {
             </View>
           )}
 
+          {nature.total > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Wofür geht dein Geld?</Text>
+              <View style={[card, styles.chartCard]}>
+                <View style={styles.natureBar}>
+                  {NATURES.map((n) => nature.amounts[n.key] > 0 && (
+                    <View key={n.key} style={{ flex: nature.amounts[n.key], backgroundColor: n.color }} />
+                  ))}
+                </View>
+                {NATURES.map((n) => (
+                  <View key={n.key} style={styles.natureRow}>
+                    <View style={[styles.dot, { backgroundColor: n.color }]} />
+                    <Text style={styles.catLabel} numberOfLines={1}>{natureLabel(n.key, locale)}</Text>
+                    <Text style={styles.catShare}>{pct(nature.shares[n.key])}</Text>
+                    <Text style={styles.catAmount}>{chf(nature.amounts[n.key])}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {profile.topCategories.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Top-Kategorien</Text>
@@ -120,7 +149,7 @@ export default function ProfileView() {
                 {profile.topCategories.map((c, i) => (
                   <View key={c.category} style={[styles.catRow, i > 0 && styles.catBorder]}>
                     <View style={[styles.dot, { backgroundColor: getCategoryColor(c.category) }]} />
-                    <Text style={styles.catLabel} numberOfLines={1}>{c.category}</Text>
+                    <Text style={styles.catLabel} numberOfLines={1}>{categoryLabel(c.category, locale)}</Text>
                     <Text style={styles.catShare}>{pct(c.share)}</Text>
                     <Text style={styles.catAmount}>{chf(c.amount)}</Text>
                   </View>
@@ -161,6 +190,9 @@ const styles = StyleSheet.create({
   legend:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendText:{ fontSize: S.xs, color: C.textSecondary, marginRight: 10 },
   dot:       { width: 10, height: 10, borderRadius: 5 },
+
+  natureBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: C.bgSoft },
+  natureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 
   catRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   catBorder: { borderTopWidth: 1, borderTopColor: C.borderSoft },

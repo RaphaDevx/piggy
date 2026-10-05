@@ -19,6 +19,7 @@ import { processReceiptImage, ProcessResult } from '../src/lib/claude';
 import { generateMarkdown } from '../src/lib/markdown';
 import { itemCategory } from '../src/lib/categories';
 import TagPicker from '../src/components/TagPicker';
+import { resolveSubcategory } from '../src/lib/itemSubcategory';
 import { useCustomCategories } from '../src/hooks/useCustomCategories';
 import { C, R, S, card } from '../src/constants/design';
 import type { ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
@@ -373,6 +374,11 @@ const cropStyles = StyleSheet.create({
 
 type Step = 'crop' | 'processing' | 'review' | 'saving';
 
+/** Unterkategorie nur speichern, wenn sie zur Hauptkategorie passt; sonst Regel-Einordnung oder null. */
+function itemSubcategory(item: ParsedReceiptItem): string | null {
+  return resolveSubcategory(item.name, itemCategory(item.tags), item.subcategory);
+}
+
 export default function ScanScreen() {
   const { uri, precropped } = useLocalSearchParams<{ uri: string; precropped?: string }>();
   const router   = useRouter();
@@ -539,6 +545,8 @@ export default function ScanScreen() {
           unit_price:  item.unit_price,
           total_price: item.total_price,
           tags:        item.tags,
+          subcategory: itemSubcategory(item),
+          is_adjustment: item.is_adjustment ?? false,
         }))
       );
     }
@@ -782,7 +790,9 @@ export default function ScanScreen() {
             </View>
             <TagPicker
               value={itemCategory(item.tags)}
-              onChange={(category) => updateItem(idx, { tags: [category] })}
+              subcategory={item.subcategory}
+              itemName={item.name}
+              onChange={(category, subcategory) => updateItem(idx, { tags: [category], subcategory })}
               customCategories={customCategories}
             />
           </View>

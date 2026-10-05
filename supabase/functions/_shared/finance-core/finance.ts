@@ -27,7 +27,7 @@ export interface FinanceReceipt {
   receipt_date: string | null;
   total_amount: number | null;
   currency: string;
-  items: Array<{ total_price: number | null; tags: string[] | null }>;
+  items: Array<{ total_price: number | null; tags: string[] | null; subcategory?: string | null }>;
 }
 
 export interface FinanceMatch {
@@ -75,8 +75,10 @@ const EXPENSE_RULES: Array<{ pattern: RegExp; category: string }> = [
   { pattern: /\bsbb\b|\bbls\b|\bzvv\b|postauto|tankstelle|\bshell\b|\bavia\b|\bbp\b|agrola|\beni\b|socar|migrol|tamoil|parking|parkhaus|uber(?! eats)|\bbolt\b|mobility|publibike|easyjet|swiss intl|flughafen/i, category: 'Mobilität' },
   { pattern: /restaurant|mcdonald|burger king|starbucks|caf(é|e)\b|pizzeria|kebab|sushi|take ?away|uber eats|just eat|smood|subway|dean ?& ?david|tibits|holy cow|bistro|brasserie|\bbar\b/i, category: 'Restaurant & Take-away' },
   { pattern: /migros(?!.*(do it|micasa))|\bcoop\b(?!.*(pronto|bau))|denner|\baldi\b|\blidl\b|\bvolg\b|\bspar\b|alnatura|b(ä|ae)ckerei|metzgerei|globus delica|manor food|farmy/i, category: 'Lebensmittel' },
-  { pattern: /apotheke|amavita|sun ?store|topwell|dropa|drogerie|\bdm\b|m(ü|ue)ller|arzt|zahnarzt|praxis|spital|physio|optiker|fielmann/i, category: 'Körperpflege & Gesundheit' },
-  { pattern: /\bikea\b|jumbo|hornbach|bauhaus|\bobi\b|do it|micasa|interio|pfister|landi|coop bau/i, category: 'Haushalt' },
+  { pattern: /apotheke|amavita|sun ?store|topwell|arzt|zahnarzt|praxis|spital|physio|optiker|fielmann/i, category: 'Gesundheit' },
+  { pattern: /drogerie|dropa|\bdm\b|m(ü|ue)ller/i, category: 'Haushalt' },
+  { pattern: /\bikea\b|micasa|interio|pfister|conforama|maisons du monde|depot\b/i, category: 'Einrichtung' },
+  { pattern: /jumbo|hornbach|bauhaus|\bobi\b|do it|landi|coop bau/i, category: 'Haushalt' },
   { pattern: /zalando|h ?& ?m|\bzara\b|galaxus|digitec|interdiscount|media ?markt|\bfust\b|ochsner|manor|globus|amazon|aliexpress|\bkino\b|path(é|e)|fitness|ticketcorner|steam|playstation|nintendo|decathlon|sportx|bücher|orell f/i, category: 'Freizeit & Shopping' },
   { pattern: /coop pronto|migrolino|avec\b|k kiosk|kiosk/i, category: 'Lebensmittel' },
 ];

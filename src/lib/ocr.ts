@@ -19,6 +19,8 @@ import { generateMarkdown } from './markdown';
 import { supabase } from './supabase';
 import { ensureAiConsent } from './aiConsent';
 import { suggestedCategory } from './categories';
+import { categoryOfSubcategory, classifyItemName, receiptItemCategoryPrompt } from './taxonomy';
+import { resolveSubcategory } from './itemSubcategory';
 import { FoundationModels } from '../native/FoundationModels';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -204,18 +206,28 @@ function guessStoreCategory(storeName: string, text: string): string {
   return 'Diverses';
 }
 
-// Keyword-basierte Kategorie für Artikel (Fallback ohne KI) — genau eine grobe Kategorie
-const ITEM_CATEGORY_RULES: Array<{ pattern: RegExp; category: string }> = [
-  { pattern: /waschmittel|spülmittel|putzmittel|reiniger|abfallsack|kehricht|haushaltpapier|toilettenpapier|wc-papier|schwamm|alufolie|backpapier|kerze/i, category: 'Haushalt' },
-  { pattern: /shampoo|duschgel|seife|deo|parfum|creme|lotion|zahnbürste|zahnpasta|mundwasser|tablette|kapsel|tropfen|medikament|arznei|vitamin|pflaster|binde|tampon|rasier/i, category: 'Körperpflege & Gesundheit' },
-  { pattern: /bier|wein|champagner|prosecco|schnaps|whisky|wasser|mineralwasser|saft|cola|fanta|sprite|limonade|eistee|kaffee|espresso|tee\b|matcha/i, category: 'Getränke' },
-  { pattern: /milch|rahm|butter|käse|joghurt|quark|sahne|brot|brötchen|gipfeli|croissant|gebäck|toast|fleisch|wurst|schinken|salami|lachs|fisch|poulet|apfel|banane|orange|tomate|salat|gurke|karotte|gemüse|obst|tiefkühl|konserve|pasta|reis|mehl|zucker|salz|öl|nudel|chips|schokolade|kekse|eier/i, category: 'Lebensmittel' },
-  { pattern: /benzin|diesel|bleifrei|parking|parkhaus|billett|ticket/i, category: 'Mobilität' },
-];
+// Kategorie für Artikel ohne KI: Regeln aus der Taxonomie (Haupt- + Unterkategorie)
+function assignItemCategory(name: string): { tags: string[]; subcategory: string | null } {
+  const rule = classifyItemName(name);
+  return rule ? { tags: [rule.category], subcategory: rule.subcategory } : { tags: ['Diverses'], subcategory: null };
+}
 
-function assignItemTags(name: string): string[] {
-  const rule = ITEM_CATEGORY_RULES.find((r) => r.pattern.test(name));
-  return [rule?.category ?? 'Diverses'];
+/**
+ * KI-Ergebnis vereinheitlichen: eine gültige Unterkategorie bestimmt die Hauptkategorie
+ * (sie ist spezifischer), sonst bekannte Kategorie aus tags; Unterkategorie passend dazu.
+ */
+function normalizeItems(items: ParsedReceiptItem[] | undefined): ParsedReceiptItem[] {
+  return (items ?? []).map((item) => {
+    const fromSub = categoryOfSubcategory(item.subcategory);
+    const category = fromSub ?? suggestedCategory(item.tags);
+    return {
+      ...item,
+      unit:        item.unit ?? 'Stk',
+      unit_price:  item.unit_price ?? item.total_price,
+      tags:        [category],
+      subcategory: resolveSubcategory(item.name, category, item.subcategory),
+    };
+  });
 }
 
 // ── Zeilen-Parser für Artikel ────────────────────────────────────────────────
@@ -267,7 +279,7 @@ function parseItems(lines: string[]): ParsedReceiptItem[] {
       unit:       'Stk',
       unit_price: quantity > 1 ? Math.round((price / quantity) * 100) / 100 : price,
       total_price: price,
-      tags:       assignItemTags(name),
+      ...assignItemCategory(name),
     });
   }
 
@@ -411,12 +423,7 @@ async function processOnDevice(imageUri: string): Promise<{ receipt: ParsedRecei
   try {
     const jsonStr = await FoundationModels.parseReceiptText(rawText);
     const receipt = JSON.parse(jsonStr) as ParsedReceipt;
-    receipt.items = (receipt.items ?? []).map((item: ParsedReceiptItem) => ({
-      ...item,
-      unit:       item.unit ?? 'Stk',
-      unit_price: item.unit_price ?? item.total_price,
-      tags:       [suggestedCategory(item.tags)],
-    }));
+    receipt.items = normalizeItems(receipt.items);
     return { receipt, markdown: generateMarkdown(receipt) };
   } catch {
     // Foundation Models nicht verfügbar oder Stub — Fallback auf Regex-Parser
@@ -447,7 +454,8 @@ JSON-Struktur:
       "unit": "Stk|kg|g|L|ml|Pack",
       "unit_price": Stückpreis als Zahl,
       "total_price": Gesamtpreis dieses Artikels als Zahl,
-      "tags": ["Kategorie"]
+      "tags": ["Hauptkategorie"],
+      "subcategory": "Unterkategorie-Schlüssel"
     }
   ],
   "extra": {
@@ -461,7 +469,7 @@ JSON-Struktur:
   }
 }
 
-Kategorie: GENAU EINE pro Artikel aus: Lebensmittel, Getränke, Haushalt, Körperpflege & Gesundheit, Restaurant & Take-away, Freizeit & Shopping, Mobilität, Diverses.\n(Waschmittel, Putzmittel, Abfallsäcke, Haushaltspapier = Haushalt; Shampoo, Zahnpasta, Medikamente = Körperpflege & Gesundheit; alkoholische und alkoholfreie Getränke = Getränke)
+${receiptItemCategoryPrompt()}
 
 Regeln:
 - PostCard = PostFinance-Debitkarte (Schweiz)
@@ -489,12 +497,7 @@ async function callGeminiText(rawText: string, apiKey: string): Promise<ParsedRe
   const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   const receipt = JSON.parse(json) as ParsedReceipt;
-  receipt.items = (receipt.items ?? []).map((item) => ({
-    ...item,
-    unit:       item.unit ?? 'Stk',
-    unit_price: item.unit_price ?? item.total_price,
-    tags:       [suggestedCategory(item.tags)],
-  }));
+  receipt.items = normalizeItems(receipt.items);
   return receipt;
 }
 
@@ -522,12 +525,7 @@ export async function processReceiptImage(
     if (available) {
       const jsonStr = await FoundationModels.parseReceiptText(rawText);
       const parsed  = JSON.parse(jsonStr) as ParsedReceipt;
-      parsed.items  = (parsed.items ?? []).map((item) => ({
-        ...item,
-        unit:       item.unit ?? 'Stk',
-        unit_price: item.unit_price ?? item.total_price,
-        tags:       [suggestedCategory(item.tags)],
-      }));
+      parsed.items = normalizeItems(parsed.items);
       return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed), rawText, processedUri: processUri };
     }
   } catch {
@@ -563,12 +561,7 @@ export async function processReceiptImage(
           const data = await res.json();
           if (data.result) {
             const receipt = data.result as ParsedReceipt;
-            receipt.items = (receipt.items ?? []).map((item: ParsedReceiptItem) => ({
-              ...item,
-              unit:       item.unit ?? 'Stk',
-              unit_price: item.unit_price ?? item.total_price,
-              tags:       [suggestedCategory(item.tags)],
-            }));
+            receipt.items = normalizeItems(receipt.items);
             return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
           }
         }

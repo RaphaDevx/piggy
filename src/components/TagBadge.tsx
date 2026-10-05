@@ -1,16 +1,25 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { getTagColor } from '../lib/categories';
+import { getTagColor, normalizeCategory } from '../lib/categories';
+import { categoryLabel, subcategoryLabel } from '../lib/taxonomy';
+import { useLocale } from '../hooks/useLocale';
 
 interface Props {
   tag: string;
+  /** Unterkategorie-Schlüssel — zeigt "Hauptkategorie › Unterkategorie" */
+  subcategory?: string | null;
   small?: boolean;
 }
 
-export default function TagBadge({ tag, small = false }: Props) {
+export default function TagBadge({ tag, subcategory, small = false }: Props) {
+  const locale = useLocale();
   const color = getTagColor(tag);
+  const main = categoryLabel(normalizeCategory(tag), locale);
+  const label = subcategory
+    ? `${main} › ${subcategoryLabel(subcategory, locale)}`
+    : main;
   return (
     <View style={[styles.badge, small && styles.small, { backgroundColor: `${color}22`, borderColor: `${color}55` }]}>
-      <Text style={[styles.text, small && styles.smallText, { color }]}>{tag}</Text>
+      <Text style={[styles.text, small && styles.smallText, { color }]}>{label}</Text>
     </View>
   );
 }

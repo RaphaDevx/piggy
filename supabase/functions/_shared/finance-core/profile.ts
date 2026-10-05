@@ -4,9 +4,11 @@
  * keine Doppelzählung, Umbuchungen bleiben ausgeschlossen).
  */
 import {
-  buildPeriodOverview, monthOf,
+  buildPeriodOverview, monthOf, effectiveCategory,
   type FinanceMatch, type FinanceReceipt, type FinanceTransaction,
 } from './finance.ts';
+import { INCOME_CATEGORY, TRANSFER_CATEGORY, UNCATEGORIZED, itemCategory } from './categories.ts';
+import { natureOf, type Nature } from './taxonomy.ts';
 
 export interface PeriodPoint {
   period: string;
@@ -131,4 +133,90 @@ export function buildFinanceProfile(
     periodEnd: dates[dates.length - 1] ?? null,
     monthsCovered: monthly.length,
   };
+}
+
+// ── Aufteilung nach Art ("Wofür geht dein Geld?") ────────────────────────────
+
+export interface NatureBreakdown {
+  total: number;
+  amounts: Record<Nature, number>;
+  /** Anteile an `total` (0–1) */
+  shares: Record<Nature, number>;
+}
+
+const NATURES: Nature[] = ['essential', 'treat', 'occasional'];
+
+/** Verteilt einen Betrag anteilig nach Artikelpreis auf die Arten einer Quittung; null ohne verwertbare Artikel. */
+function splitByNature(amount: number, receipt: FinanceReceipt): Record<Nature, number> | null {
+  const weights: Record<Nature, number> = { essential: 0, treat: 0, occasional: 0 };
+  for (const item of receipt.items) {
+    const price = item.total_price ?? 0;
+    if (price <= 0) continue;
+    weights[natureOf(item.subcategory, itemCategory(item.tags))] += price;
+  }
+  const total = NATURES.reduce((s, n) => s + weights[n], 0);
+  if (total <= 0) return null;
+  return {
+    essential: (amount * weights.essential) / total,
+    treat: (amount * weights.treat) / total,
+    occasional: (amount * weights.occasional) / total,
+  };
+}
+
+/**
+ * Ausgaben nach Art (Grundbedarf / Genuss & Komfort / Anschaffungen).
+ * Verknüpfte Buchungen werden nach den Artikeln ihrer Quittung aufgeteilt, Buchungen ohne
+ * Quittung nach ihrer Kategorie; Quittungen ohne Buchung zählen über ihre Artikel.
+ * Umbuchungen und Einkommen zählen nicht.
+ */
+export function buildNatureBreakdown(
+  transactions: FinanceTransaction[],
+  receipts: FinanceReceipt[],
+  matches: FinanceMatch[],
+  opts: { from?: string; to?: string; currency?: string } = {},
+): NatureBreakdown {
+  const { from, to, currency = 'CHF' } = opts;
+  const inRange = (date: string) => (!from || date >= from) && (!to || date <= to);
+
+  const receiptById = new Map(receipts.map((r) => [r.id, r]));
+  const receiptForTx = new Map<string, FinanceReceipt>();
+  for (const m of matches) {
+    const r = receiptById.get(m.receipt_id);
+    if (r) receiptForTx.set(m.transaction_id, r);
+  }
+  const matchedReceiptIds = new Set(matches.map((m) => m.receipt_id));
+
+  const amounts: Record<Nature, number> = { essential: 0, treat: 0, occasional: 0 };
+  const addSplit = (split: Record<Nature, number>) => { for (const n of NATURES) amounts[n] += split[n]; };
+
+  for (const tx of transactions) {
+    if (tx.currency !== currency || !inRange(tx.booking_date)) continue;
+    const cat = effectiveCategory(tx);
+    if (cat === TRANSFER_CATEGORY) continue;
+    if (tx.amount > 0) {
+      // Rückerstattung in einer Ausgaben-Kategorie mindert die Ausgabe, Einkommen zählt nicht
+      if (cat !== INCOME_CATEGORY && cat !== UNCATEGORIZED) amounts[natureOf(null, cat)] -= tx.amount;
+      continue;
+    }
+    const spent = -tx.amount;
+    const receipt = receiptForTx.get(tx.id);
+    const split = receipt ? splitByNature(spent, receipt) : null;
+    if (split) addSplit(split);
+    else amounts[natureOf(null, cat === INCOME_CATEGORY ? UNCATEGORIZED : cat)] += spent;
+  }
+
+  for (const r of receipts) {
+    if (matchedReceiptIds.has(r.id) || r.currency !== currency) continue;
+    if (!r.receipt_date || !inRange(r.receipt_date)) continue;
+    const total = r.total_amount ?? 0;
+    if (total <= 0) continue;
+    addSplit(splitByNature(total, r) ?? { essential: total, treat: 0, occasional: 0 });
+  }
+
+  const total = NATURES.reduce((s, n) => s + amounts[n], 0);
+  const rounded = Object.fromEntries(NATURES.map((n) => [n, round2(amounts[n])])) as Record<Nature, number>;
+  const shares = Object.fromEntries(
+    NATURES.map((n) => [n, total > 0 ? amounts[n] / total : 0]),
+  ) as Record<Nature, number>;
+  return { total: round2(total), amounts: rounded, shares };
 }

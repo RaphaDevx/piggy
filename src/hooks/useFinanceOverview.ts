@@ -13,7 +13,7 @@ interface ReceiptRow {
   receipt_date: string | null;
   total_amount: number | null;
   currency: string;
-  receipt_items: Array<{ total_price: number | null; tags: string[] | null }> | null;
+  receipt_items: Array<{ total_price: number | null; tags: string[] | null; subcategory: string | null }> | null;
 }
 
 export function useFinanceOverview() {
@@ -27,7 +27,7 @@ export function useFinanceOverview() {
     setLoading(true);
     const [tx, rc, mt] = await Promise.all([
       fetchAll<FinanceTransaction>('bank_transactions', 'id, booking_date, amount, currency, description, category, match_status'),
-      fetchAll<ReceiptRow>('receipts', 'id, receipt_date, total_amount, currency, receipt_items(total_price, tags)'),
+      fetchAll<ReceiptRow>('receipts', 'id, receipt_date, total_amount, currency, receipt_items(total_price, tags, subcategory)'),
       fetchAll<FinanceMatch>('receipt_matches', 'transaction_id, receipt_id'),
     ]);
     setTransactions(tx);

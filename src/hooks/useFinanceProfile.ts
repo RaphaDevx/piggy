@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { fetchAll } from '../lib/fetchAll';
-import { buildFinanceProfile } from '../lib/profile';
+import { buildFinanceProfile, buildNatureBreakdown } from '../lib/profile';
 import type { FinanceTransaction, FinanceReceipt, FinanceMatch } from '../lib/finance';
 
 export type ProfileRange = '3' | '6' | '12' | 'all';
@@ -18,7 +18,7 @@ interface ReceiptRow {
   receipt_date: string | null;
   total_amount: number | null;
   currency: string;
-  receipt_items: Array<{ total_price: number | null; tags: string[] | null }> | null;
+  receipt_items: Array<{ total_price: number | null; tags: string[] | null; subcategory: string | null }> | null;
 }
 
 /** Erster Tag des Monats, `months - 1` Monate zurück (aktueller Monat zählt mit). */
@@ -41,7 +41,7 @@ export function useFinanceProfile() {
     setLoading(true);
     const [tx, rc, mt] = await Promise.all([
       fetchAll<FinanceTransaction>('bank_transactions', 'id, booking_date, amount, currency, description, category, match_status'),
-      fetchAll<ReceiptRow>('receipts', 'id, receipt_date, total_amount, currency, receipt_items(total_price, tags)'),
+      fetchAll<ReceiptRow>('receipts', 'id, receipt_date, total_amount, currency, receipt_items(total_price, tags, subcategory)'),
       fetchAll<FinanceMatch>('receipt_matches', 'transaction_id, receipt_id'),
     ]);
     setTransactions(tx);
@@ -57,5 +57,10 @@ export function useFinanceProfile() {
     [transactions, receipts, matches, range],
   );
 
-  return { profile, range, setRange, loading, reload: load };
+  const nature = useMemo(
+    () => buildNatureBreakdown(transactions, receipts, matches, { from: rangeStart(range) }),
+    [transactions, receipts, matches, range],
+  );
+
+  return { profile, nature, range, setRange, loading, reload: load };
 }

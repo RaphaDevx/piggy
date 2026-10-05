@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/Ionicons';
 import AbgleichView from '../../src/components/AbgleichView';
@@ -10,6 +11,8 @@ import { useFinanceOverview } from '../../src/hooks/useFinanceOverview';
 import ProfileView from '../../src/components/ProfileView';
 import { C, R, S, card } from '../../src/constants/design';
 import { TRANSACTION_CATEGORIES, getCategoryColor } from '../../src/lib/categories';
+import { categoryDef, categoryLabel } from '../../src/lib/taxonomy';
+import { useLocale } from '../../src/hooks/useLocale';
 
 const MONTH_NAMES = [
   'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -25,6 +28,8 @@ function fmtDate(d: string) { const [y, m, day] = d.split('-'); return `${day}.$
 
 export default function FinanzenScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const locale = useLocale();
   const [view, setView] = useState<'overview' | 'profile' | 'abgleich'>('overview');
   const [showUncat, setShowUncat] = useState(false);
   const {
@@ -123,12 +128,21 @@ export default function FinanzenScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ausgaben nach Kategorie</Text>
               <View style={[card, styles.catCard]}>
-                {overview.byCategory.map((c, i) => (
-                  <View key={c.category} style={[styles.catRow, i > 0 && styles.catBorder]}>
+                {overview.byCategory.map((c, i) => {
+                  const openable = categoryDef(c.category) !== undefined;
+                  return (
+                  <TouchableOpacity
+                    key={c.category}
+                    style={[styles.catRow, i > 0 && styles.catBorder]}
+                    disabled={!openable}
+                    activeOpacity={0.7}
+                    onPress={() => router.push({ pathname: '/category/[group]' as any, params: { group: c.category } })}
+                  >
                     <View style={styles.catHeader}>
                       <View style={[styles.dot, { backgroundColor: getCategoryColor(c.category) }]} />
-                      <Text style={styles.catLabel} numberOfLines={1}>{c.category}</Text>
+                      <Text style={styles.catLabel} numberOfLines={1}>{categoryLabel(c.category, locale)}</Text>
                       <Text style={styles.catAmount}>{fmtCHF(c.amount, cur)}</Text>
+                      {openable && <Ionicons name="chevron-forward" size={14} color={C.textTertiary} />}
                     </View>
                     <View style={styles.barBg}>
                       <View style={[styles.barFill, {
@@ -141,8 +155,9 @@ export default function FinanzenScreen() {
                         Bank {fmtCHF(c.fromBank, cur)} · Quittung {fmtCHF(c.fromReceipts, cur)}
                       </Text>
                     )}
-                  </View>
-                ))}
+                  </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           )}

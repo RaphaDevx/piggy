@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { receiptItemCategoryPrompt } from '../_shared/finance-core/taxonomy.ts';
 
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -36,7 +37,8 @@ JSON-Struktur:
       "unit": "Stk|kg|g|L|ml|Pack|Paar oder leer",
       "unit_price": Stückpreis als Zahl,
       "total_price": Gesamtpreis dieses Artikels als Zahl,
-      "tags": ["Lebensmittel"]
+      "tags": ["Lebensmittel"],
+      "subcategory": "food.dairy"
     }
   ],
   "extra": {
@@ -50,15 +52,7 @@ JSON-Struktur:
   }
 }
 
-Kategorie: Weise jedem Artikel GENAU EINE Kategorie zu ("tags" enthält genau einen Eintrag), aus:
-- "Lebensmittel" (alle Esswaren inkl. Snacks, Süsses, Brot, Fleisch, Milchprodukte)
-- "Getränke" (alkoholfrei und alkoholisch, Kaffee, Tee)
-- "Haushalt" (Waschmittel, Putzmittel, Abfallsäcke, Haushaltspapier, Küche, Wohnen)
-- "Körperpflege & Gesundheit" (Hygiene, Kosmetik, Medikamente, Nahrungsergänzung)
-- "Restaurant & Take-away" (verzehrfertige Speisen/Getränke in Restaurant, Café, Imbiss)
-- "Freizeit & Shopping" (Kleidung, Elektronik, Hobby, Büro, Geschenke)
-- "Mobilität" (Treibstoff, Parking, Tickets)
-- "Diverses" (alles andere, Pfand, Gebühren)
+${receiptItemCategoryPrompt()}
 
 Regeln:
 - Erkenne Mengenangaben (z.B. "2x", "3 kg") korrekt
@@ -81,7 +75,7 @@ async function callAnthropic(ocrText: string, apiKey: string, model: string): Pr
     },
     body: JSON.stringify({
       model,
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: RECEIPT_PROMPT + '\n\nOCR-Text:\n' + ocrText }],
     }),
   });

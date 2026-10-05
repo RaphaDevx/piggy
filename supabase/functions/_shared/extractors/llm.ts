@@ -6,7 +6,7 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MAX_OUTPUT_TOKENS = 8000;
 
 const CATEGORIES = [
-  'Lebensmittel', 'Getränke', 'Haushalt', 'Körperpflege & Gesundheit', 'Restaurant & Take-away',
+  'Lebensmittel', 'Getränke', 'Haushalt', 'Gesundheit', 'Einrichtung', 'Restaurant & Take-away',
   'Freizeit & Shopping', 'Mobilität', 'Wohnen & Nebenkosten', 'Versicherungen & Abos', 'Diverses',
   'Einkommen', 'Umbuchung',
 ];
@@ -22,7 +22,7 @@ Regeln:
 - Buchungstext vollständig (Händler, Ort, Referenz); ein "|" im Text durch "/" ersetzen.
 - Fehlt das Jahr beim Datum, nimm ${page.yearHint} (bzw. das Vorjahr, wenn das Datum sonst in der Zukunft läge).
 - Saldo-, Übertrags-, Zwischensummen- und Totalzeilen sind KEINE Buchungen.
-- Kategorie exakt eine aus: ${CATEGORIES.join(', ')}. "Umbuchung" NUR für Überträge zwischen eigenen Konten oder die Zahlung der Kreditkarten-Rechnung — TWINT/Überweisungen von oder an andere Personen sind keine Umbuchung (Gutschrift → Einkommen, Belastung → passende Ausgaben-Kategorie oder Diverses).
+- Kategorie exakt eine aus: ${CATEGORIES.join(', ')}. Drogerie (Pflege, Putzmittel) → Haushalt; Apotheke/Arzt → Gesundheit; Möbel/Einrichtungshaus (IKEA, Micasa) → Einrichtung. "Umbuchung" NUR für Überträge zwischen eigenen Konten oder die Zahlung der Kreditkarten-Rechnung — TWINT/Überweisungen von oder an andere Personen sind keine Umbuchung (Gutschrift → Einkommen, Belastung → passende Ausgaben-Kategorie oder Diverses).
 - Enthält die Seite keine Buchungen, gib genau "LEER" aus.`;
 }
 
@@ -35,9 +35,11 @@ function normalizeDate(s: string): string | null {
   return `${year}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
 }
 
-/** "1'234.50", "1,234.50", "1.234,50", "-12,5" → Zahl */
+/** "1'234.50", "1,234.50", "1.234,50", "-12,5", "−12.50" (Unicode-Minus), "12.50-", "(12.50)" → Zahl */
 export function parseAmount(s: string): number {
-  let t = s.replace(/['’\s]|CHF|EUR|USD/g, '');
+  let t = s.replace(/['’\s]|CHF|EUR|USD/g, '').replace(/[−‒–—]/g, '-');
+  const trailing = t.match(/^\+?(\d[\d.,]*)-$/) ?? t.match(/^\((\d[\d.,]*)\)$/);
+  if (trailing) t = `-${trailing[1]}`;
   if (t.includes(',') && t.includes('.')) {
     t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
   } else {
@@ -47,15 +49,21 @@ export function parseAmount(s: string): number {
 }
 
 export function parseLines(text: string): ParsedLine[] {
+  return parseLinesChecked(text).lines;
+}
+
+/** Wie parseLines, meldet aber Datenzeilen (beginnen mit Datum), die nicht lesbar waren. */
+export function parseLinesChecked(text: string): { lines: ParsedLine[]; rejected: string[] } {
   const lines: ParsedLine[] = [];
+  const rejected: string[] = [];
   for (const raw of text.split('\n')) {
     // Toleriert Markdown-Tabellen ("| … |"), Aufzählungen ("- ", "1. ") und Leerraum
     const cleaned = raw.trim().replace(/^[-*•]\s+/, '').replace(/^\d{1,3}[.)]\s+(?=\d)/, '').replace(/^\|/, '').replace(/\|$/, '');
     const parts = cleaned.split('|').map((p) => p.trim());
-    const date = parts.length >= 4 ? normalizeDate(parts[0]) : null;
+    const date = parts.length >= 4 ? normalizeDate(parts[0].replace(/[‐-–]/g, '-')) : null;
     if (!date) continue;
     const amount = parseAmount(parts[1]);
-    if (!isFinite(amount)) continue;
+    if (!isFinite(amount)) { rejected.push(raw.trim()); continue; }
     lines.push({
       booking_date: date,
       amount,
@@ -64,6 +72,15 @@ export function parseLines(text: string): ParsedLine[] {
       category: parts[4] || null,
       balance: parts[5] ? (isFinite(parseAmount(parts[5])) ? parseAmount(parts[5]) : null) : null,
     });
+  }
+  return { lines, rejected };
+}
+
+/** Keine stillen Verluste: unlesbare Datenzeilen → Fehler (auto: Vision-Fallback, sonst Retry/Fehleranzeige). */
+function parseStrict(text: string): ParsedLine[] {
+  const { lines, rejected } = parseLinesChecked(text);
+  if (rejected.length > 0) {
+    throw new Error(`${rejected.length} Buchungszeile(n) nicht lesbar, z. B. "${rejected[0].slice(0, 80)}"`);
   }
   return lines;
 }
@@ -88,7 +105,7 @@ async function callAnthropic(model: string, content: unknown[]): Promise<{ text:
 
 export async function extractTextLlm(page: PageInput, model: string): Promise<ExtractResult> {
   const r = await callAnthropic(model, [{ type: 'text', text: `${prompt(page)}\n\n--- Seitentext ---\n${page.text}` }]);
-  return { lines: parseLines(r.text), extractor: 'text-llm', model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, rawOutput: r.text };
+  return { lines: parseStrict(r.text), extractor: 'text-llm', model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, rawOutput: r.text };
 }
 
 export async function extractPdfLlm(page: PageInput, model: string): Promise<ExtractResult> {
@@ -97,5 +114,5 @@ export async function extractPdfLlm(page: PageInput, model: string): Promise<Ext
     { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: page.pdfBase64 } },
     { type: 'text', text: prompt(page) },
   ]);
-  return { lines: parseLines(r.text), extractor: 'pdf-llm', model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, rawOutput: r.text };
+  return { lines: parseStrict(r.text), extractor: 'pdf-llm', model, tokensIn: r.tokensIn, tokensOut: r.tokensOut, rawOutput: r.text };
 }

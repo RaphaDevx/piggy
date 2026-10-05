@@ -7,6 +7,8 @@
  * Feine Tags aus Versionen ≤ Build 17 werden über LEGACY_TAG_CATEGORY abgebildet.
  */
 
+import { TAXONOMY } from './taxonomy.ts';
+
 export interface TagInfo {
   label: string;
   color: string;
@@ -18,25 +20,11 @@ export interface CategoryInfo {
   color: string;
 }
 
-/** Ausgaben-Kategorien — Reihenfolge = Anzeige im Picker. */
-export const EXPENSE_CATEGORIES: CategoryInfo[] = [
-  { key: 'Lebensmittel',              color: '#34C759' },
-  { key: 'Getränke',                  color: '#0A84FF' },
-  { key: 'Haushalt',                  color: '#FF9F0A' },
-  { key: 'Körperpflege & Gesundheit', color: '#64D2FF' },
-  { key: 'Restaurant & Take-away',    color: '#FF6B6B' },
-  { key: 'Freizeit & Shopping',       color: '#BF5AF2' },
-  { key: 'Mobilität',                 color: '#5E5CE6' },
-  { key: 'Wohnen & Nebenkosten',      color: '#A2845E' },
-  { key: 'Versicherungen & Abos',     color: '#30B0C7' },
-  { key: 'Diverses',                  color: '#8E8E93' },
-];
+/** Ausgaben-Kategorien — aus der Taxonomie, Reihenfolge = Anzeige im Picker. */
+export const EXPENSE_CATEGORIES: CategoryInfo[] = TAXONOMY.map((c) => ({ key: c.id, color: c.color }));
 
-/** Kategorien, die auf Quittungsartikeln typischerweise vorkommen (Picker zeigt sie zuerst). */
-export const ITEM_CATEGORY_KEYS = [
-  'Lebensmittel', 'Getränke', 'Haushalt', 'Körperpflege & Gesundheit',
-  'Restaurant & Take-away', 'Freizeit & Shopping', 'Mobilität', 'Diverses',
-];
+/** Kategorien, die auf Quittungsartikeln vorkommen (Picker zeigt sie zuerst). */
+export const ITEM_CATEGORY_KEYS = TAXONOMY.filter((c) => c.scope !== 'bank').map((c) => c.id);
 
 export const INCOME_CATEGORY = 'Einkommen';
 /** Geld zwischen eigenen Konten (z. B. Kreditkarten-Rechnung) — zählt nicht als Ausgabe/Einnahme. */
@@ -57,19 +45,33 @@ const SPECIAL_COLORS: Record<string, string> = {
 
 const CUSTOM_COLOR = '#AC8E68';
 
-/** Feine Tags (Build ≤ 17) → grobe Kategorie. */
+/** Frühere Hauptkategorie, seit 2026-10-06 aufgeteilt in Haushalt (Pflege) und Gesundheit. */
+export const LEGACY_CARE_CATEGORY = 'Körperpflege & Gesundheit';
+
+/** Feine Tags (Build ≤ 17) → Hauptkategorie. */
 export const LEGACY_TAG_CATEGORY: Record<string, string> = {
   'Gemüse & Obst': 'Lebensmittel', 'Milchprodukte': 'Lebensmittel', 'Fleisch & Fisch': 'Lebensmittel',
   'Backwaren': 'Lebensmittel', 'Tiefkühlkost': 'Lebensmittel', 'Konserven': 'Lebensmittel',
   'Grundnahrungsmittel': 'Lebensmittel', 'Snacks & Süsswaren': 'Lebensmittel',
   'Alkohol': 'Getränke', 'Kaffee & Tee': 'Getränke',
-  'Reinigung': 'Haushalt', 'Entsorgung': 'Haushalt', 'Küche': 'Haushalt', 'Wohnen & Deko': 'Haushalt',
-  'Hygiene': 'Körperpflege & Gesundheit', 'Körperpflege': 'Körperpflege & Gesundheit',
-  'Haarpflege': 'Körperpflege & Gesundheit', 'Mundpflege': 'Körperpflege & Gesundheit',
-  'Damenhygiene': 'Körperpflege & Gesundheit', 'Gesundheit': 'Körperpflege & Gesundheit',
-  'Medikamente': 'Körperpflege & Gesundheit', 'Nahrungsergänzung': 'Körperpflege & Gesundheit',
+  'Reinigung': 'Haushalt', 'Entsorgung': 'Haushalt', 'Küche': 'Einrichtung', 'Wohnen & Deko': 'Einrichtung',
+  'Hygiene': 'Haushalt', 'Körperpflege': 'Haushalt', 'Haarpflege': 'Haushalt', 'Mundpflege': 'Haushalt',
+  'Damenhygiene': 'Haushalt', 'Gesundheit': 'Gesundheit', 'Medikamente': 'Gesundheit', 'Nahrungsergänzung': 'Gesundheit',
   'Kleidung': 'Freizeit & Shopping', 'Elektronik': 'Freizeit & Shopping',
   'Freizeit & Hobby': 'Freizeit & Shopping', 'Büro': 'Freizeit & Shopping',
+  [LEGACY_CARE_CATEGORY]: 'Gesundheit',
+};
+
+/** Feine Tags (Build ≤ 17) → Unterkategorie, wo eindeutig. */
+export const LEGACY_TAG_SUBCATEGORY: Record<string, string> = {
+  'Gemüse & Obst': 'food.produce', 'Milchprodukte': 'food.dairy', 'Fleisch & Fisch': 'food.meat_fish',
+  'Backwaren': 'food.bakery', 'Tiefkühlkost': 'food.frozen', 'Konserven': 'food.pantry',
+  'Grundnahrungsmittel': 'food.pantry', 'Snacks & Süsswaren': 'food.snacks',
+  'Alkohol': 'drinks.alcohol', 'Kaffee & Tee': 'drinks.hot',
+  'Reinigung': 'household.cleaning', 'Entsorgung': 'household.supplies', 'Küche': 'home.kitchen', 'Wohnen & Deko': 'home.decor',
+  'Hygiene': 'household.care', 'Körperpflege': 'household.care', 'Haarpflege': 'household.care', 'Mundpflege': 'household.care',
+  'Damenhygiene': 'household.care', 'Medikamente': 'health.medicine', 'Nahrungsergänzung': 'health.supplements',
+  'Kleidung': 'leisure.clothing', 'Elektronik': 'leisure.electronics', 'Freizeit & Hobby': 'leisure.hobby',
 };
 
 const CATEGORY_BY_KEY: Record<string, CategoryInfo> =

@@ -16,6 +16,7 @@ import { extractCamt, extractPage, fixSignsByBalance, isCamt, type ExtractorSett
 import { dedupeTransactions, normalizeTransactionCategory } from '../_shared/finance-core/finance.ts';
 import { runMatching, type AccountType } from '../_shared/finance-core/matching.ts';
 import { findSuggestions } from '../_shared/finance-core/discrepancies.ts';
+import { classifyItemsLlm, type ItemToClassify } from '../_shared/classify/items.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -27,6 +28,8 @@ const RAW_OUTPUT_MAX = 20_000;
 type Admin = SupabaseClient;
 
 interface Settings extends ExtractorSettings {
+  classifyBatch: number;
+  classifyBatchesPerTick: number;
   pagesPerTick: number;
   concurrency: number;
   maxAttempts: number;
@@ -62,6 +65,8 @@ async function loadSettings(admin: Admin): Promise<Settings> {
     textModel:    cfg.statement_text_model ?? 'claude-haiku-4-5-20251001',
     pdfModel:     cfg.statement_pdf_model ?? 'claude-sonnet-4-6',
     pagesPerTick: int('statement_pages_per_tick', 6),
+    classifyBatch: int('statement_classify_batch', 120),
+    classifyBatchesPerTick: int('statement_classify_batches_per_tick', 2),
     concurrency:  int('statement_page_concurrency', 3),
     maxAttempts:  int('statement_max_attempts', 3),
   };
@@ -308,6 +313,44 @@ async function matchUser(admin: Admin, userId: string) {
   return linkedTx.length;
 }
 
+// ── 5. Artikel einordnen (Unterkategorien, Hintergrund) ─────────────────────
+
+/** Nur, wenn im Takt noch Zeit bleibt — Einlesen von Auszügen hat Vorrang. */
+const CLASSIFY_TIME_BUDGET_MS = 60_000;
+
+async function classifyItems(admin: Admin, settings: Settings, startedAt: number): Promise<number> {
+  let done = 0;
+  for (let b = 0; b < settings.classifyBatchesPerTick; b++) {
+    if (Date.now() - startedAt > CLASSIFY_TIME_BUDGET_MS) break;
+    const { data } = await admin.rpc('claim_items_to_classify', { p_limit: settings.classifyBatch });
+    const items = (data ?? []) as ItemToClassify[];
+    if (items.length === 0) break;
+    try {
+      const { results } = await classifyItemsLlm(items, settings.textModel);
+      // Gleiche Ergebnisse gebündelt schreiben (wenige Requests statt einer pro Artikel)
+      const groups = new Map<string, { category: string; subcategory: string | null; ids: string[] }>();
+      for (const r of results) {
+        const k = `${r.category}|${r.subcategory ?? ''}`;
+        const g = groups.get(k) ?? { category: r.category, subcategory: r.subcategory, ids: [] };
+        g.ids.push(r.id);
+        groups.set(k, g);
+      }
+      const now = new Date().toISOString();
+      for (const g of groups.values()) {
+        await admin.from('receipt_items')
+          .update({ tags: [g.category], subcategory: g.subcategory, classified_at: now, classify_locked_at: null })
+          .in('id', g.ids);
+      }
+      done += items.length;
+    } catch (e) {
+      // Lock läuft nach 10 Min. ab → nächster Takt versucht es erneut
+      console.error('classify failed', (e as Error).message);
+      break;
+    }
+  }
+  return done;
+}
+
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -326,6 +369,7 @@ Deno.serve(async (req) => {
   const users = new Set([...reconciledUsers, ...((rematch ?? []) as { user_id: string }[]).map((r) => r.user_id)]);
   let linked = 0;
   for (const userId of users) linked += await matchUser(admin, userId);
+  const classified = await classifyItems(admin, settings, started);
 
-  return json({ split, pages, reconciled: reconciledUsers.length, rematched: users.size, linked, ms: Date.now() - started });
+  return json({ split, pages, reconciled: reconciledUsers.length, rematched: users.size, linked, classified, ms: Date.now() - started });
 });

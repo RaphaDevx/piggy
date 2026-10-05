@@ -15,6 +15,9 @@ import NumericInput from '../../src/components/NumericInput';
 import { CardMatchBanner } from '../../src/components/CardMatchBanner';
 import { C, R, S, card } from '../../src/constants/design';
 import { itemCategory, PAYMENT_METHODS, STORE_CATEGORIES } from '../../src/lib/categories';
+import { categoryLabel } from '../../src/lib/taxonomy';
+import { resolveSubcategory } from '../../src/lib/itemSubcategory';
+import { useLocale } from '../../src/hooks/useLocale';
 import { useProjects, assignReceiptToProject } from '../../src/hooks/useProjects';
 import type { ReceiptWithItems, ReceiptItem } from '../../src/types/receipt';
 import type { BankMatch } from '../../src/types/bank';
@@ -58,6 +61,7 @@ const pkStyles = StyleSheet.create({
 export default function ReceiptDetailScreen() {
   const { id }  = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
+  const locale  = useLocale();
   const insets  = useSafeAreaInsets();
 
   const [receipt, setReceipt]   = useState<ReceiptWithItems | null>(null);
@@ -126,7 +130,11 @@ export default function ReceiptDetailScreen() {
     if (toDelete.length) await supabase.from('receipt_items').delete().in('id', toDelete);
 
     for (const item of editItems) {
-      const payload = { name: item.name, quantity: item.quantity, unit: item.unit, unit_price: item.unit_price, total_price: item.total_price, tags: item.tags };
+      const payload = { name: item.name, quantity: item.quantity, unit: item.unit, unit_price: item.unit_price, total_price: item.total_price, tags: item.tags,
+        subcategory: (item.tags ?? []).length > 0 ? resolveSubcategory(item.name, itemCategory(item.tags), item.subcategory) : null,
+        is_adjustment: item.is_adjustment ?? false,
+        // vom Nutzer geprüft → Hintergrund-Einordnung (statement-worker) lässt den Artikel in Ruhe
+        classified_at: new Date().toISOString() };
       if (item.id && receipt.receipt_items.some((r) => r.id === item.id)) {
         await supabase.from('receipt_items').update(payload).eq('id', item.id);
       } else {
@@ -224,8 +232,8 @@ export default function ReceiptDetailScreen() {
 
           <Text style={styles.sectionTitle}>Artikel ({editItems.length})</Text>
           {editItems.length > 1 && (
-            <TouchableOpacity onPress={() => setEditItems((p) => p.map((i) => ({ ...i, tags: [itemCategory(p[0].tags)] })))}>
-              <Text style={styles.addItemText}>Alle Artikel: {itemCategory(editItems[0].tags)}</Text>
+            <TouchableOpacity onPress={() => setEditItems((p) => { const cat = itemCategory(p[0].tags); return p.map((i) => ({ ...i, tags: [cat], subcategory: resolveSubcategory(i.name, cat, i.subcategory) })); })}>
+              <Text style={styles.addItemText}>Alle Artikel: {categoryLabel(itemCategory(editItems[0].tags), locale)}</Text>
             </TouchableOpacity>
           )}
           {editItems.map((item, idx) => (
@@ -256,7 +264,9 @@ export default function ReceiptDetailScreen() {
               </View>
               <TagPicker
                 value={itemCategory(item.tags)}
-                onChange={(category) => updateItem(idx, { tags: [category] })}
+                subcategory={item.subcategory}
+                itemName={item.name}
+                onChange={(category, subcategory) => updateItem(idx, { tags: [category], subcategory })}
                 customCategories={customCategories}
               />
             </View>
@@ -410,7 +420,7 @@ export default function ReceiptDetailScreen() {
 
         {allTags.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tags</Text>
+            <Text style={styles.sectionTitle}>Kategorien</Text>
             <View style={styles.tagsWrap}>
               {allTags.map((tag) => <TagBadge key={tag} tag={tag} />)}
             </View>
@@ -431,11 +441,13 @@ export default function ReceiptDetailScreen() {
               {receipt.receipt_items.map((item, i) => (
                 <View key={item.id} style={[styles.itemRow, i > 0 && styles.itemBorder]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={[styles.itemName, item.is_adjustment && styles.itemAdjustment]}>
+                      {item.name}{item.is_adjustment ? ' · Ausgleich' : ''}
+                    </Text>
                     {((item.tags ?? []).length > 0 || (item.quantity != null && item.quantity !== 1)) && (
                       <View style={styles.itemMeta}>
                         {item.quantity != null && item.quantity !== 1 && <Text style={styles.itemMetaText}>{item.quantity}× {item.unit ?? ''}</Text>}
-                        {(item.tags ?? []).length > 0 && <TagBadge tag={itemCategory(item.tags)} small />}
+                        {(item.tags ?? []).length > 0 && <TagBadge tag={itemCategory(item.tags)} subcategory={item.subcategory} small />}
                       </View>
                     )}
                   </View>
@@ -482,6 +494,7 @@ const styles = StyleSheet.create({
   itemsCard:    { padding: 0, overflow: 'hidden' },
   itemRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14 },
   itemBorder:   { borderTopWidth: 1, borderTopColor: C.borderSoft },
+  itemAdjustment: { fontStyle: 'italic', color: C.textSecondary, fontWeight: '400' },
   itemName:     { color: C.textPrimary, fontSize: S.sm, fontWeight: '600' },
   itemMeta:     { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   itemMetaText: { color: C.textTertiary, fontSize: S.xs },

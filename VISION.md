@@ -33,6 +33,10 @@ Piggy wird zur **sozialen Finanz-Wallet der Schweiz**: eine App, die Quittungen 
 | **Fortlaufender Abgleich:** jede neue Quittung wird sofort gegen offene Buchungen geprüft, "Neu abgleichen" | ✅ 2026-10-05 |
 | **Vorschläge bei Ungereimtheiten:** Trinkgeld, Fremdwährung, Rabatt, Teilzahlung → Übernehmen / Bearbeiten / Ablehnen; Ausgleichsposten auf der Quittung | ✅ 2026-10-05 |
 | **Finanzprofil:** Ø pro Woche/Monat, Einnahmen, Sparquote, Fixkosten-Anteil, Monats-/Wochenbalken, Top-Kategorien | ✅ 2026-10-05 (Basis für spätere Charts/Dashboard) |
+| **Kategorie-Hierarchie:** 11 Hauptkategorien mit Unterkategorien (z. B. Haushalt › Putzen & Waschen / Papierwaren / Körperpflege & Hygiene; neu „Einrichtung“ für Bratpfanne, Möbel, Deko), jede mit Art Grundbedarf / Genuss & Komfort / Anschaffung; Auswertung „Wofür geht dein Geld?“ | ✅ 2026-10-05, alle 1090 Artikel eingeordnet (ADR 0002) |
+| **Semi-smarte Kategorie-Ansicht:** < 25 Artikel flach, darüber gruppiert nach Unterkategorie → Produkt, kleine Gruppen in „Weitere“; Zeitraum 30 T / 3 M / 12 M / Alles | ✅ 2026-10-05 |
+| Kategorie-Namen sinngemäss in DE/EN/FR/IT (Gerätesprache) | ✅ 2026-10-05 — übrige App-Texte noch deutsch |
+| Format-Test Kontoauszüge: PostFinance-/UBS-CSV, Kreditkarten-PDF ohne Saldo, gescanntes PDF, CAMT mit Präfix + mehreren Konten, 40-Seiten-PDF mit ~1000 Buchungen | ✅ 2026-10-05 (Ergebnisse siehe Commit/Release-Notiz) |
 
 ### Must — ohne das kein Release
 

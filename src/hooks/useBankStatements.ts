@@ -1,9 +1,36 @@
 import { useState, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../lib/supabase';
 import { ensureAiConsent } from '../lib/aiConsent';
 import type { AccountType, BankStatement, BankTransaction } from '../types/bank';
 import type { Receipt } from '../types/receipt';
+
+/** Grenze des bank-statements-Buckets. */
+const MAX_STATEMENT_BYTES = 50 * 1024 * 1024;
+
+function decodeBase64(base64: string): Uint8Array {
+  const binaryStr = globalThis.atob(base64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * Datei-Inhalt lesen. Auf iOS/Android liefert fetch(file://…).blob() oft 0 Bytes,
+ * deshalb dort über expo-file-system (base64) lesen; im Web ist die URI ein blob:-Link.
+ */
+async function readFileBytes(uri: string): Promise<Uint8Array | Blob> {
+  if (Platform.OS === 'web') return (await fetch(uri)).blob();
+  return decodeBase64(await FileSystem.readAsStringAsync(uri, { encoding: 'base64' }));
+}
+
+/** Storage-Keys erlauben keine Umlaute/Sonderzeichen. */
+export function safeStorageName(fileName: string): string {
+  const cleaned = fileName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_');
+  return cleaned.replace(/^_+|_+$/g, '') || 'auszug';
+}
 
 export interface StatementSummary extends BankStatement {
   transactionCount: number;
@@ -96,12 +123,14 @@ export function useBankStatements() {
       if (!userId) throw new Error('Nicht eingeloggt');
 
       // 1. Datei in den privaten Bucket laden (Ordner = eigene uid)
-      const resp = await fetch(uri);
-      const blob = await resp.blob();
-      const filePath = `${userId}/${Date.now()}_${fileName}`;
+      const body = await readFileBytes(uri);
+      const size = body instanceof Blob ? body.size : body.byteLength;
+      if (size === 0) throw new Error('Die Datei ist leer oder konnte nicht gelesen werden.');
+      if (size > MAX_STATEMENT_BYTES) throw new Error('Die Datei ist grösser als 50 MB.');
+      const filePath = `${userId}/${Date.now()}_${safeStorageName(fileName)}`;
       const { error: uploadErr } = await supabase.storage
         .from('bank-statements')
-        .upload(filePath, blob, { contentType: mimeType });
+        .upload(filePath, body, { contentType: mimeType });
       if (uploadErr) throw new Error(`Datei-Upload fehlgeschlagen: ${uploadErr.message}`);
 
       // 2. Auszug in die Warteschlange stellen

@@ -9,6 +9,8 @@ import ReceiptCard from '../../src/components/ReceiptCard';
 import SpendingChart from '../../src/components/SpendingChart';
 import { OpenBalances } from '../../src/components/OpenBalances';
 import { useDashboard } from '../../src/hooks/useDashboard';
+import { useLocale } from '../../src/hooks/useLocale';
+import { categoryLabel } from '../../src/lib/taxonomy';
 import { C, R, S, card } from '../../src/constants/design';
 import type { Period } from '../../src/types/receipt';
 
@@ -24,6 +26,7 @@ const TAG_EMOJI: Record<string, string> = {
   'Hygiene': '🧴', 'Gesundheit': '💊', 'Restaurant & Take-away': '🍜',
   'Kleidung': '👕', 'Elektronik': '💻', 'Diverses': '📦',
   'Backwaren': '🥐', 'Milchprodukte': '🥛', 'Fleisch & Fisch': '🥩',
+  'Einrichtung': '🛋️', 'Freizeit & Shopping': '🛍️', 'Mobilität': '🚆',
 };
 
 function fmtCHF(amount: number, currency = 'CHF') {
@@ -33,6 +36,7 @@ function fmtCHF(amount: number, currency = 'CHF') {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const locale = useLocale();
   const { period, offset, data, loading, refreshing, changePeriod, goPrev, goNext, refresh } = useDashboard();
 
   return (
@@ -124,7 +128,7 @@ export default function DashboardScreen() {
           {/* Chart */}
           {data.byTag.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Ausgaben nach Tag</Text>
+              <Text style={styles.sectionTitle}>Ausgaben nach Kategorie</Text>
               <View style={card}>
                 <SpendingChart data={data.byTag} currency={data.currency} />
               </View>
@@ -149,7 +153,7 @@ export default function DashboardScreen() {
                       <Text style={styles.catEmoji}>{emoji}</Text>
                       <View style={{ flex: 1, gap: 4 }}>
                         <View style={styles.catLabelRow}>
-                          <Text style={styles.catLabel}>{tag}</Text>
+                          <Text style={styles.catLabel}>{categoryLabel(tag, locale)}</Text>
                           <Text style={styles.catAmount}>{fmtCHF(total, data.currency)}</Text>
                         </View>
                         <View style={styles.barBg}>
