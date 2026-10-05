@@ -36,7 +36,7 @@ JSON-Struktur:
       "unit": "Stk|kg|g|L|ml|Pack|Paar oder leer",
       "unit_price": Stückpreis als Zahl,
       "total_price": Gesamtpreis dieses Artikels als Zahl,
-      "tags": ["Tag1", "Tag2"]
+      "tags": ["Lebensmittel"]
     }
   ],
   "extra": {
@@ -50,13 +50,15 @@ JSON-Struktur:
   }
 }
 
-Verfügbare Tags (weise jedem Artikel 1-3 passende Tags zu):
-- Lebensmittel: "Lebensmittel", "Gemüse & Obst", "Milchprodukte", "Fleisch & Fisch", "Backwaren", "Tiefkühlkost", "Konserven", "Grundnahrungsmittel", "Snacks & Süsswaren"
-- Getränke: "Getränke", "Alkohol", "Kaffee & Tee"
-- Haushalt: "Haushalt", "Reinigung", "Entsorgung", "Küche", "Wohnen & Deko"
-- Hygiene: "Hygiene", "Körperpflege", "Haarpflege", "Mundpflege", "Damenhygiene"
-- Gesundheit: "Gesundheit", "Medikamente", "Nahrungsergänzung"
-- Diverses: "Restaurant & Take-away", "Kleidung", "Elektronik", "Freizeit & Hobby", "Büro", "Diverses"
+Kategorie: Weise jedem Artikel GENAU EINE Kategorie zu ("tags" enthält genau einen Eintrag), aus:
+- "Lebensmittel" (alle Esswaren inkl. Snacks, Süsses, Brot, Fleisch, Milchprodukte)
+- "Getränke" (alkoholfrei und alkoholisch, Kaffee, Tee)
+- "Haushalt" (Waschmittel, Putzmittel, Abfallsäcke, Haushaltspapier, Küche, Wohnen)
+- "Körperpflege & Gesundheit" (Hygiene, Kosmetik, Medikamente, Nahrungsergänzung)
+- "Restaurant & Take-away" (verzehrfertige Speisen/Getränke in Restaurant, Café, Imbiss)
+- "Freizeit & Shopping" (Kleidung, Elektronik, Hobby, Büro, Geschenke)
+- "Mobilität" (Treibstoff, Parking, Tickets)
+- "Diverses" (alles andere, Pfand, Gebühren)
 
 Regeln:
 - Erkenne Mengenangaben (z.B. "2x", "3 kg") korrekt

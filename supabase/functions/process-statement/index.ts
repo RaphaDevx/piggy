@@ -16,7 +16,8 @@ JSON-Struktur:
       "booking_date": "YYYY-MM-DD",
       "amount": Betrag als Zahl,
       "currency": "CHF, EUR oder USD",
-      "description": "Originaltext/Buchungstext der Bank, so wie er im Auszug steht"
+      "description": "Originaltext/Buchungstext der Bank, so wie er im Auszug steht",
+      "category": "eine Kategorie aus der Liste unten"
     }
   ]
 }
@@ -28,7 +29,21 @@ Regeln:
 - Reine Kontoführungsgebühren, Zinsen, interne Umbuchungen etc. ebenfalls als normale Transaktionen aufnehmen.
 - Bei CAMT.053-XML: jede <Ntry> ist eine Transaktion, <Amt> mit <CdtDbtInd> (DBIT = negativ, CRDT = positiv) bestimmt das Vorzeichen.
 - Bei CSV: Spaltenbedeutung aus der Kopfzeile ableiten (Datum, Betrag/Saldo, Text/Buchungstext, Soll/Haben).
-- Wenn ein Feld nicht ermittelbar ist: sinnvollen Default verwenden (currency "CHF", period_start/end null).`;
+- Wenn ein Feld nicht ermittelbar ist: sinnvollen Default verwenden (currency "CHF", period_start/end null).
+
+Kategorie (genau eine pro Buchung, exakt so geschrieben):
+- "Lebensmittel" (Supermarkt, Bäckerei, Metzgerei, Kiosk)
+- "Getränke"
+- "Haushalt" (IKEA, Baumarkt, Möbel, Haushaltswaren)
+- "Körperpflege & Gesundheit" (Apotheke, Drogerie, Arzt, Spital)
+- "Restaurant & Take-away"
+- "Freizeit & Shopping" (Kleider, Elektronik, Online-Shops, Sport, Kino, Reisen ausser Transport)
+- "Mobilität" (ÖV, SBB, Tankstelle, Parking, Taxi/Uber, Flüge)
+- "Wohnen & Nebenkosten" (Miete, Strom, Wasser, Hausverwaltung)
+- "Versicherungen & Abos" (Krankenkasse, Versicherungen, Handy/Internet, Streaming, Abos)
+- "Diverses" (Gebühren, Bargeldbezug, Steuern, Spenden, Sonstiges)
+- "Einkommen" (Lohn, Rückzahlungen von Personen, sonstige Gutschriften)
+- "Umbuchung" (Übertrag zwischen eigenen Konten, Zahlung der Kreditkarten-Rechnung, Sparkonto)`;
 
 function buildMessageContent(fileBase64: string, mimeType: string) {
   if (mimeType === 'application/pdf') {
@@ -72,7 +87,7 @@ Deno.serve(async (req: Request) => {
 
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8192,
+      max_tokens: 16000,
       messages: [{ role: 'user', content: buildMessageContent(file_base64, mime_type) }],
     });
 

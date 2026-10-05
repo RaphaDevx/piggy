@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { TAG_GROUPS } from '../lib/categories';
+import { getTagGroup } from '../lib/categories';
 import type { Receipt, SpendingByTag, StoreSpending, Period } from '../types/receipt';
 
 export interface DashboardData {
@@ -128,9 +128,7 @@ async function fetchDashboardData(period: Period, offset: number): Promise<Dashb
   // Ausgaben nach Gruppe
   const groupTotals: Record<string, number> = {};
   for (const { tag, total } of byTag) {
-    const group = Object.keys(TAG_GROUPS).find((g) =>
-      tag.toLowerCase().includes(g.toLowerCase()) || tag === g
-    ) ?? 'Diverses';
+    const group = getTagGroup(tag);
     groupTotals[group] = (groupTotals[group] ?? 0) + total;
   }
   const byGroup: SpendingByTag[] = Object.entries(groupTotals)

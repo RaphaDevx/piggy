@@ -11,14 +11,14 @@ import { C, R, S, cardShadow } from '../constants/design';
 const ICON_MAP: Record<string, string> = {
   index:      'home',
   quittungen: 'receipt',
-  projekte:   'folder',
+  finanzen:   'bar-chart',
   profil:     'person',
 };
 
 const TAB_LABELS: Record<string, string> = {
   index:      'Home',
   quittungen: 'Quittungen',
-  projekte:   'Projekte',
+  finanzen:   'Finanzen',
   profil:     'Profil',
 };
 

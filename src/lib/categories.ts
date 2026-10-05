@@ -1,68 +1,126 @@
+/**
+ * Kategorien — ein grober Satz für Quittungsartikel und Bank-Buchungen.
+ *
+ * Jeder Artikel hat genau eine Kategorie (receipt_items.tags[0]); Nutzer können
+ * eine andere wählen oder eine eigene anlegen. Bank-Buchungen haben dieselben
+ * Ausgaben-Kategorien plus Einnahmen/Umbuchung (bank_transactions.category).
+ * Feine Tags aus Versionen ≤ Build 17 werden über LEGACY_TAG_CATEGORY abgebildet.
+ */
+
 export interface TagInfo {
   label: string;
   color: string;
   group: string;
 }
 
-export const TAG_MAP: Record<string, TagInfo> = {
-  // Lebensmittel
-  'Lebensmittel':         { label: 'Lebensmittel',      color: '#34C759', group: 'Lebensmittel' },
-  'Gemüse & Obst':        { label: 'Gemüse & Obst',     color: '#30D158', group: 'Lebensmittel' },
-  'Milchprodukte':        { label: 'Milchprodukte',      color: '#32ADE6', group: 'Lebensmittel' },
-  'Fleisch & Fisch':      { label: 'Fleisch & Fisch',    color: '#FF6B6B', group: 'Lebensmittel' },
-  'Backwaren':            { label: 'Backwaren',          color: '#FF9F0A', group: 'Lebensmittel' },
-  'Tiefkühlkost':         { label: 'Tiefkühlkost',       color: '#5AC8FA', group: 'Lebensmittel' },
-  'Konserven':            { label: 'Konserven',          color: '#64D2FF', group: 'Lebensmittel' },
-  'Grundnahrungsmittel':  { label: 'Grundnahrungsmittel', color: '#A2845E', group: 'Lebensmittel' },
-  'Snacks & Süsswaren':   { label: 'Snacks & Süsswaren', color: '#FF375F', group: 'Lebensmittel' },
-  // Getränke
-  'Getränke':             { label: 'Getränke',           color: '#0A84FF', group: 'Getränke' },
-  'Alkohol':              { label: 'Alkohol',            color: '#FF9F0A', group: 'Getränke' },
-  'Kaffee & Tee':         { label: 'Kaffee & Tee',       color: '#AC8E68', group: 'Getränke' },
-  // Haushalt
-  'Haushalt':             { label: 'Haushalt',           color: '#FF9F0A', group: 'Haushalt' },
-  'Reinigung':            { label: 'Reinigung',          color: '#30B0C7', group: 'Haushalt' },
-  'Entsorgung':           { label: 'Entsorgung',         color: '#636366', group: 'Haushalt' },
-  'Küche':                { label: 'Küche',              color: '#FF6B6B', group: 'Haushalt' },
-  'Wohnen & Deko':        { label: 'Wohnen & Deko',      color: '#BF5AF2', group: 'Haushalt' },
-  // Hygiene
-  'Hygiene':              { label: 'Hygiene',            color: '#64D2FF', group: 'Hygiene' },
-  'Körperpflege':         { label: 'Körperpflege',       color: '#30B0C7', group: 'Hygiene' },
-  'Haarpflege':           { label: 'Haarpflege',         color: '#5E5CE6', group: 'Hygiene' },
-  'Mundpflege':           { label: 'Mundpflege',         color: '#32ADE6', group: 'Hygiene' },
-  'Damenhygiene':         { label: 'Damenhygiene',       color: '#FF6B9D', group: 'Hygiene' },
-  // Gesundheit
-  'Gesundheit':           { label: 'Gesundheit',         color: '#30D158', group: 'Gesundheit' },
-  'Medikamente':          { label: 'Medikamente',        color: '#34C759', group: 'Gesundheit' },
-  'Nahrungsergänzung':    { label: 'Nahrungsergänzung',  color: '#32D74B', group: 'Gesundheit' },
-  // Diverses
-  'Restaurant & Take-away': { label: 'Restaurant',       color: '#FF6B6B', group: 'Diverses' },
-  'Kleidung':             { label: 'Kleidung',           color: '#BF5AF2', group: 'Diverses' },
-  'Elektronik':           { label: 'Elektronik',         color: '#0A84FF', group: 'Diverses' },
-  'Freizeit & Hobby':     { label: 'Freizeit & Hobby',   color: '#FF9F0A', group: 'Diverses' },
-  'Büro':                 { label: 'Büro',               color: '#636366', group: 'Diverses' },
-  'Diverses':             { label: 'Diverses',           color: '#48484A', group: 'Diverses' },
+export interface CategoryInfo {
+  key: string;
+  color: string;
+}
+
+/** Ausgaben-Kategorien — Reihenfolge = Anzeige im Picker. */
+export const EXPENSE_CATEGORIES: CategoryInfo[] = [
+  { key: 'Lebensmittel',              color: '#34C759' },
+  { key: 'Getränke',                  color: '#0A84FF' },
+  { key: 'Haushalt',                  color: '#FF9F0A' },
+  { key: 'Körperpflege & Gesundheit', color: '#64D2FF' },
+  { key: 'Restaurant & Take-away',    color: '#FF6B6B' },
+  { key: 'Freizeit & Shopping',       color: '#BF5AF2' },
+  { key: 'Mobilität',                 color: '#5E5CE6' },
+  { key: 'Wohnen & Nebenkosten',      color: '#A2845E' },
+  { key: 'Versicherungen & Abos',     color: '#30B0C7' },
+  { key: 'Diverses',                  color: '#8E8E93' },
+];
+
+/** Kategorien, die auf Quittungsartikeln typischerweise vorkommen (Picker zeigt sie zuerst). */
+export const ITEM_CATEGORY_KEYS = [
+  'Lebensmittel', 'Getränke', 'Haushalt', 'Körperpflege & Gesundheit',
+  'Restaurant & Take-away', 'Freizeit & Shopping', 'Mobilität', 'Diverses',
+];
+
+export const INCOME_CATEGORY = 'Einkommen';
+/** Geld zwischen eigenen Konten (z. B. Kreditkarten-Rechnung) — zählt nicht als Ausgabe/Einnahme. */
+export const TRANSFER_CATEGORY = 'Umbuchung';
+export const UNCATEGORIZED = 'Nicht kategorisiert';
+
+export const TRANSACTION_CATEGORIES = [
+  ...EXPENSE_CATEGORIES.map((c) => c.key),
+  INCOME_CATEGORY,
+  TRANSFER_CATEGORY,
+];
+
+const SPECIAL_COLORS: Record<string, string> = {
+  [INCOME_CATEGORY]:   '#30D158',
+  [TRANSFER_CATEGORY]: '#636366',
+  [UNCATEGORIZED]:     '#48484A',
 };
 
-export const ALL_TAGS = Object.keys(TAG_MAP);
+const CUSTOM_COLOR = '#AC8E68';
+
+/** Feine Tags (Build ≤ 17) → grobe Kategorie. */
+export const LEGACY_TAG_CATEGORY: Record<string, string> = {
+  'Gemüse & Obst': 'Lebensmittel', 'Milchprodukte': 'Lebensmittel', 'Fleisch & Fisch': 'Lebensmittel',
+  'Backwaren': 'Lebensmittel', 'Tiefkühlkost': 'Lebensmittel', 'Konserven': 'Lebensmittel',
+  'Grundnahrungsmittel': 'Lebensmittel', 'Snacks & Süsswaren': 'Lebensmittel',
+  'Alkohol': 'Getränke', 'Kaffee & Tee': 'Getränke',
+  'Reinigung': 'Haushalt', 'Entsorgung': 'Haushalt', 'Küche': 'Haushalt', 'Wohnen & Deko': 'Haushalt',
+  'Hygiene': 'Körperpflege & Gesundheit', 'Körperpflege': 'Körperpflege & Gesundheit',
+  'Haarpflege': 'Körperpflege & Gesundheit', 'Mundpflege': 'Körperpflege & Gesundheit',
+  'Damenhygiene': 'Körperpflege & Gesundheit', 'Gesundheit': 'Körperpflege & Gesundheit',
+  'Medikamente': 'Körperpflege & Gesundheit', 'Nahrungsergänzung': 'Körperpflege & Gesundheit',
+  'Kleidung': 'Freizeit & Shopping', 'Elektronik': 'Freizeit & Shopping',
+  'Freizeit & Hobby': 'Freizeit & Shopping', 'Büro': 'Freizeit & Shopping',
+};
+
+const CATEGORY_BY_KEY: Record<string, CategoryInfo> =
+  Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.key, c]));
+
+/** Bekannte Kategorie für einen (evtl. alten) Tag, sonst der Tag selbst (eigene Kategorie). */
+export function normalizeCategory(tag: string): string {
+  return LEGACY_TAG_CATEGORY[tag] ?? tag;
+}
+
+export function isKnownCategory(tag: string): boolean {
+  return tag in CATEGORY_BY_KEY || tag in SPECIAL_COLORS;
+}
+
+/** Kategorie eines Artikels: erster Tag, normalisiert. */
+export function itemCategory(tags: string[] | null | undefined): string {
+  const first = tags?.find((t) => t.trim());
+  return first ? normalizeCategory(first) : 'Diverses';
+}
+
+/** Kategorie aus KI-/Regel-Ausgabe: nur bekannte Kategorien, sonst Diverses. */
+export function suggestedCategory(tags: string[] | null | undefined): string {
+  const category = itemCategory(tags);
+  return category in CATEGORY_BY_KEY ? category : 'Diverses';
+}
+
+export function getCategoryColor(category: string): string {
+  const key = normalizeCategory(category);
+  return CATEGORY_BY_KEY[key]?.color ?? SPECIAL_COLORS[key] ?? CUSTOM_COLOR;
+}
+
+// ── Kompatibilität mit bestehenden Screens ───────────────────────────────────
+
+export const TAG_MAP: Record<string, TagInfo> = Object.fromEntries(
+  EXPENSE_CATEGORIES.map((c) => [c.key, { label: c.key, color: c.color, group: c.key }]),
+);
+
+export const ALL_TAGS = ITEM_CATEGORY_KEYS;
 
 export function getTagColor(tag: string): string {
-  return TAG_MAP[tag]?.color ?? '#48484A';
+  return getCategoryColor(tag);
 }
 
+/** Eigene Kategorien bilden ihre eigene Gruppe. */
 export function getTagGroup(tag: string): string {
-  return TAG_MAP[tag]?.group ?? 'Diverses';
+  return normalizeCategory(tag);
 }
 
-// Unique groups with their display color (for charts)
-export const TAG_GROUPS: Record<string, string> = {
-  'Lebensmittel': '#34C759',
-  'Getränke':     '#0A84FF',
-  'Haushalt':     '#FF9F0A',
-  'Hygiene':      '#64D2FF',
-  'Gesundheit':   '#30D158',
-  'Diverses':     '#636366',
-};
+export const TAG_GROUPS: Record<string, string> = Object.fromEntries(
+  EXPENSE_CATEGORIES.map((c) => [c.key, c.color]),
+);
 
 export const STORE_CATEGORIES = [
   'Supermarkt',

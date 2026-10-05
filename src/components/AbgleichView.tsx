@@ -46,7 +46,11 @@ export default function AbgleichView() {
         accountLabel.trim(),
         accountType
       );
-      Alert.alert('Erfolg', `${res.transactionCount} Buchungen importiert.`);
+      Alert.alert(
+        'Erfolg',
+        `${res.transactionCount} Buchungen importiert.` +
+          (res.skippedDuplicates > 0 ? ` ${res.skippedDuplicates} waren schon vorhanden und wurden übersprungen.` : ''),
+      );
       setAccountLabel('');
     } catch (err) {
       Alert.alert('Fehler', (err as Error)?.message ?? 'Upload fehlgeschlagen');

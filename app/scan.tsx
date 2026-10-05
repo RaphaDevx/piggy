@@ -17,7 +17,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../src/lib/supabase';
 import { processReceiptImage, ProcessResult } from '../src/lib/claude';
 import { generateMarkdown } from '../src/lib/markdown';
-import { getTagColor, ALL_TAGS } from '../src/lib/categories';
+import { itemCategory } from '../src/lib/categories';
+import TagPicker from '../src/components/TagPicker';
+import { useCustomCategories } from '../src/hooks/useCustomCategories';
 import { C, R, S, card } from '../src/constants/design';
 import type { ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
 import type { CropRegion } from '../src/lib/ocr';
@@ -375,6 +377,7 @@ export default function ScanScreen() {
   const { uri, precropped } = useLocalSearchParams<{ uri: string; precropped?: string }>();
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
+  const customCategories = useCustomCategories();
 
   const [step, setStep]             = useState<Step>(precropped === '1' ? 'processing' : 'crop');
   const [receipt, setReceipt]       = useState<ParsedReceipt | null>(null);
@@ -556,18 +559,6 @@ export default function ScanScreen() {
     setReceipt((prev) => {
       if (!prev) return prev;
       return { ...prev, items: prev.items.filter((_, i) => i !== index) };
-    });
-  }
-
-  function toggleTag(index: number, tag: string) {
-    setReceipt((prev) => {
-      if (!prev) return prev;
-      const items = [...prev.items];
-      const tags = items[index].tags.includes(tag)
-        ? items[index].tags.filter((t) => t !== tag)
-        : [...items[index].tags, tag];
-      items[index] = { ...items[index], tags };
-      return { ...prev, items };
     });
   }
 
@@ -782,21 +773,11 @@ export default function ScanScreen() {
                 />
               </View>
             </View>
-            <View style={styles.tagsRow}>
-              {ALL_TAGS.map((tag) => {
-                const active = item.tags.includes(tag);
-                const color  = getTagColor(tag);
-                return (
-                  <TouchableOpacity
-                    key={tag}
-                    onPress={() => toggleTag(idx, tag)}
-                    style={[styles.tagChip, active && { backgroundColor: `${color}18`, borderColor: color }]}
-                  >
-                    <Text style={[styles.tagChipText, active && { color }]}>{tag}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <TagPicker
+              value={itemCategory(item.tags)}
+              onChange={(category) => updateItem(idx, { tags: [category] })}
+              customCategories={customCategories}
+            />
           </View>
         ))}
 
@@ -864,9 +845,6 @@ const styles = StyleSheet.create({
   itemHeader: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   removeBtn:  { padding: 4 },
 
-  tagsRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  tagChip:     { borderWidth: 1, borderColor: C.border, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.bgSoft },
-  tagChipText: { color: C.textTertiary, fontSize: S.xs },
 
   addItemBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

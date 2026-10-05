@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { processStatementFile } from '../lib/statement';
 import { runMatching } from '../lib/matching';
+import { dedupeTransactions, normalizeTransactionCategory } from '../lib/finance';
 import type { AccountType, BankStatement, BankTransaction } from '../types/bank';
 import type { Receipt } from '../types/receipt';
 
@@ -87,6 +88,7 @@ export function useBankStatements() {
   ) => {
     setUploading(true);
     setUploadError(null);
+    let skippedDuplicates = 0;
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -127,16 +129,29 @@ export function useBankStatements() {
 
       if (statementError || !statementRow) throw new Error(statementError?.message ?? 'Speichern fehlgeschlagen');
 
-      if (parsed.transactions.length > 0) {
+      // Bereits importierte Buchungen (z. B. überlappende Auszüge) überspringen
+      const dates = parsed.transactions.map((t) => t.booking_date).sort();
+      const { data: existingTx } = dates.length > 0
+        ? await supabase
+            .from('bank_transactions')
+            .select('booking_date, amount, description')
+            .gte('booking_date', dates[0])
+            .lte('booking_date', dates[dates.length - 1])
+        : { data: [] };
+      const newTransactions = dedupeTransactions(parsed.transactions, existingTx ?? []);
+      skippedDuplicates = parsed.transactions.length - newTransactions.length;
+
+      if (newTransactions.length > 0) {
         const { data: insertedTx, error: txError } = await supabase
           .from('bank_transactions')
-          .insert(parsed.transactions.map((t) => ({
+          .insert(newTransactions.map((t) => ({
             statement_id: statementRow.id,
             user_id:      userId,
             booking_date: t.booking_date,
             amount:       t.amount,
             currency:     t.currency,
             description:  t.description,
+            category:     normalizeTransactionCategory(t.category, t.description, t.amount),
           })))
           .select('*');
 
@@ -162,7 +177,11 @@ export function useBankStatements() {
       }
 
       await load();
-      return { statement: statementRow as BankStatement, transactionCount: parsed.transactions.length };
+      return {
+        statement: statementRow as BankStatement,
+        transactionCount: parsed.transactions.length - skippedDuplicates,
+        skippedDuplicates,
+      };
     } catch (err) {
       const message = (err as Error)?.message ?? 'Upload fehlgeschlagen';
       setUploadError(message);

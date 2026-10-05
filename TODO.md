@@ -1,5 +1,7 @@
 # Piggy — Roadmap bis App Store & Google Play
 
+> **Priorisierung bis Release v1.0 → `VISION.md` Abschnitt 0 (Stand 2026-10-05).** Diese Liste ist Detail-Backlog; bei Widerspruch gilt die Vision.
+
 > Letztes Update: 2026-07-08
 > Status-Legende: ✅ Fertig · 🔄 In Arbeit · ⬜ Offen · 🚫 Blockiert · 🚀 Nativ-only (ab EAS Build)
 
@@ -74,11 +76,11 @@
 
 ## Offen — App-Qualität
 
-- [ ] **Passwort-Reset** — "Passwort vergessen"-Link im Login-Screen
-- [ ] **Duplikats-Check** — erkennt gleiche Quittung zweimal gescannt, bestes Bild behalten
+- [ ] ~~**Passwort-Reset**~~ — entfällt für v1.0 (Login nur Apple/Google, siehe VISION.md)
+- [x] **Duplikats-Check** — Hinweis beim Speichern (Build 17); bestes Bild behalten noch offen
 - [ ] **KG-Preise Fix** — Gewichtsartikel (z. B. Budget Cheese 1.2kg): Menge=1 führt zu falschem Total → Cross-Check: alle Artikel müssen auf Gesamtsumme schliessen, sonst markieren
 - [ ] **Zoom auf Quittungsfoto** — Pinch-to-zoom auf Originalbild im Detail-Screen
-- [ ] **Serien-Scan** — 20–100 Dokumente hintereinander scannen (Stapel-Modus)
+- [ ] **Serien-Scan** — 20–100 Dokumente hintereinander scannen (Stapel-Modus) → v1.0 Should
 - [ ] **PDF-Export** — Quittung als PDF für Spesen / Steuern
 - [ ] **VPN-freier Zugang** — App öffentlich erreichbar ohne VPN
 

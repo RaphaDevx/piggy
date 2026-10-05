@@ -21,6 +21,7 @@ export interface BankTransaction {
   amount: number;
   currency: string;
   description: string;
+  category: string | null;
   match_status: 'unmatched' | 'matched' | 'ignored';
   created_at: string;
 }
@@ -48,6 +49,7 @@ export interface ParsedTransaction {
   amount: number;
   currency: string;
   description: string;
+  category?: string | null;
 }
 
 export interface ParsedStatement {

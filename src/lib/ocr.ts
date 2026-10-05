@@ -18,6 +18,7 @@ import type { ParsedReceipt, ParsedReceiptItem } from '../types/receipt';
 import { generateMarkdown } from './markdown';
 import { supabase } from './supabase';
 import { ensureAiConsent } from './aiConsent';
+import { suggestedCategory } from './categories';
 import { FoundationModels } from '../native/FoundationModels';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -203,35 +204,18 @@ function guessStoreCategory(storeName: string, text: string): string {
   return 'Diverses';
 }
 
-// Einfache Keyword-basierte Tag-Zuweisung für Artikel
-const ITEM_TAG_RULES: Array<{ pattern: RegExp; tags: string[] }> = [
-  { pattern: /milch|rahm|butter|käse|joghurt|quark|sahne/i,      tags: ['Milchprodukte', 'Lebensmittel'] },
-  { pattern: /brot|brötchen|gipfeli|croissant|gebäck|toast/i,    tags: ['Backwaren', 'Lebensmittel'] },
-  { pattern: /wasser|mineralwasser|saft|cola|fanta|sprite|limonade/i, tags: ['Getränke'] },
-  { pattern: /bier|wein|champagner|prosecco|schnaps|whisky/i,    tags: ['Alkohol', 'Getränke'] },
-  { pattern: /kaffee|espresso|tee|matcha/i,                      tags: ['Kaffee & Tee', 'Getränke'] },
-  { pattern: /fleisch|hackfleisch|wurst|schinken|salami|lachs|fisch|poulet/i, tags: ['Fleisch & Fisch', 'Lebensmittel'] },
-  { pattern: /apfel|banane|orange|tomate|salat|gurke|karotte|gemüse|obst/i,   tags: ['Gemüse & Obst', 'Lebensmittel'] },
-  { pattern: /tiefkühl|gefroren|frozen/i,                        tags: ['Tiefkühlkost', 'Lebensmittel'] },
-  { pattern: /konserve|dose|eingemacht/i,                        tags: ['Konserven', 'Lebensmittel'] },
-  { pattern: /pasta|reis|mehl|zucker|salz|öl|nudel/i,            tags: ['Grundnahrungsmittel', 'Lebensmittel'] },
-  { pattern: /chips|schokolade|gummibären|kekse|süss/i,          tags: ['Snacks & Süsswaren', 'Lebensmittel'] },
-  { pattern: /shampoo|duschgel|seife|deo|parfum|creme|lotion/i,  tags: ['Körperpflege', 'Hygiene'] },
-  { pattern: /zahnbürste|zahnpasta|mundwasser/i,                 tags: ['Mundpflege', 'Hygiene'] },
-  { pattern: /waschmittel|spülmittel|putzmittel|reiniger/i,      tags: ['Reinigung', 'Haushalt'] },
-  { pattern: /tablette|kapsel|tropfen|medikament|arznei/i,       tags: ['Medikamente', 'Gesundheit'] },
-  { pattern: /vitamin|supplement|omega|protein/i,                tags: ['Nahrungsergänzung', 'Gesundheit'] },
+// Keyword-basierte Kategorie für Artikel (Fallback ohne KI) — genau eine grobe Kategorie
+const ITEM_CATEGORY_RULES: Array<{ pattern: RegExp; category: string }> = [
+  { pattern: /waschmittel|spülmittel|putzmittel|reiniger|abfallsack|kehricht|haushaltpapier|toilettenpapier|wc-papier|schwamm|alufolie|backpapier|kerze/i, category: 'Haushalt' },
+  { pattern: /shampoo|duschgel|seife|deo|parfum|creme|lotion|zahnbürste|zahnpasta|mundwasser|tablette|kapsel|tropfen|medikament|arznei|vitamin|pflaster|binde|tampon|rasier/i, category: 'Körperpflege & Gesundheit' },
+  { pattern: /bier|wein|champagner|prosecco|schnaps|whisky|wasser|mineralwasser|saft|cola|fanta|sprite|limonade|eistee|kaffee|espresso|tee\b|matcha/i, category: 'Getränke' },
+  { pattern: /milch|rahm|butter|käse|joghurt|quark|sahne|brot|brötchen|gipfeli|croissant|gebäck|toast|fleisch|wurst|schinken|salami|lachs|fisch|poulet|apfel|banane|orange|tomate|salat|gurke|karotte|gemüse|obst|tiefkühl|konserve|pasta|reis|mehl|zucker|salz|öl|nudel|chips|schokolade|kekse|eier/i, category: 'Lebensmittel' },
+  { pattern: /benzin|diesel|bleifrei|parking|parkhaus|billett|ticket/i, category: 'Mobilität' },
 ];
 
 function assignItemTags(name: string): string[] {
-  const result: string[] = [];
-  for (const rule of ITEM_TAG_RULES) {
-    if (rule.pattern.test(name)) {
-      result.push(...rule.tags);
-    }
-  }
-  // Falls nichts matched: leeres Array (User kann manuell zuweisen)
-  return [...new Set(result)];
+  const rule = ITEM_CATEGORY_RULES.find((r) => r.pattern.test(name));
+  return [rule?.category ?? 'Diverses'];
 }
 
 // ── Zeilen-Parser für Artikel ────────────────────────────────────────────────
@@ -431,7 +415,7 @@ async function processOnDevice(imageUri: string): Promise<{ receipt: ParsedRecei
       ...item,
       unit:       item.unit ?? 'Stk',
       unit_price: item.unit_price ?? item.total_price,
-      tags:       item.tags ?? [],
+      tags:       [suggestedCategory(item.tags)],
     }));
     return { receipt, markdown: generateMarkdown(receipt) };
   } catch {
@@ -463,7 +447,7 @@ JSON-Struktur:
       "unit": "Stk|kg|g|L|ml|Pack",
       "unit_price": Stückpreis als Zahl,
       "total_price": Gesamtpreis dieses Artikels als Zahl,
-      "tags": ["Tag1", "Tag2"]
+      "tags": ["Kategorie"]
     }
   ],
   "extra": {
@@ -477,7 +461,7 @@ JSON-Struktur:
   }
 }
 
-Verfügbare Tags: Lebensmittel, Gemüse & Obst, Milchprodukte, Fleisch & Fisch, Backwaren, Tiefkühlkost, Konserven, Grundnahrungsmittel, Snacks & Süsswaren, Getränke, Alkohol, Kaffee & Tee, Haushalt, Reinigung, Hygiene, Körperpflege, Medikamente, Nahrungsergänzung, Kleidung, Elektronik, Diverses
+Kategorie: GENAU EINE pro Artikel aus: Lebensmittel, Getränke, Haushalt, Körperpflege & Gesundheit, Restaurant & Take-away, Freizeit & Shopping, Mobilität, Diverses.\n(Waschmittel, Putzmittel, Abfallsäcke, Haushaltspapier = Haushalt; Shampoo, Zahnpasta, Medikamente = Körperpflege & Gesundheit; alkoholische und alkoholfreie Getränke = Getränke)
 
 Regeln:
 - PostCard = PostFinance-Debitkarte (Schweiz)
@@ -509,7 +493,7 @@ async function callGeminiText(rawText: string, apiKey: string): Promise<ParsedRe
     ...item,
     unit:       item.unit ?? 'Stk',
     unit_price: item.unit_price ?? item.total_price,
-    tags:       item.tags ?? [],
+    tags:       [suggestedCategory(item.tags)],
   }));
   return receipt;
 }
@@ -542,7 +526,7 @@ export async function processReceiptImage(
         ...item,
         unit:       item.unit ?? 'Stk',
         unit_price: item.unit_price ?? item.total_price,
-        tags:       item.tags ?? [],
+        tags:       [suggestedCategory(item.tags)],
       }));
       return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed), rawText, processedUri: processUri };
     }
@@ -583,7 +567,7 @@ export async function processReceiptImage(
               ...item,
               unit:       item.unit ?? 'Stk',
               unit_price: item.unit_price ?? item.total_price,
-              tags:       item.tags ?? [],
+              tags:       [suggestedCategory(item.tags)],
             }));
             return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
           }

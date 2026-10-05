@@ -58,22 +58,22 @@ describe('parseReceiptText — Migros Supermarkt', () => {
     expect(result.items.length).toBeGreaterThanOrEqual(5);
   });
 
-  test('Milch-Item hat Milchprodukte-Tag', () => {
+  test('Milch-Item hat Kategorie Lebensmittel', () => {
     const milch = result.items.find((i) => /milch/i.test(i.name));
     expect(milch).toBeDefined();
-    expect(milch?.tags).toContain('Milchprodukte');
+    expect(milch?.tags).toEqual(['Lebensmittel']);
   });
 
-  test('Chips-Item hat Snacks-Tag', () => {
+  test('Chips-Item hat Kategorie Lebensmittel', () => {
     const chips = result.items.find((i) => /chips/i.test(i.name));
     expect(chips).toBeDefined();
-    expect(chips?.tags).toContain('Snacks & Süsswaren');
+    expect(chips?.tags).toEqual(['Lebensmittel']);
   });
 
-  test('Waschmittel-Item hat Haushalt-Tag', () => {
+  test('Waschmittel-Item hat Kategorie Haushalt', () => {
     const waschmittel = result.items.find((i) => /waschmittel/i.test(i.name));
     expect(waschmittel).toBeDefined();
-    expect(waschmittel?.tags).toContain('Haushalt');
+    expect(waschmittel?.tags).toEqual(['Haushalt']);
   });
 });
 
@@ -143,7 +143,7 @@ describe('parseReceiptText — Restaurant', () => {
   test('erkennt Bier-Item mit Alkohol-Tag', () => {
     const bier = result.items.find((i) => /wein/i.test(i.name));
     if (bier) {
-      expect(bier.tags).toContain('Alkohol');
+      expect(bier.tags).toEqual(['Getränke']);
     }
     // Wenn kein Bier geparst: mindestens kein Crash
     expect(result.total_amount).toBeGreaterThan(0);
@@ -177,7 +177,7 @@ describe('parseReceiptText — Tankstelle Agrola', () => {
   test('Kaffee-Item hat Kaffee-Tag', () => {
     const kaffee = result.items.find((i) => /kaffee/i.test(i.name));
     if (kaffee) {
-      expect(kaffee.tags).toContain('Kaffee & Tee');
+      expect(kaffee.tags).toEqual(['Getränke']);
     }
   });
 });
@@ -209,14 +209,14 @@ describe('parseReceiptText — Apotheke', () => {
   test('Vitamin-Item hat Nahrungsergänzungs-Tag', () => {
     const vitamin = result.items.find((i) => /vitamin/i.test(i.name));
     if (vitamin) {
-      expect(vitamin.tags).toContain('Nahrungsergänzung');
+      expect(vitamin.tags).toEqual(['Körperpflege & Gesundheit']);
     }
   });
 
   test('Aspirin-Item hat Medikamente-Tag', () => {
     const aspirin = result.items.find((i) => /aspirin/i.test(i.name));
     if (aspirin) {
-      expect(aspirin.tags).toContain('Medikamente');
+      expect(aspirin.tags).toEqual(['Körperpflege & Gesundheit']);
     }
   });
 });

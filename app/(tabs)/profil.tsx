@@ -403,6 +403,17 @@ export default function ProfilScreen() {
             <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
           </TouchableOpacity>
           <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={() => router.push('/projekte' as any)}>
+            <View style={[styles.iconBox, { backgroundColor: C.bgAccent }]}>
+              <Ionicons name="grid-outline" size={20} color={C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowText}>Projekte</Text>
+              <Text style={styles.rowSub}>Gemeinsame Ausgaben in Gruppen</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
           <TouchableOpacity style={styles.row} onPress={() => router.push('/friends/add' as any)}>
             <View style={[styles.iconBox, { backgroundColor: C.bgAccent }]}>
               <Ionicons name="person-add-outline" size={20} color={C.gold} />

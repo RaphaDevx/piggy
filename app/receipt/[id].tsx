@@ -9,10 +9,12 @@ import { Ionicons } from '@/components/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../src/lib/supabase';
 import TagBadge from '../../src/components/TagBadge';
+import TagPicker from '../../src/components/TagPicker';
+import { useCustomCategories } from '../../src/hooks/useCustomCategories';
 import NumericInput from '../../src/components/NumericInput';
 import { CardMatchBanner } from '../../src/components/CardMatchBanner';
 import { C, R, S, card } from '../../src/constants/design';
-import { ALL_TAGS, getTagColor, PAYMENT_METHODS, STORE_CATEGORIES } from '../../src/lib/categories';
+import { itemCategory, PAYMENT_METHODS, STORE_CATEGORIES } from '../../src/lib/categories';
 import { useProjects, assignReceiptToProject } from '../../src/hooks/useProjects';
 import type { ReceiptWithItems, ReceiptItem } from '../../src/types/receipt';
 import type { BankMatch } from '../../src/types/bank';
@@ -67,6 +69,7 @@ export default function ReceiptDetailScreen() {
   const [editData, setEditData]   = useState<EditReceipt | null>(null);
   const [editItems, setEditItems] = useState<EditItem[]>([]);
   const [bankMatch, setBankMatch] = useState<BankMatch | null>(null);
+  const customCategories = useCustomCategories();
 
   const { projects } = useProjects();
 
@@ -138,13 +141,6 @@ export default function ReceiptDetailScreen() {
   function updateItem(idx: number, patch: Partial<EditItem>) {
     setEditItems((prev) => { const n = [...prev]; n[idx] = { ...n[idx], ...patch }; return n; });
   }
-  function toggleTag(idx: number, tag: string) {
-    setEditItems((prev) => {
-      const n = [...prev];
-      const tags = n[idx].tags.includes(tag) ? n[idx].tags.filter((t) => t !== tag) : [...n[idx].tags, tag];
-      n[idx] = { ...n[idx], tags }; return n;
-    });
-  }
 
   async function deleteReceipt() {
     Alert.alert('Quittung löschen', 'Wirklich löschen?', [
@@ -171,7 +167,7 @@ export default function ReceiptDetailScreen() {
     ? new Date(receipt.receipt_date).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : '—';
   const amount  = receipt.total_amount != null ? `${receipt.currency} ${receipt.total_amount.toFixed(2)}` : '—';
-  const allTags = [...new Set(receipt.receipt_items.flatMap((i) => i.tags ?? []))];
+  const allTags = [...new Set(receipt.receipt_items.filter((i) => (i.tags ?? []).length > 0).map((i) => itemCategory(i.tags)))];
   const paymentLine = receipt.payment_card ? `${receipt.payment_method} — ${receipt.payment_card}` : receipt.payment_method ?? '—';
 
   // ── Edit-Modus ────────────────────────────────────────────────────────────
@@ -227,6 +223,11 @@ export default function ReceiptDetailScreen() {
           </View>
 
           <Text style={styles.sectionTitle}>Artikel ({editItems.length})</Text>
+          {editItems.length > 1 && (
+            <TouchableOpacity onPress={() => setEditItems((p) => p.map((i) => ({ ...i, tags: [itemCategory(p[0].tags)] })))}>
+              <Text style={styles.addItemText}>Alle Artikel: {itemCategory(editItems[0].tags)}</Text>
+            </TouchableOpacity>
+          )}
           {editItems.map((item, idx) => (
             <View key={idx} style={[card, styles.itemCard]}>
               <View style={styles.itemHeader}>
@@ -253,17 +254,11 @@ export default function ReceiptDetailScreen() {
                     style={styles.editInput} placeholder="0.00" placeholderTextColor={C.textTertiary} />
                 </View>
               </View>
-              <View style={styles.tagsWrap}>
-                {ALL_TAGS.map((tag) => {
-                  const active = item.tags.includes(tag); const color = getTagColor(tag);
-                  return (
-                    <TouchableOpacity key={tag} onPress={() => toggleTag(idx, tag)}
-                      style={[styles.tagChip, active && { backgroundColor: `${color}18`, borderColor: color }]}>
-                      <Text style={[styles.tagChipText, active && { color }]}>{tag}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <TagPicker
+                value={itemCategory(item.tags)}
+                onChange={(category) => updateItem(idx, { tags: [category] })}
+                customCategories={customCategories}
+              />
             </View>
           ))}
           <TouchableOpacity style={styles.addItemBtn}
@@ -440,7 +435,7 @@ export default function ReceiptDetailScreen() {
                     {((item.tags ?? []).length > 0 || (item.quantity != null && item.quantity !== 1)) && (
                       <View style={styles.itemMeta}>
                         {item.quantity != null && item.quantity !== 1 && <Text style={styles.itemMetaText}>{item.quantity}× {item.unit ?? ''}</Text>}
-                        {(item.tags ?? []).map((tag) => <TagBadge key={tag} tag={tag} small />)}
+                        {(item.tags ?? []).length > 0 && <TagBadge tag={itemCategory(item.tags)} small />}
                       </View>
                     )}
                   </View>
@@ -501,8 +496,6 @@ const styles = StyleSheet.create({
   editRow3: { flexDirection: 'row', gap: 8 },
   itemCard:   { padding: 14, gap: 10 },
   itemHeader: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  tagChip:     { borderWidth: 1, borderColor: C.border, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.bgSoft },
-  tagChipText: { color: C.textTertiary, fontSize: S.xs },
   addItemBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.bgCard, borderRadius: R.lg, paddingVertical: 14, borderWidth: 1, borderColor: `${C.gold}44` },
   addItemText: { color: C.gold, fontSize: S.md, fontWeight: '600' },
 });
