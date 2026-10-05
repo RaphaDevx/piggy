@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
-import { processStatementFile } from '../lib/statement';
-import { runMatching } from '../lib/matching';
-import { dedupeTransactions, normalizeTransactionCategory } from '../lib/finance';
+import { ensureAiConsent } from '../lib/aiConsent';
 import type { AccountType, BankStatement, BankTransaction } from '../types/bank';
 import type { Receipt } from '../types/receipt';
 
@@ -88,100 +86,52 @@ export function useBankStatements() {
   ) => {
     setUploading(true);
     setUploadError(null);
-    let skippedDuplicates = 0;
     try {
+      if (!await ensureAiConsent()) {
+        throw new Error('Kontoauszug-Analyse braucht die KI-Einwilligung (Profil → Verarbeitung).');
+      }
+
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) throw new Error('Nicht eingeloggt');
 
-      // Original-Datei im privaten Bucket sichern
-      try {
-        if (uri.startsWith('data:') || uri.startsWith('blob:')) {
-          const resp = await fetch(uri);
-          const blob = await resp.blob();
-          const path = `${userId}/${Date.now()}_${fileName}`;
-          await supabase.storage.from('bank-statements').upload(path, blob, { contentType: mimeType });
-        } else {
-          const resp = await fetch(uri);
-          const blob = await resp.blob();
-          const path = `${userId}/${Date.now()}_${fileName}`;
-          await supabase.storage.from('bank-statements').upload(path, blob, { contentType: mimeType });
-        }
-      } catch {
-        // Original-Upload ist nicht kritisch für den Abgleich
-      }
+      // 1. Datei in den privaten Bucket laden (Ordner = eigene uid)
+      const resp = await fetch(uri);
+      const blob = await resp.blob();
+      const filePath = `${userId}/${Date.now()}_${fileName}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('bank-statements')
+        .upload(filePath, blob, { contentType: mimeType });
+      if (uploadErr) throw new Error(`Datei-Upload fehlgeschlagen: ${uploadErr.message}`);
 
-      const parsed = await processStatementFile(uri, mimeType, accountType);
-
+      // 2. Auszug in die Warteschlange stellen
       const { data: statementRow, error: statementError } = await supabase
         .from('bank_statements')
         .insert({
           user_id:       userId,
-          account_label: accountLabel || parsed.account_label || (accountType === 'credit' ? 'Kreditkarte' : 'Konto'),
+          account_label: accountLabel || (accountType === 'credit' ? 'Kreditkarte' : 'Konto'),
           account_type:  accountType,
           file_name:     fileName,
-          period_start:  parsed.period_start,
-          period_end:    parsed.period_end,
-          status:        'done',
+          file_path:     filePath,
+          mime_type:     mimeType,
+          stage:         'queued',
+          status:        'processing',
         })
-        .select('*')
+        .select('id')
         .single();
+      if (statementError || !statementRow) {
+        throw new Error(statementError?.message ?? 'Speichern fehlgeschlagen');
+      }
 
-      if (statementError || !statementRow) throw new Error(statementError?.message ?? 'Speichern fehlgeschlagen');
-
-      // Bereits importierte Buchungen (z. B. überlappende Auszüge) überspringen
-      const dates = parsed.transactions.map((t) => t.booking_date).sort();
-      const { data: existingTx } = dates.length > 0
-        ? await supabase
-            .from('bank_transactions')
-            .select('booking_date, amount, description')
-            .gte('booking_date', dates[0])
-            .lte('booking_date', dates[dates.length - 1])
-        : { data: [] };
-      const newTransactions = dedupeTransactions(parsed.transactions, existingTx ?? []);
-      skippedDuplicates = parsed.transactions.length - newTransactions.length;
-
-      if (newTransactions.length > 0) {
-        const { data: insertedTx, error: txError } = await supabase
-          .from('bank_transactions')
-          .insert(newTransactions.map((t) => ({
-            statement_id: statementRow.id,
-            user_id:      userId,
-            booking_date: t.booking_date,
-            amount:       t.amount,
-            currency:     t.currency,
-            description:  t.description,
-            category:     normalizeTransactionCategory(t.category, t.description, t.amount),
-          })))
-          .select('*');
-
-        if (txError) throw new Error(txError.message);
-
-        // Automatischer Abgleich gegen Quittungen ohne bestehenden Match
-        const { receipts } = await fetchUnmatched();
-        const matches = runMatching(insertedTx ?? [], receipts, accountType);
-
-        if (matches.length > 0) {
-          await supabase.from('receipt_matches').insert(matches.map((m) => ({
-            user_id:        userId,
-            transaction_id: m.transactionId,
-            receipt_id:     m.receiptId,
-            score:          m.score,
-            match_type:     'auto',
-          })));
-
-          await supabase.from('bank_transactions')
-            .update({ match_status: 'matched' })
-            .in('id', matches.map((m) => m.transactionId));
-        }
+      // 3. Verarbeitung sofort anstossen (sonst spätestens nach 1 Min. per Cron)
+      try {
+        await supabase.rpc('kick_statement_worker');
+      } catch {
+        // nicht kritisch
       }
 
       await load();
-      return {
-        statement: statementRow as BankStatement,
-        transactionCount: parsed.transactions.length - skippedDuplicates,
-        skippedDuplicates,
-      };
+      return { statementId: statementRow.id as string };
     } catch (err) {
       const message = (err as Error)?.message ?? 'Upload fehlgeschlagen';
       setUploadError(message);
@@ -190,6 +140,16 @@ export function useBankStatements() {
       setUploading(false);
     }
   }, [load]);
+
+  const retryStatement = useCallback(async (statementId: string) => {
+    const { error } = await supabase.rpc('retry_statement', { p_statement_id: statementId });
+    if (error) throw new Error(error.message);
+  }, []);
+
+  const rematchAll = useCallback(async () => {
+    const { error } = await supabase.rpc('enqueue_rematch');
+    if (error) throw new Error(error.message);
+  }, []);
 
   const manualMatch = useCallback(async (transactionId: string, receiptId: string) => {
     const { data: userData } = await supabase.auth.getUser();
@@ -222,6 +182,8 @@ export function useBankStatements() {
     uploading,
     uploadError,
     uploadStatement,
+    retryStatement,
+    rematchAll,
     manualMatch,
     removeMatch,
     ignoreTransaction,

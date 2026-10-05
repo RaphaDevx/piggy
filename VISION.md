@@ -29,6 +29,10 @@ Piggy wird zur **sozialen Finanz-Wallet der Schweiz**: eine App, die Quittungen 
 | Automatischer + manueller Abgleich Buchung ↔ Quittung | ✅ (seit Juli, jetzt im Finanzen-Tab sichtbar) |
 | **Finanzen-Tab:** Monat, Einnahmen/Ausgaben/Netto, Ausgaben nach Kategorie (Bank + Quittung), Beleg-Abdeckung, Buchungen ohne Kategorie zuordnen; Umbuchungen (Kreditkarten-Rechnung) werden nicht doppelt gezählt | ✅ 2026-10-05 |
 | Konto löschen, KI-Einwilligung, Duplikat-Hinweis beim Speichern, Zusatzfelder (Beleg-Nr., MWST-Nr.) | ✅ Build 17 |
+| **Kontoauszug-Pipeline im Hintergrund:** Upload → Verarbeitung Seite für Seite (gedrosselt, Fortschritt "Seite x von y"), austauschbarer Extractor (CAMT ohne KI, Text → Haiku, Scan → Sonnet), Saldo-Prüfung fürs Vorzeichen, Duplikat-Schutz | ✅ 2026-10-05, Test: 12-Seiten-PDF mit 276 Buchungen 100 % korrekt in ~70 s |
+| **Fortlaufender Abgleich:** jede neue Quittung wird sofort gegen offene Buchungen geprüft, "Neu abgleichen" | ✅ 2026-10-05 |
+| **Vorschläge bei Ungereimtheiten:** Trinkgeld, Fremdwährung, Rabatt, Teilzahlung → Übernehmen / Bearbeiten / Ablehnen; Ausgleichsposten auf der Quittung | ✅ 2026-10-05 |
+| **Finanzprofil:** Ø pro Woche/Monat, Einnahmen, Sparquote, Fixkosten-Anteil, Monats-/Wochenbalken, Top-Kategorien | ✅ 2026-10-05 (Basis für spätere Charts/Dashboard) |
 
 ### Must — ohne das kein Release
 
@@ -44,7 +48,7 @@ Piggy wird zur **sozialen Finanz-Wallet der Schweiz**: eine App, die Quittungen 
 | Feature | Nutzen | Akzeptanzkriterium | Aufwand |
 |---------|--------|--------------------|---------|
 | Serien-Scan (Stapel-Modus) | Mehrere Quittungen in einem Durchgang (aktuell `maxNumDocuments: 1`) | Bis 20 Quittungen scannen → Liste zur Prüfung → alle speichern; Duplikat-Hinweis pro Quittung | L |
-| Händler-Kategorie lernen | Manuelle Zuordnung einer Buchung gilt künftig für denselben Händler | Nach einmaligem Zuordnen werden neue Buchungen desselben Händlers automatisch so kategorisiert | M |
+| Händler-Kategorie lernen | Manuelle Zuordnung einer Buchung gilt künftig für denselben Händler | Nach einmaligem Zuordnen werden neue Buchungen desselben Händlers automatisch so kategorisiert | M — im Pipeline-Test vergab das Modell z. B. „K Kiosk“ mal Lebensmittel, mal Diverses |
 | Monatsvergleich / Trend | "Gebe ich mehr aus als letzten Monat?" | Finanzen-Tab zeigt Δ zum Vormonat je Kategorie | S |
 | Budget pro Kategorie | Zielsteuerung | Budget setzen, Fortschrittsbalken, Hinweis bei 80 % | M |
 | Pinch-Zoom auf Quittungsfoto | Lesbarkeit | Zoom im Detail | S |

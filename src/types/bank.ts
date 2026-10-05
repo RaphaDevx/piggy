@@ -11,6 +11,29 @@ export interface BankStatement {
   status: 'processing' | 'done' | 'error';
   error_message: string | null;
   created_at: string;
+  file_path?: string | null;
+  mime_type?: string | null;
+  stage?: StatementStage;
+  page_count?: number | null;
+  pages_done?: number | null;
+  pages_failed?: number | null;
+  transactions_imported?: number | null;
+  duplicates_skipped?: number | null;
+}
+
+export type StatementStage = 'queued' | 'extracting' | 'reconciling' | 'done' | 'error';
+
+export type SuggestionKind = 'tip' | 'fx' | 'discount' | 'partial' | 'other';
+
+export interface MatchSuggestion {
+  id: string;
+  transaction_id: string;
+  receipt_id: string;
+  kind: SuggestionKind;
+  diff_amount: number;
+  score: number | null;
+  status: 'open' | 'accepted' | 'rejected' | 'dismissed';
+  note: string | null;
 }
 
 export interface BankTransaction {

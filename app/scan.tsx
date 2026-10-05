@@ -543,6 +543,13 @@ export default function ScanScreen() {
       );
     }
 
+    // Abgleich im Hintergrund anstossen — darf das Speichern nie scheitern lassen
+    try {
+      void Promise.resolve(supabase.rpc('enqueue_rematch', { p_receipt_id: receiptRow.id })).catch(() => {});
+    } catch {
+      // ignorieren
+    }
+
     router.replace({ pathname: '/receipt/[id]', params: { id: receiptRow.id } });
   }, [receipt, uri, processedUri, rawOcrText, router]);
 

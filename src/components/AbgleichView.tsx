@@ -6,6 +6,9 @@ import {
 import { Ionicons } from '@/components/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useBankStatements } from '../hooks/useBankStatements';
+import { useMatchSuggestions } from '../hooks/useMatchSuggestions';
+import StatementProgress from './StatementProgress';
+import SuggestionCard from './SuggestionCard';
 import { C, R, S, card } from '../constants/design';
 import type { AccountType, BankTransaction } from '../types/bank';
 
@@ -23,8 +26,9 @@ export default function AbgleichView() {
   const {
     statements, unmatchedTransactions, unmatchedReceipts,
     loading, uploading, uploadError,
-    uploadStatement, manualMatch, ignoreTransaction,
+    uploadStatement, retryStatement, rematchAll, manualMatch, ignoreTransaction, refresh,
   } = useBankStatements();
+  const { suggestions, accept, reject } = useMatchSuggestions(refresh);
 
   const [accountType, setAccountType]   = useState<AccountType>('debit');
   const [accountLabel, setAccountLabel] = useState('');
@@ -39,26 +43,47 @@ export default function AbgleichView() {
     const file = result.assets[0];
 
     try {
-      const res = await uploadStatement(
+      await uploadStatement(
         file.uri,
         file.mimeType ?? 'application/octet-stream',
         file.name,
         accountLabel.trim(),
         accountType
       );
-      Alert.alert(
-        'Erfolg',
-        `${res.transactionCount} Buchungen importiert.` +
-          (res.skippedDuplicates > 0 ? ` ${res.skippedDuplicates} waren schon vorhanden und wurden übersprungen.` : ''),
-      );
+      Alert.alert('Erfolg', 'Auszug hochgeladen — wird im Hintergrund verarbeitet. Du kannst die App schliessen.');
       setAccountLabel('');
     } catch (err) {
       Alert.alert('Fehler', (err as Error)?.message ?? 'Upload fehlgeschlagen');
     }
   }
 
+  async function runRematch() {
+    try {
+      await rematchAll();
+      Alert.alert('Neu abgleichen', 'Abgleich läuft im Hintergrund');
+    } catch (err) {
+      Alert.alert('Fehler', (err as Error)?.message ?? 'Abgleich fehlgeschlagen');
+    }
+  }
+
   return (
     <View style={{ gap: 20 }}>
+      <StatementProgress onRetry={retryStatement} />
+
+      {/* Vorschläge */}
+      {suggestions.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Vorschläge ({suggestions.length})</Text>
+          {suggestions.map((sg) => (
+            <SuggestionCard key={sg.id} suggestion={sg} onAccept={accept} onReject={reject} />
+          ))}
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.rematchBtn} onPress={runRematch}>
+        <Text style={styles.rematchText}>Neu abgleichen</Text>
+      </TouchableOpacity>
+
       {/* Upload */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Kontoauszug hochladen</Text>
@@ -245,6 +270,8 @@ const styles = StyleSheet.create({
     backgroundColor: C.gold, borderRadius: R.md, paddingVertical: 14,
   },
   uploadBtnText: { color: '#fff', fontSize: S.sm, fontWeight: '700' },
+  rematchBtn:    { alignItems: 'center', paddingVertical: 12, borderRadius: R.md, backgroundColor: C.bgSoft },
+  rematchText:   { color: C.textSecondary, fontSize: S.sm, fontWeight: '700' },
   errorText:     { color: C.error, fontSize: S.xs },
 
   rowBorder: { borderTopWidth: 1, borderTopColor: C.borderSoft },

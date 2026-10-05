@@ -1,0 +1,32 @@
+// Extractor-Auswahl pro Seite. "auto": Text-Layer vorhanden → text-llm (günstig),
+// sonst bzw. bei Fehler → pdf-llm. Neue Extractors hier registrieren.
+import type { ExtractResult, ExtractorSettings, PageInput } from './types.ts';
+import { extractPdfLlm, extractTextLlm } from './llm.ts';
+
+export type { ExtractResult, ExtractorSettings, PageInput, ParsedLine } from './types.ts';
+export { extractCamt, isCamt, parseCamt } from './camt.ts';
+export { parseLines } from './llm.ts';
+
+/** Mindestmenge Text, ab der eine Seite als "digital" gilt (sonst Scan → Vision). */
+const MIN_TEXT_CHARS = 80;
+
+function hasUsableText(text: string): boolean {
+  return text.replace(/\s/g, '').length >= MIN_TEXT_CHARS && /\d/.test(text);
+}
+
+export async function extractPage(page: PageInput, settings: ExtractorSettings): Promise<ExtractResult> {
+  switch (settings.mode) {
+    case 'text-llm':
+      return extractTextLlm(page, settings.textModel);
+    case 'pdf-llm':
+      return extractPdfLlm(page, settings.pdfModel);
+    default: {
+      if (!hasUsableText(page.text)) return extractPdfLlm(page, settings.pdfModel);
+      try {
+        return await extractTextLlm(page, settings.textModel);
+      } catch {
+        return extractPdfLlm(page, settings.pdfModel);
+      }
+    }
+  }
+}

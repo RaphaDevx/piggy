@@ -7,6 +7,7 @@ import { Ionicons } from '@/components/Ionicons';
 import AbgleichView from '../../src/components/AbgleichView';
 import TagPicker from '../../src/components/TagPicker';
 import { useFinanceOverview } from '../../src/hooks/useFinanceOverview';
+import ProfileView from '../../src/components/ProfileView';
 import { C, R, S, card } from '../../src/constants/design';
 import { TRANSACTION_CATEGORIES, getCategoryColor } from '../../src/lib/categories';
 
@@ -24,7 +25,7 @@ function fmtDate(d: string) { const [y, m, day] = d.split('-'); return `${day}.$
 
 export default function FinanzenScreen() {
   const insets = useSafeAreaInsets();
-  const [view, setView] = useState<'overview' | 'abgleich'>('overview');
+  const [view, setView] = useState<'overview' | 'profile' | 'abgleich'>('overview');
   const [showUncat, setShowUncat] = useState(false);
   const {
     months, month, setMonth, overview, uncategorized, hasBankTransactions,
@@ -49,7 +50,7 @@ export default function FinanzenScreen() {
       <Text style={styles.title}>Finanzen</Text>
 
       <View style={styles.segmentRow}>
-        {([['overview', 'Übersicht'], ['abgleich', 'Abgleich']] as const).map(([key, label]) => (
+        {([['overview', 'Übersicht'], ['profile', 'Profil'], ['abgleich', 'Abgleich']] as const).map(([key, label]) => (
           <TouchableOpacity
             key={key}
             style={[styles.segmentBtn, view === key && styles.segmentBtnActive]}
@@ -62,6 +63,8 @@ export default function FinanzenScreen() {
 
       {view === 'abgleich' ? (
         <AbgleichView />
+      ) : view === 'profile' ? (
+        <ProfileView />
       ) : loading && months.length === 0 ? (
         <View style={styles.loadingBox}><ActivityIndicator color={C.gold} /></View>
       ) : (
