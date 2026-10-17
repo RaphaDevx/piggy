@@ -1,6 +1,6 @@
 # Piggy — Vision & Feature Roadmap
 
-> Erstellt: 2026-07-06 · Letztes Update: 2026-10-05
+> Erstellt: 2026-07-06 · Letztes Update: 2026-10-17
 > Dieses Dokument beschreibt die langfristige Produktvision. Konkrete Implementierungsaufgaben → `TODO.md`
 >
 > **Status:** ✅ = live · 🔄 = in Arbeit · ⬜ = offen · 🚀 = nativ-only (ab EAS Build)
@@ -237,6 +237,63 @@ Anfragen / Verhandlungen mit:
 1. Erst E-Mail-Parsing (kein Partner nötig, sofort machbar)
 2. Dann offizielle Partnerschaft anfragen (bessere Datenqualität, offizieller Kanal)
 3. Treueprogramm-APIs prüfen (Supercard, Cumulus haben bestehende Apps → evtl. inoffizielle APIs)
+
+---
+
+## 6a. Gutschein-Wallet — Konzept, noch nicht umgesetzt
+
+> Erfasst am 2026-10-17. Bestätigter Umfang: alle drei Gutscheinarten und optionale Push-Erinnerungen mit Filtern. Detailgestaltung und Umsetzung folgen separat.
+
+### Ziel und Gutscheinarten
+Papiergutscheine digital verfügbar machen, Vorteile wiederfinden und vor Ablauf nutzen können:
+- **Wertgutschein:** Geldbetrag und Währung, optional Restbetrag.
+- **Rabattcoupon:** fixer Rabatt oder Prozentsatz, betroffene Produkte und Einlösebedingungen.
+- **Leistungsgutschein:** konkrete Leistung, Umfang und Bedingungen.
+
+Je Gutschein: Anbieter, Titel/Inhalt, Originalbild, Code/Barcode/QR-Code, Gültigkeit, Mindestkaufsumme und weitere Einschränkungen soweit vorhanden. Fehlende oder unsichere Angaben als unbekannt markieren und korrigierbar halten; kein erfundenes Ablaufdatum. Übersicht und Detailansicht zum Vorzeigen des Codes. Status verfügbar, teilweise eingelöst, eingelöst oder abgelaufen. Ein digitales Abbild garantiert nicht, dass der Anbieter das Papieroriginal entbehrlich macht; entsprechende Bedingungen mitführen.
+
+### Optionale Ablauferinnerungen
+Push-Erinnerungen nur nach Aktivierung und Systemfreigabe. In den Einstellungen auswählbar:
+- nur Gutscheine mit Geldwert;
+- nur Gutscheine ohne Mindestkaufsumme;
+- alle Gutscheine.
+
+Vorgeschlagene Präzisierung für die weitere Gestaltung: Geldwert meint ein vorhandenes Guthaben (Wertgutschein), nicht jeden Rabatt in CHF. Unbekannte Mindestkaufsumme gilt nicht als nachgewiesen fehlende Mindestkaufsumme. Erinnerungszeitpunkt konfigurierbar; eingelöste/gelöschte Gutscheine und geänderte Ablaufdaten aktualisieren geplante Erinnerungen. Ohne bekanntes Ablaufdatum keine erfundene Ablauferinnerung.
+
+### Finanzielle Abgrenzung
+Das Erfassen eines Gutscheins ist keine neue Ausgabe. Guthaben als Zahlungsmittel und echte Preisnachlässe getrennt behandeln: Einlösen eines bezahlten Wertgutscheins ist nicht automatisch eine Ersparnis. Restbeträge zunächst bestätigt/manuell pflegen, solange keine verlässliche Anbieteranbindung existiert.
+
+Offen für die gemeinsame Konzeption: Importquellen (Papier, Screenshot, PDF, E-Mail), Platzierung in der Navigation, Erinnerungsfristen und Kombination der Filter.
+
+---
+
+## 6b. Ersparnisse und tatsächliche Einkaufspreise — Konzept, noch nicht umgesetzt
+
+> Erfasst am 2026-10-17. Ziel: Rabatte auf Quittungen sichtbar machen und auf Wunsch auswerten, wo vergleichbare Produkte tatsächlich günstiger gekauft wurden.
+
+### Ersparniszähler
+- Aktionsnachlässe pro Artikel und Rabatte auf den gesamten Einkauf erkennen und getrennt ausweisen.
+- Für einen Zeitraum anzeigen: tatsächlich bezahlter Warenbetrag, belegbare Nachlässe und rechnerischer Warenbetrag vor diesen Nachlässen.
+- Nur nachgewiesene Bezugs-/Originalpreise verwenden; fehlende Werte als unbekannt, Abdeckung der Auswertung sichtbar machen.
+- Artikelrabatte, zusätzliche Coupons und Gesamtrabatte nicht doppelt zählen. Bereits reduzierte Artikelpreise nicht erneut reduzieren. Kombinationen und Ausschlüsse aus der Quittung berücksichtigen.
+- Gesamtrabatte für Produktvergleiche nachvollziehbar auf die rabattberechtigten Artikel verteilen; Rundung so behandeln, dass die Summe zum Beleg passt. Unklare Zuordnung sichtbar lassen.
+- Pfand, Rückgaben, Gebühren, Gutschein-Zahlungen und andere Zahlungsarten vom Warenrabatt unterscheiden. Bestehendes Belegtotal und Bankabgleich bleiben massgebend; keine zweite Finanzsummenlogik einführen.
+
+### Preisvergleich statt Prozentvergleich
+Entscheidend ist der effektive Preis nach zugeordneten Rabatten für dasselbe bzw. ein ausdrücklich vergleichbares Produkt, normalisiert nach Packungsinhalt (z. B. CHF/Liter, CHF/kg oder CHF/Waschgang).
+
+Beispiel des Nutzers (hypothetisch, keine Marktpreise): Dasselbe Perwoll-Produkt kostet bei Migros nach 50 % Rabatt CHF 30, bei Coop nach 30 % Rabatt CHF 20. Bei identischer Menge und Variante war Coop CHF 10 günstiger; der höhere Rabattprozentsatz macht Migros nicht günstiger.
+
+Identität und Vergleichbarkeit anhand Marke, Variante, Inhalt/Menge und wenn vorhanden Produktcode prüfen. Stückzahl auf der Quittung allein beweist keine gleiche Packungsgrösse. Unsichere Produktzuordnungen bestätigen lassen oder aus belastbaren Empfehlungen ausschliessen. Kaufdatum und Aktionszeitraum mitführen: historische Käufe sind kein Nachweis aktueller Angebote.
+
+### Optionale Analyse / Bericht
+Auf Wunsch für einen gewählten Zeitraum auswerten:
+- belegte Ersparnisse aus Aktionen, Coupons und Gesamtrabatten;
+- wiederholt gekaufte, vergleichbare Produkte und deren effektiv bezahlte Preise je Händler;
+- konkrete Preisunterschiede und mögliche Ersparnisse bei vergleichbaren künftigen Käufen, mit Annahmen und Datenbasis;
+- Einschränkungen: fehlende Packungsdaten, wenige Vergleichskäufe, unterschiedliche Zeitpunkte und unsichere Zuordnungen.
+
+Empfehlungen auf die beobachteten Produkte und Einkäufe begrenzen. Aus einem günstigeren Waschmittel keinen pauschal günstigeren Laden ableiten. Eine mögliche Ersparnis durch einen anderen Einkauf nicht als bereits realisierte Ersparnis zum Zähler addieren. Bericht zunächst als Produktkonzept; Darstellung (App-Ansicht, exportierbarer Bericht) noch offen.
 
 ---
 

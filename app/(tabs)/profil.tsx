@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Ionicons } from '@/components/Ionicons';
+import { PiggyIcon } from '../../src/brand/icons/PiggyIcon';
 import { supabase } from '../../src/lib/supabase';
 import { runGoogleOAuth } from '../../src/lib/googleAuth';
 import { linkIdentityWithIdToken } from '../../src/lib/authLinking';
@@ -321,7 +322,7 @@ export default function ProfilScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Profil</Text>
-        <Text style={styles.piggy}>🐷</Text>
+        <PiggyIcon name="piggy" size={36} />
       </View>
 
       {/* Toast */}
@@ -783,7 +784,7 @@ export default function ProfilScreen() {
         <View style={[card, styles.cardInner]}>
           <View style={styles.row}>
             <View style={[styles.iconBox, { backgroundColor: C.bgAccent }]}>
-              <Text style={{ fontSize: 18 }}>🐷</Text>
+              <PiggyIcon name="piggy" size={24} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowText}>Piggy</Text>
@@ -819,7 +820,7 @@ export default function ProfilScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: C.bg, padding: 20, gap: 24, paddingBottom: 40 },
+  container: { backgroundColor: C.bg, padding: 20, gap: 24, paddingBottom: 130 },
 
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title:     { fontSize: S.xxl, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },

@@ -21,6 +21,7 @@
 | Komponente | Triggert durch | Output | Hard Dependencies |
 |-----------|--------------|--------|------------------|
 | `app/scan.tsx` | User speichert Quittung | `receipts`, `receipt_items` (tags + subcategory), RPC `enqueue_rematch` | `src/lib/ocr.ts` → `normalizeItems` (gültige Unterkategorie bestimmt die Hauptkategorie) |
+| `app/duplicates.tsx` / `DuplicateReceiptReview` | User prüft zwei Belege oder neuen Scan | explizite Vorschau und Entscheidung; RPCs `merge_receipt_duplicates`, `merge_receipt_scan`, `save_separate_receipt_scan`, `keep_receipts_separate`, `delete_reviewed_receipt` | `finance-core/receipt-duplicates.ts`; transaktionaler Beziehungserhalt und private Audit-Historie (ADR 0003); keine automatische Zusammenführung |
 | `scan-receipt` (Edge) | OCR-Text aus der App | Quittungs-JSON mit `tags` + `subcategory` je Artikel | Prompt aus `taxonomy.receiptItemCategoryPrompt()` — gleicher Abschnitt im Gemini-BYOK-Prompt (`ocr.ts`) |
 | `app/receipt/[id].tsx` | User bearbeitet Artikel | `receipt_items` mit `classified_at = now()` | Hintergrund-Einordnung fasst geprüfte Artikel nie mehr an |
 | `src/hooks/useBankStatements.ts` | Upload im Finanzen-Tab | Storage `bank-statements/{uid}/…`, `bank_statements(stage=queued)`, RPC `kick_statement_worker` | KI-Einwilligung (`aiConsent`) vor Upload |
@@ -70,6 +71,8 @@ graph TD
 9. **Vom User geprüfte Artikel bleiben, wie sie sind** — `classified_at` gesetzt ⇒ kein Hintergrund-Reklassifizieren.
 4. **Vorschläge werden nie automatisch angenommen** — nur User-Aktion (`accept_match_suggestion`); abgelehnte Paare werden nie erneut vorgeschlagen (UNIQUE `transaction_id, receipt_id`).
 5. **Original-Total einer Quittung bleibt unverändert** — Differenzen nur als `is_adjustment`-Artikel.
+
+10. **Duplikate nur nach expliziter Bestätigung** — Bild, Felder und genau eine normale Artikelliste werden gewählt; Bank-, Split-, Sharing- und Projektbeziehungen bleiben erhalten oder blockieren bei Konflikten. Eingehender Scan wird beim Merge nie als zweite Ausgabe angelegt (ADR 0003).
 
 ## Refactoring-Guides
 

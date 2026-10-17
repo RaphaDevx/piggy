@@ -5,7 +5,7 @@ import {
   Modal, Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@/components/Ionicons';
 import ReceiptCard from '../../src/components/ReceiptCard';
 import { IncomingSharedReceipts } from '../../src/components/IncomingSharedReceipts';
@@ -76,6 +76,12 @@ export default function QuittungenScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <TouchableOpacity accessibilityRole="button" style={styles.duplicateEntry} onPress={() => router.push('/duplicates' as Href)}>
+        <Ionicons name="copy-outline" size={20} color={C.textPrimary} />
+        <View style={{ flex: 1 }}><Text style={styles.duplicateTitle}>Duplikate prüfen</Text><Text style={styles.subtitle}>Vergleichen und bestätigt zusammenführen</Text></View>
+        <Ionicons name="chevron-forward" size={18} color={C.textSecondary} />
+      </TouchableOpacity>
 
       {/* Eingegangene Quittungen */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 4 }}>
@@ -203,6 +209,8 @@ export default function QuittungenScreen() {
 }
 
 const styles = StyleSheet.create({
+  duplicateEntry: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 20, marginVertical: 12, padding: 14, minHeight: 60, backgroundColor: C.bgCard, borderWidth: 1, borderColor: C.border, borderRadius: R.md },
+  duplicateTitle: { color: C.textPrimary, fontSize: 15, fontWeight: '700' },
   root:   { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
 
@@ -246,7 +254,7 @@ const styles = StyleSheet.create({
   sortHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingBottom: 8 },
   sortHintText: { fontSize: S.xs, color: C.textTertiary, flex: 1 },
 
-  list: { paddingHorizontal: 20, paddingBottom: 20, gap: 10 },
+  list: { paddingHorizontal: 20, paddingBottom: 130, gap: 10 },
 
   empty:      { alignItems: 'center', marginTop: 60, gap: 12 },
   emptyPig:   { fontSize: 56 },

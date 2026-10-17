@@ -28,8 +28,8 @@ export interface SplitExclusion {
 }
 
 export interface SplitWithDetails extends Split {
-  participants: SplitParticipant[];
-  exclusions: SplitExclusion[];
+  split_participants: SplitParticipant[];
+  split_exclusions: SplitExclusion[];
   payer_profile?: Profile;
   receipt?: { store_name: string; receipt_date: string | null };
 }

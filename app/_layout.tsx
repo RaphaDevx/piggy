@@ -22,6 +22,7 @@ function AuthGuard() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)"          options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)"          options={{ headerShown: false }} />
+      <Stack.Screen name="duplicates" options={{ headerShown: false }} />
       <Stack.Screen name="scan"            options={{ presentation: 'modal', headerShown: false }} />
       {/* Geteilte Sub-Screens: zugänglich von jedem Tab */}
       <Stack.Screen name="receipt/[id]"    options={{ headerShown: false }} />

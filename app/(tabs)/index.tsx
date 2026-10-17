@@ -5,6 +5,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@/components/Ionicons';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
+import { PiggyIcon } from '../../src/brand/icons/PiggyIcon';
+import { semantic } from '../../src/brand/theme';
 import ReceiptCard from '../../src/components/ReceiptCard';
 import SpendingChart from '../../src/components/SpendingChart';
 import { OpenBalances } from '../../src/components/OpenBalances';
@@ -20,14 +23,6 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: '3months', label: '3 Mon.'   },
   { key: 'year',    label: 'Jahr'     },
 ];
-
-const TAG_EMOJI: Record<string, string> = {
-  'Lebensmittel': '🛒', 'Getränke': '🥤', 'Haushalt': '🏠',
-  'Hygiene': '🧴', 'Gesundheit': '💊', 'Restaurant & Take-away': '🍜',
-  'Kleidung': '👕', 'Elektronik': '💻', 'Diverses': '📦',
-  'Backwaren': '🥐', 'Milchprodukte': '🥛', 'Fleisch & Fisch': '🥩',
-  'Einrichtung': '🛋️', 'Freizeit & Shopping': '🛍️', 'Mobilität': '🚆',
-};
 
 function fmtCHF(amount: number, currency = 'CHF') {
   return `${currency} ${amount.toFixed(2)}`;
@@ -49,15 +44,16 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.greeting}>Hallo 👋</Text>
-          <Text style={styles.title}>🐷 Piggy</Text>
+          <Text style={styles.greeting}>Deine Finanzen im Blick</Text>
+          <View style={styles.brandRow}><PiggyIcon name="piggy" size={30} color={semantic.color.text.brandPink} /><Text style={styles.title}>Piggy</Text></View>
         </View>
         <TouchableOpacity
+          accessibilityRole="button"
           style={styles.analyseBtn}
           onPress={() => router.push('/analyse' as any)}
           activeOpacity={0.75}
         >
-          <Ionicons name="bar-chart" size={18} color={C.gold} />
+          <Ionicons name="bar-chart" size={18} color={semantic.color.text.brand} />
           <Text style={styles.analyseBtnText}>Analyse</Text>
         </TouchableOpacity>
       </View>
@@ -66,6 +62,8 @@ export default function DashboardScreen() {
       <View style={styles.periodRow}>
         {PERIODS.map((p) => (
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ selected: period === p.key }}
             key={p.key}
             style={[styles.periodBtn, period === p.key && styles.periodBtnActive]}
             onPress={() => changePeriod(p.key)}
@@ -79,13 +77,16 @@ export default function DashboardScreen() {
 
       {/* Period Navigation: < KW 21 2026 > */}
       <View style={styles.navRow}>
-        <TouchableOpacity onPress={goPrev} style={styles.navArrow}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Vorheriger Zeitraum" onPress={goPrev} style={styles.navArrow}>
           <Ionicons name="chevron-back" size={20} color={C.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.navLabel}>
           {loading && !data ? '…' : (data?.rangeLabel ?? '…')}
         </Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Nächster Zeitraum"
+          accessibilityState={{ disabled: offset >= 0 }}
           onPress={goNext}
           style={[styles.navArrow, offset >= 0 && styles.navArrowDisabled]}
           disabled={offset >= 0}
@@ -99,18 +100,18 @@ export default function DashboardScreen() {
 
       {loading ? (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={C.gold} />
+          <ActivityIndicator size="large" color={semantic.color.text.brand} />
         </View>
       ) : !data ? null : data.recentReceipts.length === 0 ? (
 
         /* Empty State */
         <View style={styles.emptyState}>
-          <Text style={styles.emptyPig}>🐷</Text>
+          <PiggyIcon name="piggy-bank" size={64} color={semantic.color.text.brandPink} />
           <Text style={styles.emptyTitle}>Keine Ausgaben</Text>
           <Text style={styles.emptyText}>
             {offset < 0
               ? `Keine Quittungen für ${data.rangeLabel}.`
-              : 'Tippe auf 🐷 unten und scan deine erste Quittung!'}
+              : 'Tippe unten auf Scannen und erfasse deine erste Quittung.'}
           </Text>
         </View>
 
@@ -141,8 +142,7 @@ export default function DashboardScreen() {
               <Text style={styles.sectionTitle}>Kategorien</Text>
               <View style={[card, styles.categoryCard]}>
                 {data.byGroup.map(({ tag, total }, i) => {
-                  const pct   = Math.min((total / data.total) * 100, 100);
-                  const emoji = TAG_EMOJI[tag] ?? '📦';
+                  const pct   = Math.min((data.total > 0 ? total / data.total : 0) * 100, 100);
                   return (
                     <TouchableOpacity
                       key={tag}
@@ -150,7 +150,7 @@ export default function DashboardScreen() {
                       onPress={() => router.push({ pathname: '/category/[group]' as any, params: { group: tag } })}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.catEmoji}>{emoji}</Text>
+<View style={styles.categoryIcon}><CategoryIcon category={tag} color={C.textSecondary} /></View>
                       <View style={{ flex: 1, gap: 4 }}>
                         <View style={styles.catLabelRow}>
                           <Text style={styles.catLabel}>{categoryLabel(tag, locale)}</Text>
@@ -215,7 +215,8 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
-  content: { padding: 20, gap: 20 },
+  content: { padding: 20, paddingBottom: 130, gap: 20 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   greeting:  { fontSize: S.sm, color: C.textSecondary, fontWeight: '600' },
@@ -235,10 +236,10 @@ const styles = StyleSheet.create({
     padding: 4,
     gap: 2,
   },
-  periodBtn:        { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: R.md },
+  periodBtn:        { flex: 1, alignItems: 'center', paddingVertical: 10, minHeight: 44, justifyContent: 'center', borderRadius: R.md },
   periodBtnActive:  { backgroundColor: C.gold },
   periodText:       { color: C.textSecondary, fontSize: S.sm, fontWeight: '600' },
-  periodTextActive: { color: '#fff', fontWeight: '700' },
+  periodTextActive: { color: C.textPrimary, fontWeight: '700' },
 
   // Zeitraum-Navigation
   navRow: {
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4, paddingVertical: 4,
     borderWidth: 1, borderColor: C.border,
   },
-  navArrow:         { padding: 10, borderRadius: R.sm },
+  navArrow:         { padding: 10, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: R.sm },
   navArrowDisabled: { opacity: 0.3 },
   navLabel:         { fontSize: S.md, fontWeight: '700', color: C.textPrimary },
 
@@ -266,14 +267,14 @@ const styles = StyleSheet.create({
   section:       { gap: 10 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle:  { fontSize: S.lg, fontWeight: '700', color: C.textPrimary },
-  seeAll:        { fontSize: S.sm, color: C.gold, fontWeight: '600' },
+  seeAll:        { fontSize: S.sm, color: semantic.color.text.brand, fontWeight: '600' },
 
   categoryCard: { padding: 0, overflow: 'hidden' },
   catRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   catRowBorder: { borderTopWidth: 1, borderTopColor: C.borderSoft },
-  catEmoji:     { fontSize: 20, width: 28, textAlign: 'center' },
-  catLabelRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  catLabel:     { fontSize: S.sm, fontWeight: '600', color: C.textPrimary },
+  categoryIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.bgSoft, alignItems: 'center', justifyContent: 'center' },
+  catLabelRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'space-between', alignItems: 'center' },
+  catLabel:     { flexShrink: 1, fontSize: S.sm, fontWeight: '600', color: C.textPrimary },
   catAmount:    { fontSize: S.sm, fontWeight: '700', color: C.textSecondary },
   barBg:        { height: 6, backgroundColor: C.bgSoft, borderRadius: 3, overflow: 'hidden' },
   barFill:      { height: '100%', backgroundColor: C.gold, borderRadius: 3 },
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
   storeInitial:   { fontSize: S.md, fontWeight: '700', color: C.gold },
   storeName:      { flex: 1, fontSize: S.sm, fontWeight: '600', color: C.textPrimary },
   storeCount:     { fontSize: S.sm, color: C.textTertiary },
-  storeAmount:    { fontSize: S.md, fontWeight: '700', color: C.gold, minWidth: 70, textAlign: 'right' },
+  storeAmount:    { fontSize: S.md, fontWeight: '700', color: semantic.color.text.brand, minWidth: 70, textAlign: 'right' },
 
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 12 },
   emptyPig:   { fontSize: 64 },

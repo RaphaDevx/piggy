@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@/components/Ionicons';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import SpendingChart from '../../src/components/SpendingChart';
 import AbgleichView from '../../src/components/AbgleichView';
 import { useDashboard } from '../../src/hooks/useDashboard';
@@ -19,11 +20,6 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: '3months', label: '3 Mon.' },
   { key: 'year',    label: 'Jahr'   },
 ];
-
-const GROUP_EMOJI: Record<string, string> = {
-  'Lebensmittel': '🛒', 'Getränke': '🥤', 'Haushalt': '🏠',
-  'Hygiene': '🧴', 'Gesundheit': '💊', 'Diverses': '📦',
-};
 
 function fmtCHF(n: number, cur = 'CHF') { return `${cur} ${n.toFixed(2)}`; }
 function pct(n: number, total: number)   { return total > 0 ? Math.min((n / total) * 100, 100) : 0; }
@@ -46,7 +42,7 @@ export default function AnalyseScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>📊 Analyse</Text>
+        <Text style={styles.title}>Analyse</Text>
       </View>
 
       {/* Übersicht / Abgleich Switch */}
@@ -106,12 +102,12 @@ export default function AnalyseScreen() {
 
       ) : !data || data.byGroup.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyPig}>📊</Text>
+          <Ionicons name="bar-chart-outline" size={64} color={C.textSecondary} />
           <Text style={styles.emptyTitle}>Keine Daten</Text>
           <Text style={styles.emptyText}>
             {offset < 0
               ? `Keine Ausgaben für ${data?.rangeLabel ?? 'diesen Zeitraum'}.`
-              : 'Scan deine erste Quittung mit 🐷!'}
+              : 'Erfasse deine erste Quittung über Scannen.'}
           </Text>
         </View>
 
@@ -140,7 +136,6 @@ export default function AnalyseScreen() {
             <View style={[card, styles.catCard]}>
               {data.byGroup.map(({ tag, total }, i) => {
                 const p     = pct(total, data.total);
-                const emoji = GROUP_EMOJI[tag] ?? '📦';
                 const color = TAG_GROUPS[tag] ?? C.gold;
                 return (
                   <TouchableOpacity
@@ -150,7 +145,7 @@ export default function AnalyseScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={[styles.emojiBox, { backgroundColor: `${color}18` }]}>
-                      <Text style={styles.catEmoji}>{emoji}</Text>
+                      <CategoryIcon category={tag} color={C.textSecondary} />
                     </View>
                     <View style={{ flex: 1, gap: 6 }}>
                       <View style={styles.catLabelRow}>
@@ -215,7 +210,7 @@ export default function AnalyseScreen() {
 
 const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
-  content: { padding: 20, gap: 20 },
+  content: { padding: 20, paddingBottom: 130, gap: 20 },
 
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backBtn:   { padding: 4, marginLeft: -4 },

@@ -22,7 +22,9 @@ import TagPicker from '../src/components/TagPicker';
 import { resolveSubcategory } from '../src/lib/itemSubcategory';
 import { useCustomCategories } from '../src/hooks/useCustomCategories';
 import { C, R, S, card } from '../src/constants/design';
-import type { ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
+import DuplicateReceiptReview from '../src/components/DuplicateReceiptReview';
+import { loadDuplicateCandidates, mergeReceiptScan, saveSeparateReceiptScan, deleteReviewedReceipt, type MergeChoices } from '../src/lib/receiptDuplicates';
+import type { ReceiptWithItems, ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
 import type { CropRegion } from '../src/lib/ocr';
 
 // ── NumericInput ────────────────────────────────────────────────────────────
@@ -392,6 +394,9 @@ export default function ScanScreen() {
   const [processedUri, setProcessedUri] = useState<string | null>(null);
   const [rawOcrText, setRawOcrText]     = useState('');
   const [showExtra, setShowExtra]       = useState(false);
+  const [duplicateTargets, setDuplicateTargets] = useState<ReceiptWithItems[]>([]);
+  const [duplicateIndex, setDuplicateIndex] = useState(0);
+  const saveInFlight = useRef(false);
 
   // Bildgrösse für Crop-Berechnungen
   const [imageSize, setImageSize] = useState({ width: SCREEN_W, height: SCREEN_H });
@@ -440,31 +445,37 @@ export default function ScanScreen() {
     }
   }, [uri, router]);
 
-  const saveReceipt = useCallback(async () => {
-    if (!receipt) return;
+  function incomingReceipt(): ReceiptWithItems {
+    if (!receipt) throw new Error('Keine Quittung vorhanden.');
+    return {
+      id: 'incoming-scan', user_id: '', created_at: new Date().toISOString(),
+      receipt_date: receipt.date, store_name: receipt.store_name, store_category: receipt.store_category,
+      total_amount: receipt.total_amount, currency: receipt.currency, payment_method: receipt.payment_method,
+      payment_card: receipt.payment_card, image_url: processedUri ?? uri ?? null,
+      original_image_url: uri ?? null, raw_ocr_text: rawOcrText || null,
+      extra_fields: receipt.extra ?? null, markdown_content: generateMarkdown(receipt), notes: null, project_id: null,
+      receipt_items: receipt.items.map((item, index) => ({ ...item, id: `incoming-${index}`, receipt_id: 'incoming-scan' })),
+    };
+  }
+
+  async function saveReceipt(action?: { mode: 'merge' | 'separate'; target: ReceiptWithItems; choices?: MergeChoices }) {
+    if (!receipt || saveInFlight.current) return;
+    saveInFlight.current = true;
     setStep('saving');
-
-    const { data: userData } = await supabase.auth.getUser();
+    try {
+    const { data: userData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
     const userId = userData.user?.id;
-    if (!userId) { setStep('review'); return; }
+    if (!userId) throw new Error('Bitte zuerst anmelden.');
 
-    // Duplikat-Hinweis: gleicher Laden, Betrag und Datum schon gespeichert?
-    let dupQuery = supabase
-      .from('receipts')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('total_amount', receipt.total_amount)
-      .ilike('store_name', receipt.store_name.replace(/[\\%_]/g, '\\$&'));
-    dupQuery = receipt.date ? dupQuery.eq('receipt_date', receipt.date) : dupQuery.is('receipt_date', null);
-    const { data: duplicates } = await dupQuery.limit(1);
-    if (duplicates?.length) {
-      const saveAnyway = await confirmAsync(
-        'Mögliches Duplikat',
-        `Eine Quittung von ${receipt.store_name} über ${receipt.total_amount.toFixed(2)} ${receipt.currency} mit diesem Datum ist schon gespeichert.`,
-        'Abbrechen',
-        'Trotzdem speichern',
-      );
-      if (!saveAnyway) { setStep('review'); return; }
+    if (!action) {
+      const candidates = await loadDuplicateCandidates(incomingReceipt());
+      if (candidates.length) {
+        setDuplicateTargets(candidates);
+        setDuplicateIndex(0);
+        setStep('review');
+        return;
+      }
     }
 
     const ts = Date.now();
@@ -509,57 +520,35 @@ export default function ScanScreen() {
       // non-critical — receipt still saves without image
     }
 
-    const { data: receiptRow, error: receiptError } = await supabase
-      .from('receipts')
-      .insert({
-        user_id:            userId,
-        receipt_date:       receipt.date,
-        store_name:         receipt.store_name,
-        store_category:     receipt.store_category,
-        total_amount:       receipt.total_amount,
-        currency:           receipt.currency,
-        payment_method:     receipt.payment_method,
-        payment_card:       receipt.payment_card,
-        image_url:          imageUrl,
-        original_image_url: originalImageUrl,
-        raw_ocr_text:       rawOcrText || null,
-        extra_fields:       receipt.extra ?? null,
-        markdown_content:   generateMarkdown(receipt),
-      })
-      .select('id')
-      .single();
-
-    if (receiptError || !receiptRow) {
-      Alert.alert('Fehler', receiptError?.message ?? 'Speichern fehlgeschlagen');
-      setStep('review');
+    if (action?.mode === 'merge') {
+      if (action.choices?.image === 'source' && !imageUrl) throw new Error('Das neue Bild konnte nicht gespeichert werden. Bitte erneut versuchen.');
+      const id = await mergeReceiptScan(action.target.id, {
+        ...incomingReceipt(), image_url: imageUrl, original_image_url: originalImageUrl,
+      }, action.choices);
+      setDuplicateTargets([]);
+      router.replace({ pathname: '/receipt/[id]', params: { id } });
       return;
     }
 
-    if (receipt.items.length > 0) {
-      await supabase.from('receipt_items').insert(
-        receipt.items.map((item) => ({
-          receipt_id:  receiptRow.id,
-          name:        item.name,
-          quantity:    item.quantity,
-          unit:        item.unit,
-          unit_price:  item.unit_price,
-          total_price: item.total_price,
-          tags:        item.tags,
-          subcategory: itemSubcategory(item),
-          is_adjustment: item.is_adjustment ?? false,
-        }))
-      );
-    }
+    const newReceiptId = await saveSeparateReceiptScan({
+      ...incomingReceipt(), image_url: imageUrl, original_image_url: originalImageUrl,
+      receipt_items: incomingReceipt().receipt_items.map(item => ({ ...item, subcategory: itemSubcategory(item as ParsedReceiptItem) })),
+    }, action?.mode === 'separate' ? [action.target.id] : []);
+    setDuplicateTargets([]);
 
     // Abgleich im Hintergrund anstossen — darf das Speichern nie scheitern lassen
     try {
-      void Promise.resolve(supabase.rpc('enqueue_rematch', { p_receipt_id: receiptRow.id })).catch(() => {});
+      void Promise.resolve(supabase.rpc('enqueue_rematch', { p_receipt_id: newReceiptId })).catch(() => {});
     } catch {
       // ignorieren
     }
 
-    router.replace({ pathname: '/receipt/[id]', params: { id: receiptRow.id } });
-  }, [receipt, uri, processedUri, rawOcrText, router]);
+    router.replace({ pathname: '/receipt/[id]', params: { id: newReceiptId } });
+    } catch (error) {
+      setStep('review');
+      throw error;
+    } finally { saveInFlight.current = false; }
+  }
 
   function updateItem(index: number, patch: Partial<ParsedReceiptItem>) {
     setReceipt((prev) => {
@@ -630,6 +619,25 @@ export default function ScanScreen() {
     );
   }
 
+  if (receipt && duplicateTargets.length) {
+    const target = duplicateTargets[duplicateIndex];
+    return <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {duplicateTargets.length > 1 && <View style={styles.navBar}>
+        <TouchableOpacity style={styles.saveBtn} onPress={() => setDuplicateIndex(index => (index + 1) % duplicateTargets.length)}><Text style={styles.saveBtnText}>Weitere mögliche Quittung ({duplicateIndex + 1}/{duplicateTargets.length})</Text></TouchableOpacity>
+      </View>}
+      <DuplicateReceiptReview key={target.id} target={target} source={incomingReceipt()} sourceLabel="Neuer Scan" deferLabel="Zurück zum Scan (noch nicht gespeichert)"
+        onMerge={choices => saveReceipt({ mode: 'merge', target, choices })}
+        onSeparate={() => saveReceipt({ mode: 'separate', target })}
+        onDelete={async side => {
+          if (side === 'source') { setDuplicateTargets([]); router.back(); return; }
+          await deleteReviewedReceipt(target.id);
+          setDuplicateTargets(previous => previous.filter(candidate => candidate.id !== target.id));
+          setDuplicateIndex(0);
+        }}
+        onDefer={() => { setDuplicateTargets([]); setStep('review'); }} />
+    </View>;
+  }
+
   if (!receipt) return null;
 
   return (
@@ -642,7 +650,7 @@ export default function ScanScreen() {
           <Ionicons name="chevron-back" size={22} color={C.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Prüfen & Speichern</Text>
-        <TouchableOpacity onPress={saveReceipt} style={styles.saveBtn}>
+        <TouchableOpacity onPress={() => { void saveReceipt().catch(error => Alert.alert('Speichern fehlgeschlagen', error instanceof Error ? error.message : 'Bitte erneut versuchen.')); }} style={styles.saveBtn}>
           <Text style={styles.saveBtnText}>Speichern</Text>
         </TouchableOpacity>
       </View>

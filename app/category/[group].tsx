@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@/components/Ionicons';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCategoryItems } from '../../src/hooks/useCategoryItems';
 import { useLocale } from '../../src/hooks/useLocale';
@@ -15,12 +16,6 @@ import {
   subcategoryLabel, type GroupLevel, type GroupNode, type Locale, type Nature,
 } from '../../src/lib/taxonomy';
 import type { CategoryItem } from '../../src/hooks/useCategoryItems';
-
-const GROUP_EMOJI: Record<string, string> = {
-  'Lebensmittel': '🛒', 'Getränke': '🥤', 'Haushalt': '🏠', 'Gesundheit': '💊',
-  'Einrichtung': '🛋️', 'Freizeit & Shopping': '🛍️', 'Mobilität': '🚆',
-  'Restaurant & Take-away': '🍜', 'Diverses': '📦',
-};
 
 const NO_SUBCATEGORY = '__none__';
 const MS_PER_DAY = 86_400_000;
@@ -172,7 +167,6 @@ export default function CategoryScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const groupColor = TAG_GROUPS[group] ?? C.gold;
-  const emoji      = GROUP_EMOJI[group] ?? '📦';
   const title      = categoryLabel(group, locale);
 
   const items = useMemo(() => {
@@ -213,7 +207,7 @@ export default function CategoryScreen() {
           <Ionicons name="chevron-back" size={24} color={C.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerEmoji}>{emoji}</Text>
+          <CategoryIcon category={group} size={28} color={C.textPrimary} />
           <Text style={styles.headerText}>{title}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -273,7 +267,7 @@ export default function CategoryScreen() {
             </>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>{emoji}</Text>
+              <CategoryIcon category={group} size={56} color={C.textSecondary} />
               <Text style={styles.emptyTitle}>Keine Artikel</Text>
               <Text style={styles.emptyText}>
                 {allItems.length > 0

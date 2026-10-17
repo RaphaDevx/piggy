@@ -242,7 +242,7 @@ export default function FinanzenScreen() {
 
 const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
-  content: { padding: 20, gap: 20, paddingBottom: 40 },
+  content: { padding: 20, gap: 20, paddingBottom: 130 },
   title:   { fontSize: S.xxl, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },
 
   segmentRow:        { flexDirection: 'row', backgroundColor: C.bgSoft, borderRadius: R.lg, padding: 4, gap: 2 },
