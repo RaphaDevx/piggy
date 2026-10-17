@@ -1,7 +1,7 @@
 # ADR 0003: Explizite, transaktionale Quittungs-Duplikatprüfung
 
 ## Status
-Accepted for implementation (2026-10-17); Migration lokal vorbereitet, nicht ausgerollt.
+Accepted and deployed (2026-10-17). Rollout und Verifikation: `docs/verification/2026-10-17-duplicates-backend.md`.
 
 ## Kontext
 Ein erneuter Scan darf bestehende Bankverknüpfungen, manuell geprüfte Angaben oder Aufteilungen nicht verlieren. Ein besseres Bild muss unabhängig von Artikeln und anderen Feldern übernommen werden können. Zwei tatsächliche Käufe mit identischem Datum/Betrag/Laden sollen dauerhaft getrennt bleiben können.
