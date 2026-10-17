@@ -33,14 +33,14 @@
           "id": "capture",
           "label": "Automatisch oder manuell aufnehmen",
           "status": "wip",
-          "where": "modules/piggy-receipt-scanner/ios/ReceiptCaptureController.swift",
+          "where": "modules/piggy-receipt-scanner/apple/ReceiptCaptureController.swift",
           "detail": "AVFoundation + Vision, standardmässig eine Quittung. Native Implementierung lokal; Gerätestest offen."
         },
         {
           "id": "confirm",
           "label": "Vorschau prüfen und Scan übernehmen",
           "status": "wip",
-          "where": "modules/piggy-receipt-scanner/ios/ReceiptCaptureController.swift",
+          "where": "modules/piggy-receipt-scanner/apple/ReceiptCaptureController.swift",
           "detail": "Auto und Manuell verwenden denselben review-Zustand. Neu aufnehmen, Abbrechen oder Scan übernehmen; kein fremder blauer VisionKit-Haken."
         },
         {

@@ -1,4 +1,11 @@
 {
-  "platforms": ["ios"],
-  "ios": { "modules": ["PiggyReceiptScannerModule"] }
+  "platforms": [
+    "ios"
+  ],
+  "ios": {
+    "modules": [
+      "PiggyReceiptScannerModule"
+    ],
+    "podspecPath": "apple/PiggyReceiptScanner.podspec"
+  }
 }
