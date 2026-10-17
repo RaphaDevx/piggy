@@ -1,0 +1,7 @@
+{
+  "name": "piggy-receipt-scanner",
+  "version": "1.0.0",
+  "description": "Piggy receipt capture with a shared manual and automatic confirmation flow",
+  "main": "index.ts",
+  "license": "MIT"
+}

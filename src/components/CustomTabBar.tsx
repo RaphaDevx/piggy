@@ -26,7 +26,7 @@ const TAB_LABELS: Record<string, string> = {
 
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { sheetOpen, openSheet, closeSheet, launch } = useScanner();
+  const { sheetOpen, openSheet, closeSheet, onSheetDismiss, launch, pendingSource } = useScanner();
 
   // Nur sichtbare Tabs (ohne href:null-Screens) — jetzt ohnehin nur noch 4
   const visibleRoutes = state.routes.filter(
@@ -65,7 +65,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <>
       {/* Scan-Quellen-Sheet */}
-      <Modal visible={sheetOpen} transparent animationType="slide" statusBarTranslucent onRequestClose={closeSheet}>
+      <Modal visible={sheetOpen} transparent animationType="slide" statusBarTranslucent onRequestClose={closeSheet} onDismiss={onSheetDismiss}>
         <Pressable style={styles.backdrop} onPress={closeSheet} accessibilityLabel="Schliessen" accessibilityRole="button" />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <View style={styles.handle} />
@@ -75,7 +75,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             <Text style={styles.sheetSub}>Wähle eine Quelle</Text>
           </View>
           {SCAN_SOURCES.map((src) => (
-            <TouchableOpacity key={src.key} style={styles.sourceRow} activeOpacity={0.75} onPress={() => launch(src.key)}>
+            <TouchableOpacity key={src.key} style={styles.sourceRow} activeOpacity={0.75} disabled={pendingSource !== null} accessibilityRole="button" accessibilityLabel={src.label} onPress={() => launch(src.key)}>
               <View style={[styles.srcIcon, { backgroundColor: `${src.color}18` }]}>
                 <Ionicons name={src.icon} size={22} color={src.color} />
               </View>
@@ -91,7 +91,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       <GlassSurface style={styles.bar}>
         {visibleRoutes.slice(0, mid).map((r) => renderTab(r))}
 
-        <TouchableOpacity style={styles.scanWrapper} activeOpacity={0.85} onPress={openSheet} accessibilityLabel="Quittung hinzufügen" accessibilityRole="button">
+        <TouchableOpacity style={styles.scanWrapper} activeOpacity={0.85} disabled={pendingSource !== null} onPress={openSheet} accessibilityLabel="Quittung hinzufügen" accessibilityRole="button" accessibilityState={{ busy: pendingSource !== null, disabled: pendingSource !== null }}>
           <View style={styles.scanBtn}>
             <Ionicons name="scan-outline" size={28} color={C.textPrimary} />
           </View>

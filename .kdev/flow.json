@@ -1,0 +1,154 @@
+{
+  "_doc": "Overlay für den K-Dev Navigator-Flow (ADR 0014 im K-Dev Dashboard). Screens/Kanten kommen automatisch aus app/. Hier nur, was der Code nicht zeigt: Hintergrund-Prozesse mit Stufen (status done|wip|planned), Labels, Beispiel-URLs für dynamische Routen.",
+  "labels": {
+    "tabs/index": "Dashboard",
+    "tabs/finanzen": "Finanzen",
+    "tabs/quittungen": "Quittungen",
+    "tabs/analyse": "Analyse",
+    "receipt/[id]": "Quittung",
+    "scan": "Scan"
+  },
+  "hidden": [],
+  "samples": {},
+  "processes": [
+    {
+      "id": "receipt-scan",
+      "label": "Beleg-Scan (Aufnahme → Prüfung → Quittung)",
+      "trigger": [
+        "scan"
+      ],
+      "outputs": [
+        "receipt/[id]",
+        "tabs/quittungen"
+      ],
+      "stages": [
+        {
+          "id": "source",
+          "label": "Quelle wählen und Menü schliessen",
+          "status": "done",
+          "where": "src/hooks/useScanner.ts, src/components/CustomTabBar.tsx",
+          "detail": "Ein Start zur Zeit; iOS wartet auf Modal.onDismiss vor der Kamera."
+        },
+        {
+          "id": "capture",
+          "label": "Automatisch oder manuell aufnehmen",
+          "status": "wip",
+          "where": "modules/piggy-receipt-scanner/ios/ReceiptCaptureController.swift",
+          "detail": "AVFoundation + Vision, standardmässig eine Quittung. Native Implementierung lokal; Gerätestest offen."
+        },
+        {
+          "id": "confirm",
+          "label": "Vorschau prüfen und Scan übernehmen",
+          "status": "wip",
+          "where": "modules/piggy-receipt-scanner/ios/ReceiptCaptureController.swift",
+          "detail": "Auto und Manuell verwenden denselben review-Zustand. Neu aufnehmen, Abbrechen oder Scan übernehmen; kein fremder blauer VisionKit-Haken."
+        },
+        {
+          "id": "crop",
+          "label": "Zuschnitt falls nötig",
+          "status": "done",
+          "where": "app/scan.tsx",
+          "detail": "Ohne erfolgreiche Perspektivkorrektur bleibt manueller Zuschnitt erhalten."
+        },
+        {
+          "id": "read",
+          "label": "Text und Quittungsdaten erkennen",
+          "status": "done",
+          "where": "src/lib/ocr.ts:processReceiptImage",
+          "detail": "Lokale OCR → verfügbarer lokaler Parser → Gemini mit Einwilligung → Regex-Fallback. Aktuell synchron bis zur Review; Hintergrund-Stapel ist geplant."
+        },
+        {
+          "id": "review",
+          "label": "Quittung prüfen und Duplikate entscheiden",
+          "status": "done",
+          "where": "app/scan.tsx, src/components/DuplicateReceiptReview.tsx",
+          "detail": "Daten prüfen und ausdrücklich speichern oder Duplikat zusammenführen/getrennt halten."
+        },
+        {
+          "id": "link",
+          "label": "Mit Bankbuchung verknüpfen",
+          "status": "done",
+          "where": "app/scan.tsx, supabase/functions/statement-worker",
+          "detail": "Speichern stösst erneuten Abgleich an; Vorschläge nur nach Bestätigung."
+        },
+        {
+          "id": "batch",
+          "label": "Optionaler Stapel mit Hintergrundverarbeitung",
+          "status": "planned",
+          "where": ".kdev/partials/receipt-scan.md",
+          "detail": "Mehrere Quittungen explizit einzeln bestätigen und persistent im Hintergrund auswerten; eigenes Feature, nicht implementiert."
+        }
+      ]
+    },
+    {
+      "id": "statement-import",
+      "label": "Kontoauszug-Import (Hintergrund, Lastspitzen glätten)",
+      "trigger": [
+        "tabs/finanzen"
+      ],
+      "outputs": [
+        "tabs/finanzen",
+        "tabs/analyse"
+      ],
+      "stages": [
+        {
+          "id": "upload",
+          "label": "Auszug hochladen",
+          "status": "wip",
+          "where": "src/hooks/useBankStatements.ts, src/lib/statement.ts",
+          "detail": "Heute: Datei geht direkt an die KI und die App wartet. Geplant: nur in den Storage hochladen, Status „processing“, App sofort frei — wie beim Foto-Upload."
+        },
+        {
+          "id": "parse-structured",
+          "label": "CSV / CAMT.053 direkt einlesen",
+          "status": "planned",
+          "where": "—",
+          "detail": "Ohne KI: fester Parser pro Bank-Export (PostFinance, UBS, Raiffeisen …). 1000 Buchungen < 1 s, keine Kosten, keine Lesefehler. Einlese-Methode pro Bank austauschbar."
+        },
+        {
+          "id": "pages",
+          "label": "PDF seitenweise einlesen",
+          "status": "planned",
+          "where": "supabase/functions/process-statement",
+          "detail": "Heute: ganzes Dokument in einem KI-Aufruf. Geplant: Blöcke à ~4 Seiten, gedrosselt im Hintergrund (Lastspitzen ausgleichen), knappes Zeilenformat statt JSON, jeder Block einzeln gespeichert und wiederholbar.",
+          "progress": "Seite x von y"
+        },
+        {
+          "id": "categorize",
+          "label": "Kategorien zuordnen",
+          "status": "wip",
+          "where": "src/lib/finance.ts (categorizeTransaction)",
+          "detail": "Regeln zuerst; nur was die Regeln nicht zuordnen, gesammelt als kurze Liste an die KI."
+        },
+        {
+          "id": "dedupe",
+          "label": "Duplikate entfernen",
+          "status": "wip",
+          "where": "src/lib/finance.ts (dedupeTransactions)",
+          "detail": "Vorhanden, aber Vergleich lädt bestehende Buchungen mit einer Abfrage (max. 1000 Zeilen) — bei grossen Zeiträumen fehlen Vergleichswerte. Geplant: seitenweise laden."
+        },
+        {
+          "id": "match",
+          "label": "Abgleich mit Quittungen",
+          "status": "done",
+          "where": "src/lib/matching.ts, src/components/AbgleichView.tsx",
+          "detail": "Betrag, Datum (Kreditkarte bis 45 Tage später), Händlername; 1:1 Greedy-Matching"
+        },
+        {
+          "id": "suggest",
+          "label": "Vorschläge bei Abweichungen",
+          "status": "planned",
+          "where": "—",
+          "detail": "Z. B. Restaurant: Datum passt, Bankbetrag höher als Quittung → Vorschlag „Trinkgeld + X CHF“ als Position. Bei Ungereimtheiten Grund auswählen (Trinkgeld, Pfand, Rabatt, …), Vorschlag annehmen oder bearbeiten."
+        },
+        {
+          "id": "profile",
+          "label": "Finanzprofil",
+          "status": "planned",
+          "where": "src/lib/finance.ts (MonthlyOverview), src/hooks/useFinanceOverview.ts",
+          "detail": "Heute Monatsübersicht. Geplant: Ausgaben und Inflow pro Woche/Monat, Trends, Daten für Charts und Dashboard."
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import DocumentScanner from 'react-native-document-scanner-plugin';
+import ReceiptScanner from '../../modules/piggy-receipt-scanner';
 
 const isNative      = Platform.OS !== 'web';
 const isExpoGo      = isNative && Constants.appOwnership === 'expo';
@@ -23,9 +24,23 @@ export function useScanner() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pendingSource, setPendingSource] = useState<ScanSource | null>(null);
+  const launching = useRef(false);
+  const sheetVisible = useRef(false);
+  const dismissResolver = useRef<(() => void) | null>(null);
 
-  const openSheet  = useCallback(() => setSheetOpen(true), []);
-  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const openSheet = useCallback(() => {
+    if (launching.current) return;
+    sheetVisible.current = true;
+    setSheetOpen(true);
+  }, []);
+  const closeSheet = useCallback(() => {
+    sheetVisible.current = false;
+    setSheetOpen(false);
+  }, []);
+  const onSheetDismiss = useCallback(() => {
+    dismissResolver.current?.();
+    dismissResolver.current = null;
+  }, []);
 
   // Web: handle file input change
   const handleWebFile = useCallback((e: Event) => {
@@ -50,31 +65,49 @@ export function useScanner() {
   }, [handleWebFile]);
 
   const launch = useCallback(async (source: ScanSource) => {
-    closeSheet();
+    if (launching.current) return;
+    launching.current = true;
+    const shouldWaitForDismiss = Platform.OS === 'ios' && sheetVisible.current;
+    const dismissed = shouldWaitForDismiss
+      ? new Promise<void>((resolve) => { dismissResolver.current = resolve; })
+      : Promise.resolve();
     setPendingSource(source);
-
-    // Web path — use native file/camera input
-    if (Platform.OS === 'web') {
-      launchWebPicker('');
-      setPendingSource(null);
-      return;
-    }
-
-    // Native path — wait for sheet dismiss animation before camera
-    await new Promise<void>((resolve) =>
-      InteractionManager.runAfterInteractions(() => resolve())
-    );
-
-    let imageUri: string | null = null;
+    closeSheet();
 
     try {
+      // React Native's real onDismiss fires after UIKit has released the modal.
+      await dismissed;
+
+      // Web path — use native file/camera input
+      if (Platform.OS === 'web') {
+        launchWebPicker('');
+        return;
+      }
+
+      // Native path — wait for sheet dismiss animation before camera
+      await new Promise<void>((resolve) =>
+        InteractionManager.runAfterInteractions(() => resolve())
+      );
+
+      let imageUri: string | null = null;
+      let precropped = false;
+
       if (source === 'scan') {
-        const { scannedImages, status } = await DocumentScanner.scanDocument({
-          croppedImageQuality: 100,
-          maxNumDocuments: 1,
-        });
-        if (status === 'cancel') return;
-        imageUri = scannedImages?.[0] ?? null;
+        if (Platform.OS === 'ios') {
+          if (!ReceiptScanner) throw new Error('Scanner-Update benötigt: Bitte installiere den aktuellen Piggy-Build.');
+          const result = await ReceiptScanner.scanReceipt();
+          if (result.status === 'cancel') return;
+          imageUri = result.uri ?? null;
+          precropped = result.precropped === true;
+        } else {
+          const { scannedImages, status } = await DocumentScanner.scanDocument({
+            croppedImageQuality: 100,
+            maxNumDocuments: 1,
+          });
+          if (status === 'cancel') return;
+          imageUri = scannedImages?.[0] ?? null;
+          precropped = true;
+        }
       } else {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
@@ -84,6 +117,8 @@ export function useScanner() {
         const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
         imageUri = res.canceled ? null : (res.assets?.[0]?.uri ?? null);
       }
+      if (!imageUri) return;
+      router.push({ pathname: '/scan', params: { uri: imageUri, precropped: precropped ? '1' : '0' } });
     } catch (err: unknown) {
       const msg = (err as Error)?.message ?? '';
       if (msg.includes('DocumentScanner') || msg.includes('TurboModuleRegistry')) {
@@ -93,13 +128,10 @@ export function useScanner() {
       }
       return;
     } finally {
+      launching.current = false;
       setPendingSource(null);
     }
-
-    if (!imageUri) return;
-    // DocumentScanner already crops + corrects perspective → skip manual crop overlay
-    router.push({ pathname: '/scan', params: { uri: imageUri, precropped: source === 'scan' ? '1' : '0' } });
   }, [closeSheet, launchWebPicker, router]);
 
-  return { sheetOpen, openSheet, closeSheet, launch, pendingSource };
+  return { sheetOpen, openSheet, closeSheet, onSheetDismiss, launch, pendingSource };
 }

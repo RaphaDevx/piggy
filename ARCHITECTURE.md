@@ -92,3 +92,7 @@ graph TD
 
 ### Neue Vorschlags-Art
 `discrepancies.ts` (+Test) → CHECK-Constraint `match_suggestions.kind` + `accept_match_suggestion` (Label/Kategorie) → `SuggestionCard` Texte.
+
+## Receipt capture subprocess
+
+The iOS camera uses `modules/piggy-receipt-scanner` (AVFoundation/Vision), with a shared explicit review/confirmation state for automatic and manual captures. `useScanner` waits for the source sheet to dismiss before presenting it and waits for native dismissal before routing to OCR. The native module must be included in a rebuilt app; an OTA update cannot add it. Detailed lifecycle, incident evidence, active parser path and physical-device acceptance are in `.kdev/partials/receipt-scan.md`; navigator stages in `.kdev/flow.json`.
