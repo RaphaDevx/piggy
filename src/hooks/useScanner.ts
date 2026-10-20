@@ -4,7 +4,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import DocumentScanner from 'react-native-document-scanner-plugin';
-import ReceiptScanner from '../../modules/piggy-receipt-scanner';
 
 const isNative      = Platform.OS !== 'web';
 const isExpoGo      = isNative && Constants.appOwnership === 'expo';
@@ -18,6 +17,10 @@ export const ALL_SCAN_SOURCES = [
 export const SCAN_SOURCES = ALL_SCAN_SOURCES.filter((s) => hasDocScanner || !s.nativeOnly);
 
 export type ScanSource = 'scan' | 'library';
+
+// react-native-document-scanner-plugin resolves its promise before UIKit has finished
+// dismissing the scanner (dismiss runs async). Navigating immediately collides with it.
+const SCANNER_DISMISS_SETTLE_MS = 600;
 
 export function useScanner() {
   const router   = useRouter();
@@ -90,23 +93,18 @@ export function useScanner() {
       );
 
       let imageUri: string | null = null;
-      let precropped = false;
+      // DocumentScanner already crops + corrects perspective → skip manual crop overlay
+      const precropped = source === 'scan';
 
       if (source === 'scan') {
+        const { scannedImages, status } = await DocumentScanner.scanDocument({
+          croppedImageQuality: 100,
+          maxNumDocuments: 1,
+        });
+        if (status === 'cancel') return;
+        imageUri = scannedImages?.[0] ?? null;
         if (Platform.OS === 'ios') {
-          if (!ReceiptScanner) throw new Error('Scanner-Update benötigt: Bitte installiere den aktuellen Piggy-Build.');
-          const result = await ReceiptScanner.scanReceipt();
-          if (result.status === 'cancel') return;
-          imageUri = result.uri ?? null;
-          precropped = result.precropped === true;
-        } else {
-          const { scannedImages, status } = await DocumentScanner.scanDocument({
-            croppedImageQuality: 100,
-            maxNumDocuments: 1,
-          });
-          if (status === 'cancel') return;
-          imageUri = scannedImages?.[0] ?? null;
-          precropped = true;
+          await new Promise<void>((resolve) => setTimeout(resolve, SCANNER_DISMISS_SETTLE_MS));
         }
       } else {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();

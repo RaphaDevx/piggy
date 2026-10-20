@@ -2,14 +2,13 @@ import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
 import { Alert, InteractionManager } from 'react-native';
 import { useScanner } from './useScanner';
-import ReceiptScanner from '../../modules/piggy-receipt-scanner';
+import DocumentScanner from 'react-native-document-scanner-plugin';
 import * as ImagePicker from 'expo-image-picker';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { appOwnership: 'standalone' } }));
 jest.mock('react-native-document-scanner-plugin', () => ({ __esModule: true, default: { scanDocument: jest.fn() } }));
-jest.mock('../../modules/piggy-receipt-scanner', () => ({ __esModule: true, default: { scanReceipt: jest.fn() } }));
 jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(), launchImageLibraryAsync: jest.fn(),
 }));
@@ -17,7 +16,7 @@ jest.mock('expo-image-picker', () => ({
 let scanner: ReturnType<typeof useScanner>;
 let root: Renderer.ReactTestRenderer;
 function Harness() { scanner = useScanner(); return null; }
-const scan = ReceiptScanner!.scanReceipt as jest.Mock;
+const scan = DocumentScanner.scanDocument as jest.Mock;
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -40,29 +39,23 @@ test('waits for real sheet dismissal and rejects a second launch while capture i
   await act(async () => { await scanner.launch('scan'); scanner.onSheetDismiss(); });
   expect(scan).toHaveBeenCalledTimes(1);
   expect(mockPush).not.toHaveBeenCalled();
-  await act(async () => { complete({ status: 'success', uri: 'file:///auto.jpg', precropped: true }); await first; });
+  await act(async () => { complete({ status: 'success', scannedImages: ['file:///auto.jpg'] }); await first; });
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/scan', params: { uri: 'file:///auto.jpg', precropped: '1' } });
   expect(scanner.pendingSource).toBeNull();
 });
 
 test('confirmed native capture reaches the review route once', async () => {
-  scan.mockResolvedValue({ status: 'success', uri: 'file:///receipt.jpg', precropped: true });
+  scan.mockResolvedValue({ status: 'success', scannedImages: ['file:///receipt.jpg'] });
   await act(async () => { await scanner.launch('scan'); });
   expect(mockPush).toHaveBeenCalledTimes(1);
   expect(mockPush.mock.calls[0][0].params.precropped).toBe('1');
 });
 
 test('an empty native result never navigates to OCR', async () => {
-  scan.mockResolvedValue({ status: 'success' });
+  scan.mockResolvedValue({ status: 'success', scannedImages: [] });
   await act(async () => { await scanner.launch('scan'); });
   expect(mockPush).not.toHaveBeenCalled();
   expect(scanner.pendingSource).toBeNull();
-});
-
-test('uncropped capture keeps the manual crop step', async () => {
-  scan.mockResolvedValue({ status: 'success', uri: 'file:///raw.jpg', precropped: false });
-  await act(async () => { await scanner.launch('scan'); });
-  expect(mockPush.mock.calls[0][0].params.precropped).toBe('0');
 });
 
 test('cancel never starts OCR or navigation and allows another scan', async () => {
