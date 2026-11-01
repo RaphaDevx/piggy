@@ -6,17 +6,17 @@
     "scheme": "piggy",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0A0F"
+      "backgroundColor": "#FAFAF9"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.heartbeat.piggy",
-      "buildNumber": "18",
+      "buildNumber": "25",
       "infoPlist": {
         "NSCameraUsageDescription": "Piggy benötigt Kamera-Zugriff zum Fotografieren von Quittungen.",
         "NSPhotoLibraryUsageDescription": "Piggy benötigt Zugriff auf deine Fotos um Quittungsbilder zu laden.",
@@ -103,6 +103,22 @@
             ]
           },
           {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherUserContent",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePaymentInfo",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherFinancialInfo",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
@@ -116,7 +132,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0F"
+        "backgroundColor": "#FFC247"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -133,13 +149,6 @@
           "cameraPermission": "Piggy benötigt Kamera-Zugriff zum Fotografieren von Quittungen.",
           "microphonePermission": false,
           "photosPermission": "Piggy benötigt Zugriff auf deine Fotos um Quittungsbilder zu laden."
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Piggy to save receipt images.",
-          "savePhotosPermission": "Allow Piggy to save receipt images."
         }
       ],
       "expo-web-browser",

@@ -95,7 +95,7 @@
           "id": "upload",
           "label": "Auszug hochladen",
           "status": "wip",
-          "where": "src/hooks/useBankStatements.ts, src/lib/statement.ts",
+          "where": "src/hooks/useBankStatements.ts",
           "detail": "Heute: Datei geht direkt an die KI und die App wartet. Geplant: nur in den Storage hochladen, Status „processing“, App sofort frei — wie beim Foto-Upload."
         },
         {
@@ -109,7 +109,7 @@
           "id": "pages",
           "label": "PDF seitenweise einlesen",
           "status": "planned",
-          "where": "supabase/functions/process-statement",
+          "where": "supabase/functions/statement-worker",
           "detail": "Heute: ganzes Dokument in einem KI-Aufruf. Geplant: Blöcke à ~4 Seiten, gedrosselt im Hintergrund (Lastspitzen ausgleichen), knappes Zeilenformat statt JSON, jeder Block einzeln gespeichert und wiederholbar.",
           "progress": "Seite x von y"
         },

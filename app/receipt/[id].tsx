@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, ActivityIndicator, Image, Alert, Platform,
+  StyleSheet, ActivityIndicator, Alert, Platform,
   KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,9 +14,11 @@ import { useCustomCategories } from '../../src/hooks/useCustomCategories';
 import NumericInput from '../../src/components/NumericInput';
 import { CardMatchBanner } from '../../src/components/CardMatchBanner';
 import { C, R, S, card } from '../../src/constants/design';
+import { FEATURES } from '../../src/constants/features';
 import { itemCategory, PAYMENT_METHODS, STORE_CATEGORIES } from '../../src/lib/categories';
 import { categoryLabel } from '../../src/lib/taxonomy';
 import { resolveSubcategory } from '../../src/lib/itemSubcategory';
+import { ReceiptImage } from '../../src/components/ReceiptImage';
 import { useLocale } from '../../src/hooks/useLocale';
 import { useProjects, assignReceiptToProject } from '../../src/hooks/useProjects';
 import type { ReceiptWithItems, ReceiptItem } from '../../src/types/receipt';
@@ -84,6 +86,7 @@ export default function ReceiptDetailScreen() {
     setReceipt(data as ReceiptWithItems | null);
     setLoading(false);
 
+    if (!FEATURES.bankStatements) return;
     const { data: match } = await supabase
       .from('receipt_matches')
       .select('match_type, bank_transactions(booking_date, amount, currency, description)')
@@ -308,7 +311,7 @@ export default function ReceiptDetailScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {receipt.image_url && (
-          <Image source={{ uri: receipt.image_url }} style={styles.image} resizeMode="contain" />
+          <ReceiptImage value={receipt.image_url} style={styles.image} resizeMode="contain" />
         )}
         <View style={[styles.summaryCard, card]}>
           <View style={styles.amountRow}>
@@ -328,6 +331,7 @@ export default function ReceiptDetailScreen() {
           <CardMatchBanner receiptId={receipt.id} paymentCard={receipt.payment_card} />
         </View>
 
+        {FEATURES.bankStatements && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Bankbeleg</Text>
           <View style={[card, styles.bankCard]}>
@@ -356,6 +360,7 @@ export default function ReceiptDetailScreen() {
             )}
           </View>
         </View>
+        )}
 
         {/* Projekt */}
         <View style={styles.section}>

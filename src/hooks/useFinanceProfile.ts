@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { fetchAll } from '../lib/fetchAll';
 import { buildFinanceProfile, buildNatureBreakdown } from '../lib/profile';
 import type { FinanceTransaction, FinanceReceipt, FinanceMatch } from '../lib/finance';
+import { FEATURES } from '../constants/features';
 
 export type ProfileRange = '3' | '6' | '12' | 'all';
 
@@ -40,9 +41,13 @@ export function useFinanceProfile() {
   const load = useCallback(async () => {
     setLoading(true);
     const [tx, rc, mt] = await Promise.all([
-      fetchAll<FinanceTransaction>('bank_transactions', 'id, booking_date, amount, currency, description, category, match_status'),
+      FEATURES.bankStatements
+        ? fetchAll<FinanceTransaction>('bank_transactions', 'id, booking_date, amount, currency, description, category, match_status')
+        : Promise.resolve([] as FinanceTransaction[]),
       fetchAll<ReceiptRow>('receipts', 'id, receipt_date, total_amount, currency, receipt_items(total_price, tags, subcategory)'),
-      fetchAll<FinanceMatch>('receipt_matches', 'transaction_id, receipt_id'),
+      FEATURES.bankStatements
+        ? fetchAll<FinanceMatch>('receipt_matches', 'transaction_id, receipt_id')
+        : Promise.resolve([] as FinanceMatch[]),
     ]);
     setTransactions(tx);
     setReceipts(rc.map(({ receipt_items, ...r }) => ({ ...r, items: receipt_items ?? [] })));

@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ReceiptImage } from './ReceiptImage';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { ReceiptExtraFields, ReceiptWithItems } from '../types/receipt';
 import { buildMergePreview, type DuplicateReceipt, type MergeChoices, type MergeField } from '../lib/receiptDuplicates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, R } from '../constants/design';
+import { FEATURES } from '../constants/features';
+import { featureCopy } from '../lib/featureCopy';
 
 type Side = 'target' | 'source';
 const FIELDS: { key: MergeField; label: string }[] = [
@@ -52,12 +55,12 @@ export default function DuplicateReceiptReview({ target, source, sourceLabel = '
       <Text style={styles.small}>Betrag</Text><Text style={styles.important}>{receipt.total_amount == null ? '—' : receipt.total_amount.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {receipt.currency}</Text>
       <Text style={styles.small}>Laden</Text><Text style={styles.important}>{receipt.store_name || 'Unbekannt'}</Text>
       {receipt.image_url ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${label}: Bild vergrössern`} onPress={() => setZoom(receipt.image_url)}>
-        <Image source={{ uri: receipt.image_url }} style={styles.image} resizeMode="contain" /><Text style={styles.link}>Bild vergrössern</Text>
+        <ReceiptImage value={receipt.image_url} style={styles.image} resizeMode="contain" /><Text style={styles.link}>Bild vergrössern</Text>
       </TouchableOpacity> : <Text style={styles.placeholder}>Kein Bild vorhanden</Text>}
       <Text style={styles.small}>{receipt.receipt_items.length} Artikel</Text>
       {expanded && receipt.receipt_items.map(item => <View key={item.id} style={styles.item}><Text style={styles.body}>{item.name}</Text><Text style={styles.small}>{value(item.quantity)} {item.unit} · {value(item.total_price)} {receipt.currency}</Text><Text style={styles.small}>{item.tags.join(', ')}</Text></View>)}
       {expanded && receipt.raw_ocr_text && <Text style={styles.small}>{receipt.raw_ocr_text}</Text>}
-      {!!(receipt as DuplicateReceipt).receipt_matches?.length && <Text style={styles.small}>Mit Bankbuchung verknüpft</Text>}
+      {FEATURES.bankStatements && !!(receipt as DuplicateReceipt).receipt_matches?.length && <Text style={styles.small}>Mit Bankbuchung verknüpft</Text>}
       {!!(receipt as DuplicateReceipt).splits?.length && <Text style={styles.small}>Aufteilung vorhanden</Text>}
       {receipt.project_id && <Text style={styles.small}>Projekt zugeordnet</Text>}
     </View>
@@ -85,7 +88,7 @@ export default function DuplicateReceiptReview({ target, source, sourceLabel = '
         <Text style={styles.fieldLabel}>{key === 'image' ? 'Besseres Bild auswählen' : 'Eine Artikelliste erhalten (keine doppelten Artikel)'}</Text>
         <View style={styles.columns}>{(['target', 'source'] as const).map(side => <TouchableOpacity key={side} disabled={busy} accessibilityRole="radio" accessibilityState={{ checked: choices[key] === side }} style={[styles.choice, choices[key] === side && styles.selected]} onPress={() => { setPreview(false); setChoices(c => ({ ...c, [key]: side })); }}><Text style={styles.choiceText}>{choices[key] === side ? '✓ ' : ''}Quittung {side === 'target' ? 'A' : 'B'}</Text></TouchableOpacity>)}</View>
       </View>)}
-      <Text style={styles.body}>Geprüfte Artikel und bestehende Bank-, Split- oder Projektzuordnungen werden geschützt. Bei einem Konflikt wird nichts zusammengeführt und eine Erklärung angezeigt.</Text>
+      <Text style={styles.body}>{featureCopy().duplicateProtectionNote}</Text>
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Weitere Belegangaben</Text>
         {(Object.keys(EXTRA_LABELS) as (keyof ReceiptExtraFields)[]).filter(key => !empty(target.extra_fields?.[key]) || !empty(source.extra_fields?.[key])).map(key => {
@@ -116,7 +119,7 @@ export default function DuplicateReceiptReview({ target, source, sourceLabel = '
       {busy && <ActivityIndicator color={C.gold} accessibilityLabel="Wird gespeichert" />}
     </ScrollView>
     <Modal visible={zoom !== null} onRequestClose={() => setZoom(null)} animationType="slide">
-      <View style={[styles.zoomRoot, { paddingTop: insets.top, paddingBottom: insets.bottom }]}><TouchableOpacity style={styles.secondary} onPress={() => setZoom(null)} accessibilityRole="button"><Text style={styles.link}>Bild schliessen</Text></TouchableOpacity><ScrollView maximumZoomScale={5} minimumZoomScale={1} centerContent contentContainerStyle={{ flexGrow: 1 }}>{zoom && <Image source={{ uri: zoom }} style={{ flex: 1, minHeight: 600, width: '100%' }} resizeMode="contain" />}</ScrollView></View>
+      <View style={[styles.zoomRoot, { paddingTop: insets.top, paddingBottom: insets.bottom }]}><TouchableOpacity style={styles.secondary} onPress={() => setZoom(null)} accessibilityRole="button"><Text style={styles.link}>Bild schliessen</Text></TouchableOpacity><ScrollView maximumZoomScale={5} minimumZoomScale={1} centerContent contentContainerStyle={{ flexGrow: 1 }}>{zoom && <ReceiptImage value={zoom} style={{ flex: 1, minHeight: 600, width: '100%' }} resizeMode="contain" />}</ScrollView></View>
     </Modal>
   </View>;
 }

@@ -4,6 +4,7 @@ import { C, R, S, card } from '../constants/design';
 import { getCategoryColor } from '../lib/categories';
 import { categoryLabel, natureLabel, type Nature } from '../lib/taxonomy';
 import { useLocale } from '../hooks/useLocale';
+import { featureCopy } from '../lib/featureCopy';
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const MONTH_COUNT = 6;
@@ -61,7 +62,7 @@ export default function ProfileView() {
         <View style={[card, styles.emptyCard]}>
           <Text style={styles.emptyTitle}>Noch nichts zu sehen</Text>
           <Text style={styles.emptyText}>
-            Sobald du einen Kontoauszug importiert oder Quittungen gescannt hast, zeigt Piggy hier dein Finanzprofil.
+            {featureCopy().profileEmpty}
           </Text>
         </View>
       ) : (

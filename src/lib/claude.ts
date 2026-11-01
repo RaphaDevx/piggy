@@ -4,5 +4,5 @@
  * scan.tsx importiert weiterhin von hier — kein Import-Change nötig.
  */
 
-export type { ProcessResult, CropRegion } from './ocr';
-export { processReceiptImage } from './ocr';
+export type { ProcessResult, CropRegion, ScanSource, LocalReason } from './ocr';
+export { processReceiptImage, reparseWithAi, LOCAL_REASON_TEXT } from './ocr';

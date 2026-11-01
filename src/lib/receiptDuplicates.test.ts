@@ -1,4 +1,4 @@
-import { findDuplicatePairs, findDuplicateCandidates, buildMergePreview } from './receiptDuplicates';
+import { findDuplicatePairs, findDuplicateCandidates, buildMergePreview, scanPayload } from './receiptDuplicates';
 import type { ReceiptWithItems } from '../types/receipt';
 function receipt(id: string, fields: Partial<ReceiptWithItems> = {}): ReceiptWithItems {
   return { id,user_id:'owner',receipt_date:'2026-10-17',store_name:'Coop',store_category:null,total_amount:12.4,currency:'CHF',payment_method:null,payment_card:null,image_url:'original',original_image_url:null,raw_ocr_text:null,extra_fields:null,markdown_content:null,notes:null,created_at:'2026-10-17',project_id:null,receipt_items:[{id:`${id}-item`,receipt_id:id,name:'Original',quantity:1,unit:'Stk',unit_price:12.4,total_price:12.4,tags:['Lebensmittel']}],...fields };
@@ -31,4 +31,17 @@ test('preview keeps target adjustment when replacing ordinary items from source'
  const preview=buildMergePreview(a,b,{items:'source'});
  expect(preview.receipt_items.map(item=>item.name)).toEqual(['New items','Trinkgeld']);
  expect(preview.receipt_items.every(item=>item.receipt_id==='a')).toBe(true);
+});
+
+describe('scanPayload', () => {
+  const base = { store_name: 'Laden', currency: 'CHF', receipt_items: [
+    { name: '  ', total_price: 2 }, { name: 'Brot', total_price: 3 }, { name: null, total_price: 1 }, { name: 'Ausgleich', is_adjustment: true, total_price: 0.5 },
+  ] } as any;
+  it('füllt leere Artikelnamen auf und entfernt Ausgleichsposten, damit der Server nicht ablehnt', () => {
+    const items = (scanPayload(base).receipt_items as any[]).map(i => i.name);
+    expect(items).toEqual(['Artikel', 'Brot', 'Artikel']);
+  });
+  it('liefert ohne Artikel eine leere Liste', () => {
+    expect(scanPayload({ store_name: 'X', currency: 'CHF' } as any).receipt_items).toEqual([]);
+  });
 });

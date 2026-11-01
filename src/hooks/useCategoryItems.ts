@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { fetchAll } from '../lib/fetchAll';
 import { LEGACY_TAG_CATEGORY, itemCategory } from '../lib/categories';
 import type { BankMatch } from '../types/bank';
+import { FEATURES } from '../constants/features';
 
 export interface CategoryItem {
   id: string;
@@ -75,7 +76,9 @@ export function useCategoryItems(group: string) {
       const [{ data: rc }, { data: mt }] = await Promise.all([
         supabase.from('receipts').select('id, store_name, receipt_date, currency').in('id', ids),
         // Bankbeleg-Status pro Quittung (für "Bankbeleg" / "Kein Bankbeleg" Badge)
-        supabase.from('receipt_matches').select('receipt_id, transaction_id, match_type').in('receipt_id', ids),
+        FEATURES.bankStatements
+          ? supabase.from('receipt_matches').select('receipt_id, transaction_id, match_type').in('receipt_id', ids)
+          : Promise.resolve({ data: [] as Array<{ receipt_id: string; transaction_id: string; match_type: BankMatch['match_type'] }> }),
       ]);
       receiptRows.push(...(rc ?? []));
       matchRows.push(...(mt ?? []));

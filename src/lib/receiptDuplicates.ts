@@ -93,11 +93,19 @@ export async function mergeReceiptDuplicates(targetId: string, sourceId: string,
   if (error) throw new Error(error.message);
   return data as string;
 }
+/** Der Server verwirft den ganzen Scan bei einem Artikel ohne Namen oder mit is_adjustment; leere Namen daher auffüllen. */
+export function scanPayload(scan: IncomingReceiptScan) {
+  const payload: Record<string, unknown> = Object.fromEntries(([...MERGE_FIELDS, 'image_url', 'original_image_url', 'extra_fields'] as const).map(key => [key, scan[key]]));
+  payload.receipt_items = (scan.receipt_items ?? [])
+    .filter(item => !item.is_adjustment)
+    .map(item => ({ ...item, name: String(item.name ?? '').trim() || 'Artikel' }));
+  return payload;
+}
 export async function mergeReceiptScan(targetId: string, scan: IncomingReceiptScan, choices: MergeChoices = {}): Promise<string> {
   // Send a bounded data object; IDs, ownership and relationships can never be supplied by a scan.
   const { data, error } = await supabase.rpc('merge_receipt_scan', {
     p_target_id: targetId,
-    p_scan: Object.fromEntries(([...MERGE_FIELDS, 'image_url', 'original_image_url', 'extra_fields', 'receipt_items'] as const).map(key => [key, scan[key]])),
+    p_scan: scanPayload(scan),
     p_choices: choices,
   });
   if (error) throw new Error(error.message);
@@ -106,7 +114,7 @@ export async function mergeReceiptScan(targetId: string, scan: IncomingReceiptSc
 /** Atomic distinct receipt + keep-separate decisions: safe to retry after a rejected transaction. */
 export async function saveSeparateReceiptScan(scan: IncomingReceiptScan, separateIds: string[]): Promise<string> {
   const { data, error } = await supabase.rpc('save_separate_receipt_scan', {
-    p_scan: Object.fromEntries(([...MERGE_FIELDS, 'image_url', 'original_image_url', 'extra_fields', 'receipt_items'] as const).map(key => [key, scan[key]])),
+    p_scan: scanPayload(scan),
     p_separate_ids: separateIds,
   });
   if (error) throw new Error(error.message);

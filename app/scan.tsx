@@ -15,13 +15,14 @@ import { Ionicons } from '@/components/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../src/lib/supabase';
-import { processReceiptImage, ProcessResult } from '../src/lib/claude';
+import { processReceiptImage, reparseWithAi, LOCAL_REASON_TEXT, ProcessResult, ScanSource, LocalReason } from '../src/lib/claude';
 import { generateMarkdown } from '../src/lib/markdown';
 import { itemCategory } from '../src/lib/categories';
 import TagPicker from '../src/components/TagPicker';
 import { resolveSubcategory } from '../src/lib/itemSubcategory';
 import { useCustomCategories } from '../src/hooks/useCustomCategories';
 import { C, R, S, card } from '../src/constants/design';
+import { FEATURES } from '../src/constants/features';
 import DuplicateReceiptReview from '../src/components/DuplicateReceiptReview';
 import { loadDuplicateCandidates, mergeReceiptScan, saveSeparateReceiptScan, deleteReviewedReceipt, type MergeChoices } from '../src/lib/receiptDuplicates';
 import type { ReceiptWithItems, ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
@@ -117,7 +118,7 @@ function confirmAsync(title: string, message: string, cancelText: string, okText
   });
 }
 
-/** Lädt eine lokale Bilddatei nach receipt-images hoch; liefert die URL oder null. */
+/** Lädt eine lokale Bilddatei nach receipt-images hoch; liefert den Storage-Pfad oder null. */
 async function uploadNativeImage(srcUri: string, path: string, ext: string): Promise<string | null> {
   for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
     try {
@@ -126,7 +127,7 @@ async function uploadNativeImage(srcUri: string, path: string, ext: string): Pro
         .from('receipt-images')
         .upload(path, decodeBase64(base64), { contentType: ext === 'jpg' ? 'image/jpeg' : `image/${ext}`, upsert: true });
       if (error) throw error;
-      return supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
+      return path;
     } catch (e) {
       console.warn(`receipt image upload failed (attempt ${attempt})`, (e as Error)?.message);
     }
@@ -393,6 +394,9 @@ export default function ScanScreen() {
   const [errorMsg, setErrorMsg]     = useState('');
   const [processedUri, setProcessedUri] = useState<string | null>(null);
   const [rawOcrText, setRawOcrText]     = useState('');
+  const [scanSource, setScanSource]     = useState<ScanSource>('cloud-ai');
+  const [localReason, setLocalReason]   = useState<LocalReason | undefined>();
+  const [reparsing, setReparsing]       = useState(false);
   const [showExtra, setShowExtra]       = useState(false);
   const [duplicateTargets, setDuplicateTargets] = useState<ReceiptWithItems[]>([]);
   const [duplicateIndex, setDuplicateIndex] = useState(0);
@@ -437,6 +441,8 @@ export default function ScanScreen() {
       setMarkdown(result.markdown);
       setProcessedUri(result.processedUri);
       setRawOcrText(result.rawText);
+      setScanSource(result.source);
+      setLocalReason(result.localReason);
       setStep('review');
     } catch (err: unknown) {
       const msg = (err as Error)?.message ?? '';
@@ -444,6 +450,22 @@ export default function ScanScreen() {
       setStep('crop');
     }
   }, [uri, router]);
+
+  const reparse = useCallback(async () => {
+    if (reparsing || !rawOcrText) return;
+    setReparsing(true);
+    try {
+      const result = await reparseWithAi(rawOcrText);
+      setReceipt(result.receipt);
+      setMarkdown(result.markdown);
+      setScanSource(result.source);
+      setLocalReason(undefined);
+    } catch (err: unknown) {
+      Alert.alert('KI-Erkennung nicht möglich', (err as Error)?.message || 'Bitte später erneut versuchen.');
+    } finally {
+      setReparsing(false);
+    }
+  }, [reparsing, rawOcrText]);
 
   function incomingReceipt(): ReceiptWithItems {
     if (!receipt) throw new Error('Keine Quittung vorhanden.');
@@ -512,9 +534,7 @@ export default function ScanScreen() {
         const { error } = await supabase.storage
           .from('receipt-images')
           .upload(path, blob, { contentType: blob.type });
-        if (!error) {
-          imageUrl = supabase.storage.from('receipt-images').getPublicUrl(path).data?.publicUrl ?? null;
-        }
+        if (!error) imageUrl = path;
       }
     } catch {
       // non-critical — receipt still saves without image
@@ -538,7 +558,7 @@ export default function ScanScreen() {
 
     // Abgleich im Hintergrund anstossen — darf das Speichern nie scheitern lassen
     try {
-      void Promise.resolve(supabase.rpc('enqueue_rematch', { p_receipt_id: newReceiptId })).catch(() => {});
+      if (FEATURES.bankStatements) void Promise.resolve(supabase.rpc('enqueue_rematch', { p_receipt_id: newReceiptId })).catch(() => {});
     } catch {
       // ignorieren
     }
@@ -656,6 +676,25 @@ export default function ScanScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+
+        {/* Hinweis: nur lokal erkannt (ohne Cloud-KI) → Grund + erneut versuchen */}
+        {(scanSource === 'local' || scanSource === 'on-device-ai') && (
+          <View style={[card, styles.sourceBanner]}>
+            <Text style={styles.sourceTitle}>
+              {scanSource === 'local' ? 'Nur einfach erkannt' : 'Auf dem Gerät erkannt'}
+            </Text>
+            <Text style={styles.sourceText}>
+              {scanSource === 'local'
+                ? `${localReason ? LOCAL_REASON_TEXT[localReason] : 'Die KI wurde nicht genutzt.'} Artikel und Kartennummer können fehlen — bitte prüfen.`
+                : 'Das Gerät hat den Beleg ohne Cloud-KI ausgewertet. Artikel und Kartennummer können ungenauer sein.'}
+            </Text>
+            <TouchableOpacity onPress={() => { void reparse(); }} disabled={reparsing} style={styles.sourceBtn}>
+              {reparsing
+                ? <ActivityIndicator color={C.gold} />
+                : <Text style={styles.sourceBtnText}>Mit KI erneut erkennen</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Header Card */}
         <View style={[card, styles.headerCard]}>
@@ -833,6 +872,11 @@ const styles = StyleSheet.create({
   },
   navBtn:    { width: 40, alignItems: 'flex-start' },
   navTitle:  { flex: 1, color: C.textPrimary, fontSize: S.lg, fontWeight: '700', textAlign: 'center' },
+  sourceBanner:  { padding: S.md, gap: 6, borderWidth: 1, borderColor: C.gold },
+  sourceTitle:   { color: C.textPrimary, fontWeight: '700', fontSize: 15 },
+  sourceText:    { color: C.textSecondary, fontSize: 13, lineHeight: 18 },
+  sourceBtn:     { alignSelf: 'flex-start', marginTop: 4, paddingVertical: 6 },
+  sourceBtnText: { color: C.gold, fontWeight: '700', fontSize: 14 },
   saveBtn:   { backgroundColor: C.gold, borderRadius: R.md, paddingHorizontal: 16, paddingVertical: 8 },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: S.md },
 

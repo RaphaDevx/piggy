@@ -9,6 +9,7 @@ import { Ionicons } from '@/components/Ionicons';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import SpendingChart from '../../src/components/SpendingChart';
 import AbgleichView from '../../src/components/AbgleichView';
+import { FEATURES } from '../../src/constants/features';
 import { useDashboard } from '../../src/hooks/useDashboard';
 import { C, R, S, card } from '../../src/constants/design';
 import { TAG_GROUPS } from '../../src/lib/categories';
@@ -45,7 +46,8 @@ export default function AnalyseScreen() {
         <Text style={styles.title}>Analyse</Text>
       </View>
 
-      {/* Übersicht / Abgleich Switch */}
+      {/* Übersicht / Abgleich Switch (nur mit Kontoauszug-Funktion) */}
+      {FEATURES.bankStatements && (
       <View style={styles.periodRow}>
         <TouchableOpacity
           style={[styles.periodBtn, view === 'overview' && styles.periodBtnActive]}
@@ -61,7 +63,9 @@ export default function AnalyseScreen() {
         </TouchableOpacity>
       </View>
 
-      {view === 'abgleich' ? (
+      )}
+
+      {FEATURES.bankStatements && view === 'abgleich' ? (
         <AbgleichView />
       ) : (
         <>

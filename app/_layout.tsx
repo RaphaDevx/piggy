@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuth } from '../src/lib/supabase';
+import { syncAiConsent } from '../src/lib/aiConsent';
 
 function AuthGuard() {
   const { session, loading } = useAuth();
@@ -17,6 +18,10 @@ function AuthGuard() {
       router.replace('/(tabs)' as any);
     }
   }, [session, loading, segments]);
+
+  // Bereits lokal erteilte KI-Einwilligung einmalig in die Datenbank nachtragen (best-effort)
+  const userId = session?.user?.id;
+  useEffect(() => { if (userId) syncAiConsent(); }, [userId]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

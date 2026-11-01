@@ -9,6 +9,9 @@ import { Ionicons } from '@/components/Ionicons';
 import { supabase } from '../../src/lib/supabase';
 import { useFriends } from '../../src/hooks/useFriends';
 import { useSplitForReceipt, calcShares, createSplit, settleParticipant } from '../../src/hooks/useSplits';
+import NumericInput from '../../src/components/NumericInput';
+import PaymentRequestSheet from '../../src/components/PaymentRequestSheet';
+import { equalShares, fixedShares } from '../../src/lib/paymentRequest';
 import { C, R, S, card } from '../../src/constants/design';
 import type { ReceiptWithItems } from '../../src/types/receipt';
 import type { Profile } from '../../src/types/social';
@@ -35,6 +38,12 @@ export default function SplitScreen() {
 
   const [saving, setSaving]             = useState(false);
 
+  // Aufteilungsart: nach Artikeln (mit Ausschlüssen), 50/50 oder fester Betrag je Person
+  const [mode, setMode]                 = useState<'items' | 'equal' | 'fixed'>('items');
+  const [fixedAmounts, setFixedAmounts] = useState<Map<string, number>>(new Map());
+  // Anforderung (Text + QR-Rechnung) für eine Person im bestehenden Split
+  const [requestFor, setRequestFor]     = useState<{ name: string; amount: number } | null>(null);
+
   const { friends, loading: friendsLoading } = useFriends();
   const { split, loading: splitLoading, reload: reloadSplit } = useSplitForReceipt(receiptId ?? null);
 
@@ -60,7 +69,12 @@ export default function SplitScreen() {
     ? [myProfile.id, ...Array.from(selected)]
     : Array.from(selected);
 
-  const shares = calcShares(items, total, allParticipants, exclusions);
+  const payerId = myProfile?.id ?? '';
+  const shares = mode === 'equal'
+    ? equalShares(total, allParticipants, payerId)
+    : mode === 'fixed'
+      ? fixedShares(total, payerId, fixedAmounts)
+      : calcShares(items, total, allParticipants, exclusions);
 
   function toggleFriend(id: string) {
     setSelected((prev) => {
@@ -91,7 +105,7 @@ export default function SplitScreen() {
       currency,
       participantIds: allParticipants,
       shares,
-      exclusions,
+      exclusions: mode === 'items' ? exclusions : new Map(),
     });
     setSaving(false);
     if (error) { Alert.alert('Fehler', error); return; }
@@ -182,16 +196,36 @@ export default function SplitScreen() {
                   ? <View style={styles.settledBadge}><Text style={styles.settledText}>✓ Beglichen</Text></View>
                   : !isPayer
                     ? (
-                      <TouchableOpacity
-                        style={styles.settleBtn}
-                        onPress={() => handleSettle(p.id, name)}
-                      >
-                        <Text style={styles.settleBtnText}>Beglichen</Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {split.payer_id === myProfile?.id && (
+                          <TouchableOpacity
+                            style={styles.settleBtn}
+                            onPress={() => setRequestFor({ name, amount: p.amount })}
+                          >
+                            <Text style={styles.settleBtnText}>Anfordern</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={styles.settleBtn}
+                          onPress={() => handleSettle(p.id, name)}
+                        >
+                          <Text style={styles.settleBtnText}>Beglichen</Text>
+                        </TouchableOpacity>
+                      </View>
                     ) : null}
               </View>
             );
           })}
+
+          <PaymentRequestSheet
+            visible={!!requestFor}
+            onClose={() => setRequestFor(null)}
+            personName={requestFor?.name ?? ''}
+            amount={requestFor?.amount ?? 0}
+            currency={split.currency}
+            store={receipt?.store_name}
+            date={receipt?.receipt_date}
+          />
 
           {/* Exclusions detail */}
           {(split.split_exclusions?.length ?? 0) > 0 && (
@@ -267,8 +301,50 @@ export default function SplitScreen() {
           </View>
         )}
 
+        {/* Aufteilungsart */}
+        {selected.size > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Wie aufteilen?</Text>
+            <View style={styles.modeRow}>
+              {([['items', 'Nach Artikeln'], ['equal', '50/50'], ['fixed', 'Fester Betrag']] as const).map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.modeChip, mode === key && styles.modeChipActive]}
+                  onPress={() => setMode(key)}
+                >
+                  <Text style={[styles.modeChipText, mode === key && styles.modeChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Fester Betrag je Freund */}
+        {selected.size > 0 && mode === 'fixed' && (
+          <View style={[card, { overflow: 'hidden', padding: 0 }]}>
+            {friends.filter((f) => selected.has(f.profile.id)).map((f, idx, arr) => {
+              const name = f.profile.display_name ?? f.profile.piggy_code;
+              return (
+                <View key={f.profile.id}>
+                  <View style={styles.exclusionRow}>
+                    <Text style={[styles.pName, { flex: 1 }]}>{name}</Text>
+                    <NumericInput
+                      value={fixedAmounts.get(f.profile.id) ?? 0}
+                      onChange={(n) => setFixedAmounts((prev) => new Map(prev).set(f.profile.id, n))}
+                      placeholder="0.00"
+                      placeholderTextColor={C.textTertiary}
+                      style={styles.fixedInput}
+                    />
+                  </View>
+                  {idx < arr.length - 1 && <View style={styles.divider} />}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {/* Article Exclusions */}
-        {selected.size > 0 && items.length > 0 && (
+        {selected.size > 0 && mode === 'items' && items.length > 0 && (
           <>
             <Text style={styles.sectionLabel}>Artikel-Ausschlüsse <Text style={styles.sectionOptional}>(optional)</Text></Text>
             <View style={[card, { overflow: 'hidden', padding: 0 }]}>
@@ -427,6 +503,13 @@ const styles = StyleSheet.create({
   settledText:  { fontSize: S.xs, color: C.success, fontWeight: '700' },
   settleBtn:    { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: C.bgAccent, borderRadius: 12, borderWidth: 1, borderColor: C.border },
   settleBtnText:{ fontSize: S.xs, fontWeight: '700', color: C.textPrimary },
+
+  modeRow:           { flexDirection: 'row', gap: 8 },
+  modeChip:          { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: C.bgAccent, borderWidth: 1, borderColor: C.borderSoft },
+  modeChipActive:    { borderColor: C.gold, backgroundColor: '#FFF5E6' },
+  modeChipText:      { fontSize: S.xs, fontWeight: '700', color: C.textSecondary },
+  modeChipTextActive:{ color: C.textPrimary },
+  fixedInput:        { minWidth: 90, textAlign: 'right', fontSize: S.md, fontWeight: '700', color: C.textPrimary, borderBottomWidth: 1, borderBottomColor: C.border, paddingVertical: 4 },
 
   breakdownRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
   breakdownName:   { flex: 1, fontSize: S.sm, color: C.textPrimary, fontWeight: '600' },

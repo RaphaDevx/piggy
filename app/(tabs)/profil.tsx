@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Share,
-  ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Switch,
+  ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Switch, Linking,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +18,9 @@ import { useFriends } from '../../src/hooks/useFriends';
 import { useProfileCards } from '../../src/hooks/useSharedReceipts';
 import { Toast } from '../../src/components/Toast';
 import { FoundationModels } from '../../src/native/FoundationModels';
+import { PRIVACY_URL, SUPPORT_URL } from '../../src/lib/legalLinks';
 import { getAiConsent, setAiConsent } from '../../src/lib/aiConsent';
+import { featureCopy } from '../../src/lib/featureCopy';
 
 export default function ProfilScreen() {
   const insets  = useSafeAreaInsets();
@@ -121,7 +123,7 @@ export default function ProfilScreen() {
   function confirmDeleteAccount() {
     Alert.alert(
       'Konto löschen',
-      'Dein Konto und alle Daten (Quittungen, Bilder, Kontoauszüge, Projekte, Freunde, Splits) werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',
+      featureCopy().deleteAccountBody,
       [
         { text: 'Abbrechen', style: 'cancel' },
         { text: 'Endgültig löschen', style: 'destructive', onPress: deleteAccount },
@@ -140,18 +142,31 @@ export default function ProfilScreen() {
           const credential = await AppleAuthentication.signInAsync();
           appleAuthorizationCode = credential.authorizationCode ?? undefined;
         } catch (e: any) {
-          if (e.code === 'ERR_REQUEST_CANCELED') return;
+          if (e.code === 'ERR_REQUEST_CANCELED') {
+            Alert.alert(
+              'Löschen abgebrochen',
+              'Die Apple-Bestätigung wurde abgebrochen. Dein Konto wurde nicht gelöscht.',
+            );
+            return;
+          }
           throw e;
         }
       }
 
-      const { error } = await supabase.functions.invoke('delete-account', {
+      const { data, error } = await supabase.functions.invoke('delete-account', {
         body: { confirm: 'DELETE', apple_authorization_code: appleAuthorizationCode },
       });
       if (error) throw error;
 
       await supabase.auth.signOut({ scope: 'local' });
       router.replace('/(auth)/login' as any);
+      // Konto ist gelöscht, aber der Apple-Token konnte nicht widerrufen werden
+      if (appleLinked && data?.apple === 'failed') {
+        Alert.alert(
+          'Konto gelöscht',
+          'Dein Konto wurde gelöscht. Die Apple-Verknüpfung konnte nicht automatisch entfernt werden. Du kannst sie unter Einstellungen > Apple-ID > Anmelden mit Apple selbst entfernen.',
+        );
+      }
     } catch {
       Alert.alert('Fehler', 'Konto konnte nicht gelöscht werden. Bitte versuche es erneut oder kontaktiere raphaelk01@outlook.de.');
     } finally {
@@ -561,7 +576,7 @@ export default function ProfilScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowText}>KI-Erkennung erlauben</Text>
-              <Text style={styles.rowSub}>Quittungstext und Kontoauszüge an Anthropic Claude, mit eigenem Key an Google Gemini</Text>
+              <Text style={styles.rowSub}>{featureCopy().aiConsentRowSub}</Text>
             </View>
             <Switch value={aiConsent} onValueChange={toggleAiConsent} />
           </View>
@@ -802,19 +817,28 @@ export default function ProfilScreen() {
             </View>
           </View>
           <View style={styles.divider} />
-          <View style={styles.row}>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL(PRIVACY_URL)} activeOpacity={0.7}>
             <View style={[styles.iconBox, { backgroundColor: C.bgAccent }]}>
               <Ionicons name="shield-checkmark-outline" size={20} color={C.gold} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowText}>Datenschutz</Text>
-              <Text style={styles.rowSub}>Daten in der Schweiz (eu-central-2)</Text>
+              <Text style={styles.rowSub}>{featureCopy().storageRowSub}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL(SUPPORT_URL)} activeOpacity={0.7}>
+            <View style={[styles.iconBox, { backgroundColor: C.bgAccent }]}>
+              <Ionicons name="help-circle-outline" size={20} color={C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowText}>Support</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
-      <Text style={styles.footer}>Deine Daten werden sicher in der Schweiz gespeichert.</Text>
+      <Text style={styles.footer}>{featureCopy().storageFooter}</Text>
     </ScrollView>
   );
 }

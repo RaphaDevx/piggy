@@ -13,11 +13,17 @@ import { C, R, S, card } from '../../src/constants/design';
 import { TRANSACTION_CATEGORIES, getCategoryColor } from '../../src/lib/categories';
 import { categoryDef, categoryLabel } from '../../src/lib/taxonomy';
 import { useLocale } from '../../src/hooks/useLocale';
+import { FEATURES } from '../../src/constants/features';
+import { featureCopy } from '../../src/lib/featureCopy';
 
 const MONTH_NAMES = [
   'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ];
+
+const SEGMENTS = (FEATURES.bankStatements
+  ? [['overview', 'Übersicht'], ['profile', 'Profil'], ['abgleich', 'Abgleich']]
+  : [['overview', 'Übersicht'], ['profile', 'Profil']]) as ReadonlyArray<readonly ['overview' | 'profile' | 'abgleich', string]>;
 
 function fmtCHF(n: number, cur = 'CHF') { return `${cur} ${n.toFixed(2)}`; }
 function monthLabel(month: string) {
@@ -55,7 +61,7 @@ export default function FinanzenScreen() {
       <Text style={styles.title}>Finanzen</Text>
 
       <View style={styles.segmentRow}>
-        {([['overview', 'Übersicht'], ['profile', 'Profil'], ['abgleich', 'Abgleich']] as const).map(([key, label]) => (
+        {SEGMENTS.map(([key, label]) => (
           <TouchableOpacity
             key={key}
             style={[styles.segmentBtn, view === key && styles.segmentBtnActive]}
@@ -66,7 +72,7 @@ export default function FinanzenScreen() {
         ))}
       </View>
 
-      {view === 'abgleich' ? (
+      {FEATURES.bankStatements && view === 'abgleich' ? (
         <AbgleichView />
       ) : view === 'profile' ? (
         <ProfileView />
@@ -94,7 +100,7 @@ export default function FinanzenScreen() {
           </View>
 
           {/* Kein Kontoauszug */}
-          {!hasBankTransactions && (
+          {FEATURES.bankStatements && !hasBankTransactions && (
             <TouchableOpacity style={[card, styles.noticeCard, styles.importCard]} activeOpacity={0.8} onPress={() => setView('abgleich')}>
               <Ionicons name="document-attach-outline" size={24} color={C.gold} />
               <View style={{ flex: 1 }}>
@@ -150,7 +156,7 @@ export default function FinanzenScreen() {
                         backgroundColor: getCategoryColor(c.category),
                       }]} />
                     </View>
-                    {c.fromBank > 0 && c.fromReceipts > 0 && (
+                    {FEATURES.bankStatements && c.fromBank > 0 && c.fromReceipts > 0 && (
                       <Text style={styles.catSub}>
                         Bank {fmtCHF(c.fromBank, cur)} · Quittung {fmtCHF(c.fromReceipts, cur)}
                       </Text>
@@ -163,7 +169,7 @@ export default function FinanzenScreen() {
           )}
 
           {/* Beleg-Abdeckung */}
-          {(overview.receiptCoverage != null || overview.receiptOnlyExpenses > 0 || overview.transfers > 0) && (
+          {FEATURES.bankStatements && (overview.receiptCoverage != null || overview.receiptOnlyExpenses > 0 || overview.transfers > 0) && (
             <View style={[card, styles.coverCard]}>
               {overview.receiptCoverage != null && (
                 <>
@@ -188,7 +194,7 @@ export default function FinanzenScreen() {
           )}
 
           {/* Ohne Kategorie */}
-          {uncategorized.length > 0 && (
+          {FEATURES.bankStatements && uncategorized.length > 0 && (
             <View style={[card, styles.noticeWrap]}>
               <TouchableOpacity style={styles.noticeCard} activeOpacity={0.8} onPress={() => setShowUncat((v) => !v)}>
                 <Ionicons name="alert-circle-outline" size={24} color={C.warning} />
@@ -218,7 +224,7 @@ export default function FinanzenScreen() {
           )}
 
           {/* Ohne Quittung */}
-          {overview.unmatchedExpenseCount > 0 && (
+          {FEATURES.bankStatements && overview.unmatchedExpenseCount > 0 && (
             <TouchableOpacity style={[card, styles.noticeCard]} activeOpacity={0.8} onPress={() => setView('abgleich')}>
               <Ionicons name="receipt-outline" size={24} color={C.gold} />
               <View style={{ flex: 1 }}>
@@ -231,8 +237,8 @@ export default function FinanzenScreen() {
             </TouchableOpacity>
           )}
 
-          {!hasData && hasBankTransactions && (
-            <Text style={styles.empty}>Keine Daten für diesen Monat.</Text>
+          {!hasData && (FEATURES.bankStatements ? hasBankTransactions : true) && (
+            <Text style={styles.empty}>{featureCopy().financeEmpty}</Text>
           )}
         </>
       )}

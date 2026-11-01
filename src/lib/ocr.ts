@@ -17,7 +17,7 @@ import { Platform } from 'react-native';
 import type { ParsedReceipt, ParsedReceiptItem } from '../types/receipt';
 import { generateMarkdown } from './markdown';
 import { supabase } from './supabase';
-import { ensureAiConsent } from './aiConsent';
+import { ensureAiConsent, askAiConsent, getAiConsent } from './aiConsent';
 import { suggestedCategory } from './categories';
 import { categoryOfSubcategory, classifyItemName, receiptItemCategoryPrompt } from './taxonomy';
 import { resolveSubcategory } from './itemSubcategory';
@@ -27,8 +27,21 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
 // ── Public result type ────────────────────────────────────────────────────────
 
+/** Womit der Scan ausgewertet wurde. `local` = einfacher Regex-Parser (ohne KI). */
+export type ScanSource = 'on-device-ai' | 'cloud-ai' | 'gemini' | 'local';
+
+/** Warum die Cloud-KI nicht genutzt wurde (nur bei `source: 'local'`). */
+export type LocalReason = 'no-consent' | 'no-session' | 'limit' | 'error';
+
+export const LOCAL_REASON_TEXT: Record<LocalReason, string> = {
+  'no-consent': 'Die KI-Erkennung ist nicht erlaubt.',
+  'no-session': 'Du bist nicht angemeldet oder die Anmeldung ist abgelaufen.',
+  limit: 'Das Tageslimit für KI-Scans ist erreicht.',
+  error: 'Die KI war nicht erreichbar (Netz oder Server).',
+};
+
 export type ProcessResult =
-  | { type: 'done'; receipt: ParsedReceipt; markdown: string; rawText: string; processedUri: string }
+  | { type: 'done'; receipt: ParsedReceipt; markdown: string; rawText: string; processedUri: string; source: ScanSource; localReason?: LocalReason }
   | { type: 'queued'; queueId: string };
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -102,12 +115,15 @@ function extractPaymentMethod(lines: string[]): { method: string; card: string |
 
 function extractTotal(lines: string[]): number {
   // Schlüsselwörter für Gesamtbetrag (absteigend nach Spezifizität)
+  // "Subtotal"/"Zwischensumme" sind Teilbeträge (z. B. vor Service) und zählen nie.
+  // Optionales Währungskürzel zwischen Schlüsselwort und Betrag ("TOTAL CHF 191.40").
+  const cur = '(?:chf|eur|fr\\.?|€)?';
   const totalKeywords = [
-    /total[\s:]*?([\d.,]+)/i,
-    /betrag[\s:]*?([\d.,]+)/i,
-    /summe[\s:]*?([\d.,]+)/i,
-    /gesamt[\s:]*?([\d.,]+)/i,
-    /zu\s+zahlen[\s:]*?([\d.,]+)/i,
+    new RegExp(`(?<!sub)(?<!zwischen)total[\\s:]*${cur}[\\s:]*([\\d.,]+)`, 'i'),
+    new RegExp(`zu\\s+zahlen[\\s:]*${cur}[\\s:]*([\\d.,]+)`, 'i'),
+    new RegExp(`(?<!zwischen)summe[\\s:]*${cur}[\\s:]*([\\d.,]+)`, 'i'),
+    new RegExp(`gesamt[\\s:]*${cur}[\\s:]*([\\d.,]+)`, 'i'),
+    new RegExp(`betrag[\\s:]*${cur}[\\s:]*([\\d.,]+)`, 'i'),
     /rp\.?\s*([\d.,]+)/i,
     /chf[\s:]*?([\d.,]+)/i,
     /eur[\s:]*?([\d.,]+)/i,
@@ -236,7 +252,7 @@ function parseItems(lines: string[]): ParsedReceiptItem[] {
   const items: ParsedReceiptItem[] = [];
 
   // Muster: "Artikelname   4.50" oder "Artikelname CHF 4.50" oder "3x Artikel  12.90"
-  const itemRegex = /^(.{2,40?}?)\s+([\d]{1,4}[.,]\d{2})\s*$/;
+  const itemRegex = /^(.{2,40}?)\s+([\d]{1,4}[.,]\d{2})\s*$/;
   const qtyRegex  = /^(\d+)\s*[xX×]\s+(.+)/;
 
   // Zeilen die nach Total/Summe kommen, überspringen
@@ -526,53 +542,72 @@ export async function processReceiptImage(
       const jsonStr = await FoundationModels.parseReceiptText(rawText);
       const parsed  = JSON.parse(jsonStr) as ParsedReceipt;
       parsed.items = normalizeItems(parsed.items);
-      return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed), rawText, processedUri: processUri };
+      return { type: 'done', receipt: parsed, markdown: generateMarkdown(parsed), rawText, processedUri: processUri, source: 'on-device-ai' };
     }
   } catch {
     // nicht verfügbar oder Fehler → weiter
   }
 
-  // 3. Gemini — BYOK (direkter API-Call) oder Demo-Key (via Edge Function), nur mit Einwilligung
+  // 3. Cloud-KI (Gemini BYOK oder Claude via Edge Function), nur mit Einwilligung
+  const ai = await parseWithCloudAi(rawText, false);
+  if (ai.ok) {
+    return { type: 'done', receipt: ai.receipt, markdown: generateMarkdown(ai.receipt), rawText, processedUri: processUri, source: ai.source };
+  }
+
+  // 4. Regex-Fallback (keine Einwilligung, offline, Limit erreicht) — nie still: Grund wird mitgegeben
+  const receipt = parseReceiptText(rawText);
+  return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri, source: 'local', localReason: ai.reason };
+}
+
+type CloudAiResult =
+  | { ok: true; receipt: ParsedReceipt; source: 'cloud-ai' | 'gemini' }
+  | { ok: false; reason: LocalReason };
+
+async function parseWithCloudAi(rawText: string, askConsent: boolean): Promise<CloudAiResult> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token  = sessionData?.session?.access_token;
     const userId = sessionData?.session?.user?.id;
+    if (!userId || !token) return { ok: false, reason: 'no-session' };
 
-    if (userId && token && await ensureAiConsent()) {
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('gemini_api_key')
-        .eq('user_id', userId)
-        .maybeSingle();
-      const byokKey = settings?.gemini_api_key?.trim();
+    const consent = askConsent ? await askAiConsent() : await ensureAiConsent();
+    if (!consent) return { ok: false, reason: 'no-consent' };
 
-      if (byokKey) {
-        // 3a. Eigener Key — direkter Gemini-Call (kein Server involviert)
-        const receipt = await callGeminiText(rawText, byokKey);
-        return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
-      } else {
-        // 3b. Demo-Key — via Edge Function (trackt Nutzung, max. Tageslimit)
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/scan-receipt`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ ocr_text: rawText }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.result) {
-            const receipt = data.result as ParsedReceipt;
-            receipt.items = normalizeItems(receipt.items);
-            return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
-          }
-        }
-        // 402 = Demo-Limit erreicht → Regex-Fallback
-      }
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('gemini_api_key')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const byokKey = settings?.gemini_api_key?.trim();
+
+    if (byokKey) {
+      // Eigener Key — direkter Gemini-Call (kein Server involviert)
+      return { ok: true, receipt: await callGeminiText(rawText, byokKey), source: 'gemini' };
     }
-  } catch {
-    // Netzwerkfehler → Regex-Fallback
-  }
 
-  // 4. Regex-Fallback (offline / Demo-Limit erreicht)
-  const receipt = parseReceiptText(rawText);
-  return { type: 'done', receipt, markdown: generateMarkdown(receipt), rawText, processedUri: processUri };
+    // Server-Key — via Edge Function (trackt Nutzung, max. Tageslimit)
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/scan-receipt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ ocr_text: rawText }),
+    });
+    if (res.status === 402) return { ok: false, reason: 'limit' };
+    if (res.status === 401) return { ok: false, reason: 'no-session' };
+    if (!res.ok) return { ok: false, reason: 'error' };
+    const data = await res.json();
+    if (!data.result) return { ok: false, reason: 'error' };
+    const receipt = data.result as ParsedReceipt;
+    receipt.items = normalizeItems(receipt.items);
+    return { ok: true, receipt, source: 'cloud-ai' };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
+
+/** „Mit KI erneut erkennen“: gleicher OCR-Text, Cloud-KI; fragt bei fehlender Einwilligung erneut. Wirft mit lesbarem Grund. */
+export async function reparseWithAi(rawText: string): Promise<{ receipt: ParsedReceipt; markdown: string; source: ScanSource }> {
+  const needsAsk = (await getAiConsent()) !== 'granted';
+  const ai = await parseWithCloudAi(rawText, needsAsk);
+  if (!ai.ok) throw new Error(LOCAL_REASON_TEXT[ai.reason]);
+  return { receipt: ai.receipt, markdown: generateMarkdown(ai.receipt), source: ai.source };
 }

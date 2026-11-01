@@ -208,15 +208,19 @@ describe('parseReceiptText — Apotheke', () => {
 
   test('Vitamin-Item hat Nahrungsergänzungs-Tag', () => {
     const vitamin = result.items.find((i) => /vitamin/i.test(i.name));
+    expect(vitamin).toBeDefined(); // Items werden geparst; früher übersprungen, weil der Parser keine Items fand
     if (vitamin) {
-      expect(vitamin.tags).toEqual(['Körperpflege & Gesundheit']);
+      // Taxonomie: 'Körperpflege & Gesundheit' ist Legacy und wird zu 'Gesundheit' normalisiert (taxonomy.test.ts)
+      expect(vitamin.tags).toEqual(['Gesundheit']);
     }
   });
 
   test('Aspirin-Item hat Medikamente-Tag', () => {
     const aspirin = result.items.find((i) => /aspirin/i.test(i.name));
+    expect(aspirin).toBeDefined();
     if (aspirin) {
-      expect(aspirin.tags).toEqual(['Körperpflege & Gesundheit']);
+      // Taxonomie: 'Körperpflege & Gesundheit' ist Legacy und wird zu 'Gesundheit' normalisiert (taxonomy.test.ts)
+      expect(aspirin.tags).toEqual(['Gesundheit']);
     }
   });
 });

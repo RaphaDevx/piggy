@@ -2,13 +2,14 @@ import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, KeyboardAvoidingView, Platform,
-  ActivityIndicator, ScrollView,
+  ActivityIndicator, ScrollView, Linking,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Ionicons } from '@/components/Ionicons';
 import { supabase } from '../../src/lib/supabase';
 import { runGoogleOAuth } from '../../src/lib/googleAuth';
+import { PRIVACY_URL, SUPPORT_URL } from '../../src/lib/legalLinks';
 import { C, R, S, card } from '../../src/constants/design';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -16,22 +17,24 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
-  const [isSignUp, setIsSignUp]     = useState(false);
+  const [showEmail, setShowEmail]   = useState(false);
   const [loading, setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading]   = useState(false);
 
+  // Nur Anmeldung bestehender Konten; neue Konten entstehen über Apple/Google.
   async function handleAuth() {
     if (!email || !password) {
       Alert.alert('Fehlende Angaben', 'Bitte E-Mail und Passwort eingeben.');
       return;
     }
     setLoading(true);
-    const { error } = isSignUp
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
-    if (error) Alert.alert('Fehler', error.message);
+    if (error) {
+      const invalid = error.message.toLowerCase().includes('invalid login credentials');
+      Alert.alert('Anmeldung fehlgeschlagen', invalid ? 'E-Mail oder Passwort ist falsch.' : 'Die Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.');
+    }
   }
 
   async function signInWithGoogle() {
@@ -62,7 +65,7 @@ export default function LoginScreen() {
           if (error.message.toLowerCase().includes('not enabled') || error.message.toLowerCase().includes('provider')) {
             Alert.alert(
               'Apple Sign-In nicht aktiviert',
-              'Apple-Anmeldung wird noch eingerichtet. Bitte verwende E-Mail oder Google.',
+              'Apple-Anmeldung wird noch eingerichtet. Bitte versuche es später erneut oder verwende Google.',
             );
           } else {
             Alert.alert('Fehler', error.message);
@@ -94,7 +97,24 @@ export default function LoginScreen() {
 
         {/* Card */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>{isSignUp ? 'Konto erstellen' : 'Willkommen zurück'}</Text>
+          <Text style={styles.formTitle}>Willkommen</Text>
+
+          {/* Apple Button — nur auf iOS anzeigen (HIG: System-Button) */}
+          {Platform.OS === 'ios' && (
+            appleLoading ? (
+              <View style={styles.appleLoading}>
+                <ActivityIndicator color="#fff" size="small" />
+              </View>
+            ) : (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={R.md}
+                style={styles.appleBtn}
+                onPress={signInWithApple}
+              />
+            )
+          )}
 
           {/* Google Button */}
           <TouchableOpacity
@@ -113,64 +133,56 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Apple Button — nur auf iOS anzeigen */}
-          {Platform.OS === 'ios' && (
-            <TouchableOpacity
-              style={styles.appleBtn}
-              onPress={signInWithApple}
-              disabled={appleLoading}
-              activeOpacity={0.8}
-            >
-              {appleLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="logo-apple" size={20} color="#fff" />
-                  <Text style={styles.appleBtnText}>Mit Apple anmelden</Text>
-                </>
-              )}
+          {/* E-Mail-Anmeldung (nur bestehende Konten) */}
+          {!showEmail ? (
+            <TouchableOpacity onPress={() => setShowEmail(true)} style={styles.toggle}>
+              <Text style={styles.toggleLink}>Mit E-Mail anmelden</Text>
             </TouchableOpacity>
+          ) : (
+            <>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>E-Mail</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="E-Mail"
+                placeholderTextColor={C.textTertiary}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Passwort"
+                placeholderTextColor={C.textTertiary}
+                secureTextEntry
+                autoComplete="current-password"
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity style={styles.btn} onPress={handleAuth} disabled={loading}>
+                {loading
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.btnText}>Anmelden</Text>}
+              </TouchableOpacity>
+            </>
           )}
-
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>oder</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Email + Password */}
-          <TextInput
-            style={styles.input}
-            placeholder="E-Mail"
-            placeholderTextColor={C.textTertiary}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Passwort"
-            placeholderTextColor={C.textTertiary}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <TouchableOpacity style={styles.btn} onPress={handleAuth} disabled={loading}>
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.btnText}>{isSignUp ? 'Registrieren' : 'Anmelden'}</Text>}
-          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => setIsSignUp((v) => !v)} style={styles.toggle}>
-          <Text style={styles.toggleText}>
-            {isSignUp ? 'Bereits ein Konto? ' : 'Neu hier? '}
-            <Text style={styles.toggleLink}>{isSignUp ? 'Anmelden' : 'Konto erstellen'}</Text>
-          </Text>
-        </TouchableOpacity>
+        {/* Rechtliches */}
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)}>
+            <Text style={styles.legalText}>Datenschutz</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalText}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL(SUPPORT_URL)}>
+            <Text style={styles.legalText}>Support</Text>
+          </TouchableOpacity>
+        </View>
 
       </ScrollView>
     </KeyboardAvoidingView>
@@ -202,16 +214,14 @@ const styles = StyleSheet.create({
   },
   googleBtnText: { fontSize: S.md, fontWeight: '600', color: C.textPrimary },
 
-  appleBtn: {
-    flexDirection: 'row',
+  appleBtn: { height: 48 },
+  appleLoading: {
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
     backgroundColor: '#000',
     borderRadius: R.md,
-    paddingVertical: 14,
   },
-  appleBtnText: { fontSize: S.md, fontWeight: '600', color: '#fff' },
 
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   dividerLine: { flex: 1, height: 1, backgroundColor: C.border },
@@ -238,6 +248,8 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontSize: S.lg, fontWeight: '700' },
 
   toggle:     { alignItems: 'center' },
-  toggleText: { fontSize: S.sm, color: C.textSecondary },
-  toggleLink: { color: C.gold, fontWeight: '700' },
+  toggleLink: { fontSize: S.sm, color: C.textSecondary, textDecorationLine: 'underline' },
+
+  legalRow:  { flexDirection: 'row', justifyContent: 'center', gap: 10 },
+  legalText: { fontSize: S.xs, color: C.textTertiary },
 });

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCategoryItems } from '../../src/hooks/useCategoryItems';
 import { useLocale } from '../../src/hooks/useLocale';
 import { C, R, S, card } from '../../src/constants/design';
+import { FEATURES } from '../../src/constants/features';
 import { TAG_GROUPS } from '../../src/lib/categories';
 import {
   DEFAULT_GROUP_OPTIONS, categoryLabel, groupAdaptive, natureLabel, natureOf, productKey, productLabel,
@@ -84,6 +85,7 @@ function ReceiptList({ items, groupColor, locale, showSub }: {
                 <Ionicons name="chevron-forward" size={14} color={C.textTertiary} />
               </View>
             </View>
+            {FEATURES.bankStatements && (
             <View style={styles.bankBadge}>
               <Ionicons
                 name={rg.receipt.bankMatch ? 'checkmark-circle' : 'alert-circle-outline'}
@@ -96,6 +98,7 @@ function ReceiptList({ items, groupColor, locale, showSub }: {
                   : 'Kein Bankbeleg'}
               </Text>
             </View>
+            )}
             <View style={styles.divider} />
             {rg.items.map((item, i) => (
               <View key={item.id} style={[styles.itemRow, i > 0 && styles.itemBorder]}>

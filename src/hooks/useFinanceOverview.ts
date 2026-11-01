@@ -7,6 +7,7 @@ import {
   type FinanceTransaction, type FinanceReceipt, type FinanceMatch,
 } from '../lib/finance';
 import { UNCATEGORIZED } from '../lib/categories';
+import { FEATURES } from '../constants/features';
 
 interface ReceiptRow {
   id: string;
@@ -26,9 +27,14 @@ export function useFinanceOverview() {
   const load = useCallback(async () => {
     setLoading(true);
     const [tx, rc, mt] = await Promise.all([
-      fetchAll<FinanceTransaction>('bank_transactions', 'id, booking_date, amount, currency, description, category, match_status'),
+      // Ohne Kontoauszug-Funktion keine Bankdaten laden: Übersicht kommt allein aus den Quittungen
+      FEATURES.bankStatements
+        ? fetchAll<FinanceTransaction>('bank_transactions', 'id, booking_date, amount, currency, description, category, match_status')
+        : Promise.resolve([] as FinanceTransaction[]),
       fetchAll<ReceiptRow>('receipts', 'id, receipt_date, total_amount, currency, receipt_items(total_price, tags, subcategory)'),
-      fetchAll<FinanceMatch>('receipt_matches', 'transaction_id, receipt_id'),
+      FEATURES.bankStatements
+        ? fetchAll<FinanceMatch>('receipt_matches', 'transaction_id, receipt_id')
+        : Promise.resolve([] as FinanceMatch[]),
     ]);
     setTransactions(tx);
     setReceipts(rc.map(({ receipt_items, ...r }) => ({ ...r, items: receipt_items ?? [] })));
