@@ -27,6 +27,7 @@ import DuplicateReceiptReview from '../src/components/DuplicateReceiptReview';
 import { loadDuplicateCandidates, mergeReceiptScan, saveSeparateReceiptScan, deleteReviewedReceipt, type MergeChoices } from '../src/lib/receiptDuplicates';
 import type { ReceiptWithItems, ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
 import type { CropRegion } from '../src/lib/ocr';
+import { track } from '../src/lib/analytics';
 
 // ── NumericInput ────────────────────────────────────────────────────────────
 interface NumericInputProps {
@@ -427,6 +428,7 @@ export default function ScanScreen() {
     if (!uri) return;
     setStep('processing');
     setErrorMsg('');
+    void track('scan_started');
     try {
       const result: ProcessResult = await processReceiptImage(uri, cropRegion ?? undefined);
 
@@ -447,6 +449,7 @@ export default function ScanScreen() {
     } catch (err: unknown) {
       const msg = (err as Error)?.message ?? '';
       setErrorMsg(msg || 'Verarbeitung fehlgeschlagen');
+      void track('scan_failed', { stage: 'ocr' });
       setStep('crop');
     }
   }, [uri, router]);
@@ -546,6 +549,7 @@ export default function ScanScreen() {
         ...incomingReceipt(), image_url: imageUrl, original_image_url: originalImageUrl,
       }, action.choices);
       setDuplicateTargets([]);
+      void track('scan_saved', { mode: 'merge' });
       router.replace({ pathname: '/receipt/[id]', params: { id } });
       return;
     }
@@ -563,8 +567,10 @@ export default function ScanScreen() {
       // ignorieren
     }
 
+    void track('scan_saved', { mode: action?.mode === 'separate' ? 'separate' : 'new' });
     router.replace({ pathname: '/receipt/[id]', params: { id: newReceiptId } });
     } catch (error) {
+      void track('scan_failed', { stage: 'save' });
       setStep('review');
       throw error;
     } finally { saveInFlight.current = false; }

@@ -1,0 +1,23 @@
+{
+  "locale": "de-DE",
+  "app": {
+    "contentRights": "none"
+  },
+  "appInfo": {
+    "name": "PiggyFinance",
+    "subtitle": "Quittungen scannen und teilen",
+    "primaryCategory": "FINANCE",
+    "secondaryCategory": "PRODUCTIVITY"
+  },
+  "version": {
+    "copyright": "2026 Raphael Kaufmann",
+    "releaseType": "MANUAL",
+    "description": "Piggy macht aus Quittungen eine Übersicht deiner Ausgaben.\n\n• Quittung scannen: Dokumentenscanner der Kamera, Piggy erkennt Händler, Datum, Artikel und Betrag.\n• Eigene Kontrolle: Du siehst, was erkannt wurde, korrigierst es und kannst eine Quittung mit KI erneut auslesen.\n• Ausgaben verstehen: Monats- und Kategorieübersicht aus deinen Quittungen.\n• Mit Freunden teilen: Einkauf nach Artikeln, 50/50 oder festem Betrag aufteilen. Piggy erstellt den Text oder einen QR-Rechnungscode, den du verschickst. Piggy bewegt kein Geld.\n• Deine Daten: Quittungsbilder liegen in deinem privaten Bereich. Die KI-Auswertung startet erst nach deiner Zustimmung. Dein Konto kannst du jederzeit in der App löschen.",
+    "keywords": "Quittung,Kassenzettel,Beleg,Ausgaben,Budget,scannen,teilen,Haushalt,Rechnung,Einkauf",
+    "promotionalText": "Quittung fotografieren, Piggy liest Händler, Artikel und Betrag aus. Ausgaben nach Kategorie sehen und Einkäufe mit Freunden fair teilen."
+  },
+  "review": {
+    "demoAccountRequired": true,
+    "notes": "Piggy scans shopping receipts, categorises the items and shows spending overviews.\n\nSign-in. New accounts are created with Sign in with Apple or Google only. For review, please use the demo account supplied in the credentials fields: on the login screen tap \"Mit E-Mail anmelden\" (below the Apple and Google buttons) and enter the e-mail and password. The demo account contains six sample receipts. E-mail registration is intentionally disabled.\n\nCamera. Used only to scan receipts (document scanner) and QR codes. Photos are uploaded to the user's private storage folder; no one else can read them.\n\nAI processing. On first scan the app asks for consent before the recognized receipt text is sent to our AI provider (Anthropic, USA) for extraction. The dialog names the provider and the country; declining keeps the app fully usable with on-device recognition. Consent (with timestamp and text version) is stored in the user's account and can be withdrawn under Profile → Verarbeitung.\n\nAccount deletion. Profile → \"Konto löschen\" deletes the account and all receipts, images, projects, friends and splits, and revokes the Sign in with Apple token.\n\nBank statements. Not part of version 1.0. The Finance tab shows monthly and category overviews built from scanned receipts only; there is no statement upload or matching.\n\nThe app uses the light appearance only."
+  }
+}

@@ -21,14 +21,19 @@ import { FoundationModels } from '../../src/native/FoundationModels';
 import { PRIVACY_URL, SUPPORT_URL } from '../../src/lib/legalLinks';
 import { getAiConsent, setAiConsent } from '../../src/lib/aiConsent';
 import { featureCopy } from '../../src/lib/featureCopy';
+import { getAnalyticsEnabled, setAnalyticsEnabled } from '../../src/lib/analytics';
+import { FEATURES } from '../../src/constants/features';
+import { usePlus } from '../../src/hooks/usePlus';
 
 export default function ProfilScreen() {
   const insets  = useSafeAreaInsets();
   const router  = useRouter();
+  const plus    = usePlus();
   const [email, setEmail]   = useState('');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [aiConsent, setAiConsentState] = useState(false);
+  const [analyticsOn, setAnalyticsOn] = useState(true);
   const [googleLinked, setGoogleLinked] = useState(false);
   const [appleLinked, setAppleLinked]   = useState(false);
   const [identityCount, setIdentityCount] = useState(0);
@@ -96,7 +101,13 @@ export default function ProfilScreen() {
   useEffect(() => {
     FoundationModels.isAvailable().then(setOnDeviceAvailable);
     getAiConsent().then((c) => setAiConsentState(c === 'granted'));
+    getAnalyticsEnabled().then(setAnalyticsOn);
   }, []);
+
+  async function toggleAnalytics(enabled: boolean) {
+    setAnalyticsOn(enabled);
+    await setAnalyticsEnabled(enabled);
+  }
 
   async function toggleAiConsent(granted: boolean) {
     setAiConsentState(granted);
@@ -582,6 +593,23 @@ export default function ProfilScreen() {
           </View>
           <View style={styles.divider} />
 
+          {/* Nutzungsstatistik ohne Inhalte (nur sichtbar, wenn FEATURES.analytics aktiv) */}
+          {FEATURES.analytics && (
+            <>
+              <View style={styles.row}>
+                <View style={[styles.iconBox, { backgroundColor: C.bgAccent }]}>
+                  <Ionicons name="stats-chart-outline" size={20} color={C.textTertiary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowText}>Nutzungsstatistik</Text>
+                  <Text style={styles.rowSub}>Anonyme Zähler wie «Quittung gespeichert», nie Inhalte deiner Quittungen. Hilft, Piggy zu verbessern.</Text>
+                </View>
+                <Switch value={analyticsOn} onValueChange={toggleAnalytics} />
+              </View>
+              <View style={styles.divider} />
+            </>
+          )}
+
           {/* Edge Computing */}
           <TouchableOpacity style={styles.row} onPress={() => saveProcessingMode('edge')}>
             <View style={[styles.iconBox, { backgroundColor: processingMode === 'edge' ? '#FF9F0A22' : C.bgAccent }]}>
@@ -589,7 +617,7 @@ export default function ProfilScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowText}>Cloud-KI</Text>
-              <Text style={styles.rowSub}>Claude Haiku (Gratis-Scans) oder Gemini mit eigenem Key</Text>
+              <Text style={styles.rowSub}>{FEATURES.ownApiKeys ? 'Claude Haiku (Gratis-Scans) oder Gemini mit eigenem Key' : 'Claude Haiku (Gratis-Scans)'}</Text>
             </View>
             {processingMode === 'edge' && (
               <Ionicons name="checkmark-circle" size={20} color={C.gold} />
@@ -630,6 +658,8 @@ export default function ProfilScreen() {
             )}
           </TouchableOpacity>
 
+          {FEATURES.ownApiKeys && (
+            <>
           <View style={styles.divider} />
 
           {/* Gemini API Key */}
@@ -666,9 +696,37 @@ export default function ProfilScreen() {
             </View>
           </View>
 
+            </>
+          )}
         </View>
       </View>
 
+      {/* Piggy Plus (nur sichtbar, wenn das Abo-Feature verfügbar ist) */}
+      {plus.available && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Piggy Plus</Text>
+          <View style={[card, styles.cardInner]}>
+            <TouchableOpacity style={styles.row} onPress={() => router.push('/plus' as any)}>
+              <View style={[styles.iconBox, { backgroundColor: plus.status.isPlus ? '#FF9F0A22' : C.bgAccent }]}>
+                <Ionicons name="sparkles-outline" size={20} color={plus.status.isPlus ? C.gold : C.textTertiary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowText}>Piggy Plus</Text>
+                <Text style={[styles.rowSub, { color: C.textSecondary }]}>
+                  {plus.status.isPlus
+                    ? (plus.status.expiresAt
+                        ? `Aktiv bis ${plus.status.expiresAt.toLocaleDateString('de-CH')}`
+                        : 'Aktiv')
+                    : 'Nicht aktiv'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {FEATURES.ownApiKeys && (<>
       {/* KI-Scanner */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>KI-Scanner</Text>
@@ -689,6 +747,8 @@ export default function ProfilScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      </>)}
 
       {/* Claude Key Modal */}
       <Modal visible={showKeyModal} transparent animationType="fade" onRequestClose={() => setShowKeyModal(false)}>

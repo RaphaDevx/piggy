@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { receiptItemCategoryPrompt } from '../_shared/finance-core/taxonomy.ts';
+import { isPlusActive, limitReachedMessage, parseLimit, scanLimitFor } from '../_shared/entitlements/plus.ts';
 
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -128,6 +129,7 @@ Deno.serve(async (req: Request) => {
     (settingsRows ?? []).map((r: any) => [r.key, r.value])
   );
   const freeLimit   = parseInt(cfg['free_scans_limit'] ?? '10', 10);
+  const plusLimit   = parseLimit(cfg['plus_scans_limit'], 100);
   const activeModel = cfg['active_model'] ?? 'claude-haiku-4-5-20251001';
 
   // BYOK-Check: Gemini Key vom User?
@@ -145,15 +147,25 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ status: 'done', result: receipt });
     }
 
+    // Piggy Plus: aktives Entitlement hebt das Tageslimit an (Lesefehler → Gratis-Limit)
+    const { data: entRow, error: entError } = await adminClient
+      .from('user_entitlements')
+      .select('plus, expires_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (entError) console.error('scan-receipt entitlement:', entError.message);
+    const plusActive = isPlusActive(entRow);
+    const dailyLimit = scanLimitFor(plusActive, freeLimit, plusLimit);
+
     // Server-Key: atomarer Scan-Zähler
     const { data: allowed, error: rpcError } = await adminClient
-      .rpc('check_and_increment_scan', { user_uuid: user.id, daily_limit: freeLimit });
+      .rpc('check_and_increment_scan', { user_uuid: user.id, daily_limit: dailyLimit });
 
     if (rpcError || !allowed) {
       return jsonResponse({
         error:      'demo_limit_reached',
-        message:    `Tageslimit von ${freeLimit} kostenlosen Scans erreicht. Morgen wieder verfügbar oder eigenen Gemini API Key im Profil hinterlegen.`,
-        demo_limit: freeLimit,
+        message:    limitReachedMessage(plusActive, dailyLimit),
+        demo_limit: dailyLimit,
       }, 402);
     }
 

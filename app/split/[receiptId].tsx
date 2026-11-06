@@ -15,6 +15,7 @@ import { equalShares, fixedShares } from '../../src/lib/paymentRequest';
 import { C, R, S, card } from '../../src/constants/design';
 import type { ReceiptWithItems } from '../../src/types/receipt';
 import type { Profile } from '../../src/types/social';
+import { track } from '../../src/lib/analytics';
 
 function fmt(n: number, currency = 'CHF') {
   return `${currency} ${n.toFixed(2)}`;
@@ -109,6 +110,7 @@ export default function SplitScreen() {
     });
     setSaving(false);
     if (error) { Alert.alert('Fehler', error); return; }
+    void track('split_created', { mode });
     await reloadSplit();
   }
 

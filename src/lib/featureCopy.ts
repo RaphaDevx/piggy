@@ -5,23 +5,23 @@
  */
 import { FEATURES } from '../constants/features';
 
-type Flags = { bankStatements: boolean };
+type Flags = { bankStatements: boolean; ownApiKeys?: boolean };
 
 export function featureCopy(flags: Flags = FEATURES) {
   const bank = flags.bankStatements;
+  const byok = !!flags.ownApiKeys;
   return {
     /** Einwilligungsdialog zur KI-Erkennung (Anbieter, Land, Folgen einer Ablehnung). */
     aiConsentDialog:
       'Für eine genauere Erkennung sendet Piggy den erkannten Quittungstext an Anthropic (Claude), ' +
-      'einen Anbieter in den USA. Mit eigenem Gemini-Key geht er stattdessen an Google Gemini (USA). ' +
+      'einen Anbieter in den USA. ' + (byok ? 'Mit eigenem Gemini-Key geht er stattdessen an Google Gemini (USA). ' : '') +
       (bank ? 'Importierte Kontoauszüge werden ebenfalls von Anthropic analysiert. ' : '') +
       'Wie die Anbieter die Daten behandeln, steht in der Datenschutzerklärung. ' +
       'Wenn du nicht zustimmst, erkennt Piggy Quittungen nur auf deinem Gerät und die App bleibt weiter nutzbar. ' +
       'Du kannst das jederzeit im Profil ändern.',
     /** Untertitel der Einwilligungs-Zeile im Profil. */
-    aiConsentRowSub: bank
-      ? 'Quittungstext und Kontoauszüge an Anthropic Claude (USA), mit eigenem Key an Google Gemini (USA)'
-      : 'Quittungstext an Anthropic Claude (USA), mit eigenem Key an Google Gemini (USA)',
+    aiConsentRowSub: (bank ? 'Quittungstext und Kontoauszüge an Anthropic Claude (USA)' : 'Quittungstext an Anthropic Claude (USA)') +
+      (byok ? ', mit eigenem Key an Google Gemini (USA)' : ''),
     /** Text im Dialog „Konto löschen“. */
     deleteAccountBody: bank
       ? 'Dein Konto und alle Daten (Quittungen, Bilder, Kontoauszüge, Projekte, Freunde, Splits) werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.'

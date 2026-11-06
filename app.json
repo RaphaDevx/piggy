@@ -2,7 +2,7 @@
   "expo": {
     "name": "Piggy",
     "slug": "piggy",
-    "version": "1.0.0",
+    "version": "1.0",
     "scheme": "piggy",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.heartbeat.piggy",
-      "buildNumber": "25",
+      "buildNumber": "26",
       "infoPlist": {
         "NSCameraUsageDescription": "Piggy benötigt Kamera-Zugriff zum Fotografieren von Quittungen.",
         "NSPhotoLibraryUsageDescription": "Piggy benötigt Zugriff auf deine Fotos um Quittungsbilder zu laden.",

@@ -22,6 +22,7 @@ import { suggestedCategory } from './categories';
 import { categoryOfSubcategory, classifyItemName, receiptItemCategoryPrompt } from './taxonomy';
 import { resolveSubcategory } from './itemSubcategory';
 import { FoundationModels } from '../native/FoundationModels';
+import { FEATURES } from '../constants/features';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
@@ -573,12 +574,15 @@ async function parseWithCloudAi(rawText: string, askConsent: boolean): Promise<C
     const consent = askConsent ? await askAiConsent() : await ensureAiConsent();
     if (!consent) return { ok: false, reason: 'no-consent' };
 
-    const { data: settings } = await supabase
-      .from('user_settings')
-      .select('gemini_api_key')
-      .eq('user_id', userId)
-      .maybeSingle();
-    const byokKey = settings?.gemini_api_key?.trim();
+    let byokKey: string | undefined;
+    if (FEATURES.ownApiKeys) {
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('gemini_api_key')
+        .eq('user_id', userId)
+        .maybeSingle();
+      byokKey = settings?.gemini_api_key?.trim();
+    }
 
     if (byokKey) {
       // Eigener Key — direkter Gemini-Call (kein Server involviert)

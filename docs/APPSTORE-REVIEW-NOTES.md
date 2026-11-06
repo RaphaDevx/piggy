@@ -16,4 +16,4 @@ Piggy scans shopping receipts, categorises the items and shows spending overview
 
 **Bank statements.** Not part of version 1.0. The Finance tab shows monthly and category overviews built from scanned receipts only; there is no statement upload or matching.
 
-The app uses the dark appearance only.
+The app uses the light appearance only.

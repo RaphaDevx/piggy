@@ -28,6 +28,7 @@
   <p class="updated">Zuletzt aktualisiert: Oktober 2026</p>
   <h2>1. Verantwortliche Stelle</h2>
   <p>Raphael Kaufmann, Schweiz · raphaelk01@outlook.de</p>
+  <p>Piggy richtet sich an Personen ab 16 Jahren.</p>
   <!-- TODO Raphael: Postadresse bzw. Zustelladresse des Verantwortlichen ergänzen, falls gewünscht oder rechtlich nötig (nDSG Art. 19: Identität und Kontaktdaten). Nicht erfunden. -->
   <h2>2. Welche Daten wir bearbeiten</h2>
   <ul>
@@ -35,7 +36,6 @@
     <li><strong>Quittungen:</strong> Fotos von Quittungen und die daraus erkannten Angaben (Händler, Betrag, Datum, Artikel, Zahlungsart, Endziffern der Zahlkarte, Notizen, erkannter Rohtext).</li>
     <li><strong>Kontoauszüge und Buchungen:</strong> von dir hochgeladene Kontoauszüge (PDF, CSV oder CAMT) und die daraus gelesenen Buchungen (Datum, Betrag, Buchungstext). Buchungstexte können Angaben Dritter enthalten, zum Beispiel Namen oder Kontonummern von Gegenparteien.</li>
     <li><strong>Nutzungsdaten:</strong> Projekte, Kategorien, Notizen, Freundschaften, Aufteilungen (Splits) und geteilte Quittungen, Anzeigename und Piggy-Code, ein Tageszähler für KI-Scans.</li>
-    <li><strong>Eigene API-Schlüssel:</strong> falls du in Piggy einen eigenen Gemini- oder Claude-Schlüssel hinterlegst, wird er in deinen Einstellungen gespeichert.</li>
   </ul>
   <p>Piggy verwendet keine Analyse-, Werbe- oder Tracking-Dienste.</p>
   <h2>3. Wozu wir die Daten verwenden</h2>
@@ -51,14 +51,14 @@
   <h2>4. Anmeldung</h2>
   <p>Neue Konten werden ausschliesslich über <strong>Sign in with Apple</strong> oder <strong>Google</strong> angelegt. Eine Registrierung mit E-Mail und Passwort gibt es nicht; die Anmeldung mit E-Mail und Passwort ist nur für bereits bestehende Konten möglich.</p>
   <h2>5. Datenspeicherung und Quittungsbilder</h2>
-  <p>Deine Daten werden bei <strong>Supabase</strong> in der Region <strong>eu-central-2 (Zürich, Schweiz)</strong> gespeichert. Quittungsbilder liegen in einem <strong>privaten</strong> Speicherbereich; die App ruft sie nur über zeitlich begrenzte, signierte Links ab, und der Zugriff ist auf dein eigenes Konto beschränkt. Die Übertragung zwischen App und Server erfolgt verschlüsselt (HTTPS). Wir verkaufen keine Daten.</p>
+  <p>Deine Daten werden bei <strong>Supabase</strong> in der Region <strong>eu-central-2 (Zürich, Schweiz)</strong> gespeichert. Quittungsbilder liegen in einem <strong>privaten</strong> Speicherbereich; die App ruft sie nur über zeitlich begrenzte, signierte Links ab, und der Zugriff ist auf dein eigenes Konto beschränkt. Die Übertragung zwischen App und Server erfolgt verschlüsselt (HTTPS). Wir verkaufen nie Daten einzelner Personen und nutzen deine Daten nicht für Werbung.</p>
   <!-- TODO Raphael: Belegen, dass auch Edge Functions und Logs in Zürich laufen (Supabase-Dashboard prüfen). Die Aussage oben nennt nur Datenbank und Speicher. Zusätzlich: Aussage "Verschlüsselung at rest" nur ergänzen, wenn bei Supabase bestätigt. -->
   <h2>6. Kamera- und Fotozugriff</h2>
   <p>Die App benötigt Kamera-Zugriff zum Fotografieren von Quittungen und Zugriff auf deine Fotos, wenn du ein vorhandenes Bild laden möchtest. Aufnahmen entstehen nur auf deine Aktion. Piggy speichert nichts in deiner Fotomediathek.</p>
   <h2>7. KI-Verarbeitung und Kontoauszüge</h2>
-  <p><strong>Quittungen:</strong> Beim Scannen wird der per Apple Vision <strong>auf deinem Gerät</strong> erkannte Text an <strong>Anthropic</strong> (Claude API) übermittelt, um Händler, Betrag, Datum und Artikel zu strukturieren. Das Quittungsfoto selbst wird dafür nicht an KI-Anbieter gesendet. Wenn du einen eigenen Gemini-Schlüssel hinterlegst, wird der Quittungstext stattdessen an <strong>Google Gemini</strong> unter deinem eigenen Konto gesendet.</p>
+  <p><strong>Quittungen:</strong> Beim Scannen wird der per Apple Vision <strong>auf deinem Gerät</strong> erkannte Text an <strong>Anthropic</strong> (Claude API) übermittelt, um Händler, Betrag, Datum und Artikel zu strukturieren. Das Quittungsfoto selbst wird dafür nicht an KI-Anbieter gesendet.</p>
   <p><strong>Kontoauszüge:</strong> Hochgeladene Kontoauszüge werden in einem privaten Speicherbereich (<code>bank-statements</code>) abgelegt und von einem Hintergrunddienst (<code>statement-worker</code>) verarbeitet. Dabei werden Seitentext oder Seitenbilder an <strong>Anthropic (Claude)</strong> übermittelt; CAMT-Dateien werden ohne KI gelesen. Die erkannten Buchungen werden in deinem Konto gespeichert. Anschliessend ordnet derselbe Dienst Artikel deiner Quittungen mithilfe von Anthropic (Artikelname, Händler, Kategorie) Unterkategorien zu.</p>
-  <p>Anthropic und Google Gemini sind Anbieter in den USA; die Übermittlung ist eine Bekanntgabe ins Ausland. Beim Scannen holt die App vorher deine Einwilligung ein, die Hintergrund-Einordnung von Artikeln betrifft nur Nutzer, deren Einwilligung (mit Zeitstempel und Textversion) in deinem Konto gespeichert ist. Du kannst die Einwilligung jederzeit unter Profil widerrufen; danach wird nur noch die lokale Texterkennung auf dem Gerät verwendet und die App bleibt weiter nutzbar. Wie die Anbieter die übermittelten Daten bearbeiten, richtet sich nach deren eigenen Bedingungen.</p>
+  <p>Anthropic ist ein Anbieter in den USA; die Übermittlung ist eine Bekanntgabe ins Ausland, die wir auf Standardvertragsklauseln stützen (vom EDÖB anerkannt, mit Anpassungen für die Schweiz). Beim Scannen holt die App vorher deine Einwilligung ein, die Hintergrund-Einordnung von Artikeln betrifft nur Nutzer, deren Einwilligung (mit Zeitstempel und Textversion) in deinem Konto gespeichert ist. Du kannst die Einwilligung jederzeit unter Profil widerrufen; danach wird nur noch die lokale Texterkennung auf dem Gerät verwendet und die App bleibt weiter nutzbar. Wie die Anbieter die übermittelten Daten bearbeiten, richtet sich nach deren eigenen Bedingungen.</p>
   <!-- TODO Raphael: (1) Erledigt mit Migration 20261031000001: Einordnung und Kontoauszug-Seiten werden nur mit gespeicherter Einwilligung geclaimt. Offen: Edge Function scan-receipt prüft die Einwilligung nicht serverseitig (nur die App). (2) Anthropic-Aufbewahrungsfrist und Datenübermittlung CH→USA (Garantien, nDSG Art. 16) prüfen und hier benennen. (3) Die Aussage "nicht zum Training" wurde gestrichen (unbelegt); bei Bedarf gegen die aktuellen Anbieter-Bedingungen belegen. (4) Prüfen, ob die Einwilligung für Kontoauszüge einen eigenen Dialog braucht. -->
   <h2>8. Aufbewahrung und Löschung</h2>
   <p>Deine Daten bleiben gespeichert, bis du dein Konto löschst. Unter <strong>Profil → „Konto löschen“</strong> werden dein Konto sowie alle Quittungen, Quittungsbilder, Kontoauszüge, Buchungen, Projekte, Freundschaften und Splits unwiderruflich gelöscht. Bei Anmeldung mit Apple wird zusätzlich der Apple-Token widerrufen; gelingt das nicht automatisch, kannst du die Verknüpfung in den Einstellungen deiner Apple-ID selbst entfernen. Einzelne Quittungen kannst du in der App löschen.</p>
@@ -68,7 +68,6 @@
   <ul>
     <li><strong>Supabase</strong> (Region eu-central-2, Zürich): Datenbank, Speicher, Anmeldung und serverseitige Funktionen</li>
     <li><strong>Anthropic</strong> (Claude API): Strukturierung von Quittungstext, Einlesen von Kontoauszügen, Einordnen von Artikeln</li>
-    <li><strong>Google Gemini:</strong> nur, wenn du einen eigenen Gemini-Schlüssel hinterlegst</li>
     <li><strong>Apple (Sign in with Apple) und Google (Google-Anmeldung):</strong> Anmeldung</li>
   </ul>
   <h2>10. Deine Rechte</h2>
@@ -82,13 +81,13 @@
   <p class="updated">Last updated: October 2026</p>
   <h2>1. Controller</h2>
   <p>Raphael Kaufmann, Switzerland · raphaelk01@outlook.de</p>
+  <p>Piggy is intended for people aged 16 and over.</p>
   <h2>2. Data We Process</h2>
   <ul>
     <li><strong>Account data:</strong> email address and name as provided by Apple or Google at sign-in (for Apple possibly a relay address), and an internal user ID.</li>
     <li><strong>Receipts:</strong> photos of receipts and the details recognized from them (merchant, amount, date, items, payment method, last digits of the payment card, notes, recognized raw text).</li>
     <li><strong>Bank statements and transactions:</strong> bank statements you upload (PDF, CSV or CAMT) and the transactions read from them (date, amount, booking text). Booking texts can contain information about third parties, for example names or account numbers of counterparties.</li>
     <li><strong>Usage data:</strong> projects, categories, notes, friendships, splits and shared receipts, display name and Piggy code, a daily counter for AI scans.</li>
-    <li><strong>Your own API keys:</strong> if you enter your own Gemini or Claude key in Piggy, it is stored in your settings.</li>
   </ul>
   <p>Piggy uses no analytics, advertising or tracking services.</p>
   <h2>3. How We Use Your Data</h2>
@@ -103,13 +102,13 @@
   <h2>4. Sign-In</h2>
   <p>New accounts are created only via <strong>Sign in with Apple</strong> or <strong>Google</strong>. There is no registration with email and password; signing in with email and password is only possible for existing accounts.</p>
   <h2>5. Data Storage and Receipt Images</h2>
-  <p>Your data is stored with <strong>Supabase</strong> in the region <strong>eu-central-2 (Zurich, Switzerland)</strong>. Receipt images are kept in a <strong>private</strong> storage area; the app retrieves them only through time-limited signed links, and access is restricted to your own account. Data is encrypted in transit between the app and the server (HTTPS). We do not sell data.</p>
+  <p>Your data is stored with <strong>Supabase</strong> in the region <strong>eu-central-2 (Zurich, Switzerland)</strong>. Receipt images are kept in a <strong>private</strong> storage area; the app retrieves them only through time-limited signed links, and access is restricted to your own account. Data is encrypted in transit between the app and the server (HTTPS). We never sell data about individuals and do not use your data for advertising.</p>
   <h2>6. Camera and Photo Access</h2>
   <p>The app needs camera access to photograph receipts and access to your photos if you want to load an existing image. Pictures are only taken on your action. Piggy does not save anything to your photo library.</p>
   <h2>7. AI Processing and Bank Statements</h2>
-  <p><strong>Receipts:</strong> When you scan, the text recognized <strong>on your device</strong> by Apple Vision is sent to <strong>Anthropic</strong> (Claude API) to structure merchant, amount, date and items. The receipt photo itself is not sent to AI providers for this. If you enter your own Gemini key, the receipt text is sent to <strong>Google Gemini</strong> under your own account instead.</p>
+  <p><strong>Receipts:</strong> When you scan, the text recognized <strong>on your device</strong> by Apple Vision is sent to <strong>Anthropic</strong> (Claude API) to structure merchant, amount, date and items. The receipt photo itself is not sent to AI providers for this.</p>
   <p><strong>Bank statements:</strong> Uploaded statements are stored in a private storage area (<code>bank-statements</code>) and processed by a background service (<code>statement-worker</code>). Page text or page images are sent to <strong>Anthropic (Claude)</strong>; CAMT files are read without AI. The recognized transactions are stored in your account. The same service then assigns subcategories to items of your receipts using Anthropic (item name, merchant, category).</p>
-  <p>Anthropic and Google Gemini are providers in the USA; the transmission is a disclosure abroad. When scanning, the app asks for your consent first, and background sorting of items only concerns users whose consent (with timestamp and text version) is stored in their account. You can withdraw your consent at any time under Profile; afterwards only local text recognition on the device is used and the app remains usable. How the providers process the transmitted data is governed by their own terms.</p>
+  <p>Anthropic is a provider in the USA; the transmission is a disclosure abroad, which we base on standard contractual clauses (recognised by the Swiss FDPIC, adapted for Switzerland). When scanning, the app asks for your consent first, and background sorting of items only concerns users whose consent (with timestamp and text version) is stored in their account. You can withdraw your consent at any time under Profile; afterwards only local text recognition on the device is used and the app remains usable. How the providers process the transmitted data is governed by their own terms.</p>
   <h2>8. Retention and Deletion</h2>
   <p>Your data stays stored until you delete your account. Under <strong>Profile → "Delete account"</strong>, your account and all receipts, receipt images, bank statements, transactions, projects, friendships and splits are irreversibly deleted. With Apple sign-in, the Apple token is also revoked; if that does not work automatically, you can remove the link yourself in your Apple ID settings. You can delete individual receipts in the app.</p>
   <p>Piggy is not an archive for legal retention duties. If you must keep receipts, export or back them up yourself.</p>
@@ -117,7 +116,6 @@
   <ul>
     <li><strong>Supabase</strong> (region eu-central-2, Zurich): database, storage, authentication and server-side functions</li>
     <li><strong>Anthropic</strong> (Claude API): structuring receipt text, reading bank statements, sorting items</li>
-    <li><strong>Google Gemini:</strong> only if you enter your own Gemini key</li>
     <li><strong>Apple (Sign in with Apple) and Google (Google sign-in):</strong> authentication</li>
   </ul>
   <h2>10. Your Rights</h2>
