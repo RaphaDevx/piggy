@@ -1,0 +1,15 @@
+// Public client configuration only. Release values supplied by the build owner.
+SUPABASE_URL =
+SUPABASE_ANON_KEY =
+REVENUECAT_IOS_KEY =
+PRIVACY_URL =
+TERMS_URL =
+SUPPORT_URL =
+PIGGY_ADS_ENABLED = NO
+PIGGY_ADS_REVIEW_APPROVED = NO
+ADMOB_INTERSTITIAL_ID =
+// Google's test application ID; replace together with the reviewed release ad units.
+ADMOB_APP_ID = ca-app-pub-3940256099942544~1458002511
+
+// Jahrespreis noch nicht freigegeben.
+PIGGY_ANNUAL_ENABLED = NO

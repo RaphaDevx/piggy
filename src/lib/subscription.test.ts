@@ -4,6 +4,8 @@ const mockSdk = {
   logIn: jest.fn().mockResolvedValue({}),
   logOut: jest.fn().mockResolvedValue({}),
   getCustomerInfo: jest.fn(),
+  addCustomerInfoUpdateListener: jest.fn(),
+  removeCustomerInfoUpdateListener: jest.fn(),
   getOfferings: jest.fn(),
   purchasePackage: jest.fn(),
   restorePurchases: jest.fn(),
@@ -123,4 +125,34 @@ describe('mit Schlüssel', () => {
     mockSdk.checkTrialOrIntroductoryPriceEligibility.mockRejectedValue(new Error('x'));
     expect((await s.loadMonthlyOffer())?.intro).toBeNull();
   });
+});
+
+it('Gold status keeps failures distinguishable from a known free account', async () => {
+  const s = load();
+  await s.initSubscription(UID);
+  mockSdk.getCustomerInfo.mockRejectedValueOnce(new Error('offline'));
+  expect(await s.readPlusStatus()).toBeNull();
+  mockSdk.getCustomerInfo.mockResolvedValueOnce({ entitlements: { active: {} } });
+  expect((await s.readPlusStatus())?.isPlus).toBe(false);
+});
+it('customer updates are subscribed and removed using the same callback', async () => {
+  const s = load();
+  await s.initSubscription(UID);
+  const changed = jest.fn();
+  const remove = s.onPlusStatusChange(changed);
+  const callback = mockSdk.addCustomerInfoUpdateListener.mock.calls[0][0];
+  callback(active);
+  expect(changed.mock.calls[0][0].isPlus).toBe(true);
+  remove();
+  expect(mockSdk.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(callback);
+});
+it('Gold offers preserve annual pricing from the store', async () => {
+  const s = load();
+  await s.initSubscription(UID);
+  mockSdk.getOfferings.mockResolvedValueOnce({ all: { default: { annual: {
+    identifier: '$rc_annual', packageType: 'ANNUAL', product: { identifier: 'year', priceString: 'CHF 39.90', subscriptionPeriod: 'P1Y', introPrice: null },
+  } } } });
+  const offers = await s.loadGoldOffers();
+  expect(offers).toHaveLength(1);
+  expect(offers[0].renewalPrice).toBe('CHF 39.90 pro Jahr');
 });

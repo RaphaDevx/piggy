@@ -1,5 +1,5 @@
 /**
- * subscription.ts — «Piggy Plus» über RevenueCat (react-native-purchases).
+ * subscription.ts — «Piggy Gold» über RevenueCat (react-native-purchases).
  *
  * Ohne EXPO_PUBLIC_REVENUECAT_IOS_KEY (bzw. FEATURES.subscription aus) wird das SDK nie geladen
  * oder konfiguriert; alle Funktionen liefern dann neutrale Werte. appUserID = Supabase-User-ID.
@@ -8,7 +8,7 @@
  */
 import { subscriptionAvailable } from '../constants/features';
 import {
-  buildOffer, isUserCancelled, pickMonthlyPackage, plusStatusFromCustomerInfo,
+  buildOffer, isUserCancelled, pickMonthlyPackage, pickGoldPackages, plusStatusFromCustomerInfo,
   INTRO_ELIGIBLE, NO_PLUS,
   type PlusOffer, type PlusStatus, type PackageLike,
 } from './subscriptionLogic';
@@ -71,13 +71,25 @@ function ready(): Promise<boolean> {
 }
 
 /** Plus-Status aus der Kundeninfo; bei Fehler oder nicht verfügbar: nicht aktiv. */
-export async function getPlusStatus(): Promise<PlusStatus> {
-  if (!(await ready())) return NO_PLUS;
+export async function readPlusStatus(): Promise<PlusStatus | null> {
+  if (!(await ready())) return null;
   try {
     return plusStatusFromCustomerInfo(await loadSdk().getCustomerInfo());
   } catch {
-    return NO_PLUS;
+    return null;
   }
+}
+
+export async function getPlusStatus(): Promise<PlusStatus> {
+  return (await readPlusStatus()) ?? NO_PLUS;
+}
+
+export function onPlusStatusChange(listener: (status: PlusStatus) => void): () => void {
+  if (!configured || !currentUser) return () => {};
+  const callback = (info: Parameters<typeof plusStatusFromCustomerInfo>[0]) => listener(plusStatusFromCustomerInfo(info));
+  const sdk = loadSdk();
+  sdk.addCustomerInfoUpdateListener(callback);
+  return () => sdk.removeCustomerInfoUpdateListener(callback);
 }
 
 /** Monatsangebot aus dem Offering «default»; null, wenn es keines gibt oder der Abruf scheitert. */
@@ -98,6 +110,25 @@ export async function loadMonthlyOffer(): Promise<PlusOffer | null> {
   } catch {
     return null;
   }
+}
+
+/** Store-derived monthly/yearly choices with product-specific introductory eligibility. */
+export async function loadGoldOffers(): Promise<PlusOffer[]> {
+  if (!(await ready())) return [];
+  try {
+    const purchases = loadSdk();
+    const packages = pickGoldPackages(await purchases.getOfferings());
+    return await Promise.all(packages.map(async pkg => {
+      let eligible = false;
+      if (pkg.product.introPrice) {
+        try {
+          const map = await purchases.checkTrialOrIntroductoryPriceEligibility([pkg.product.identifier]);
+          eligible = Number(map?.[pkg.product.identifier]?.status) === INTRO_ELIGIBLE;
+        } catch { /* unknown eligibility never advertises a trial */ }
+      }
+      return buildOffer(pkg, eligible);
+    }));
+  } catch { return []; }
 }
 
 export type PurchaseOutcome =

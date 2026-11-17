@@ -103,8 +103,8 @@ describe('Plus-Entitlement und Scan-Limit', () => {
     expect(parseLimit('0', 100)).toBe(100);
   });
   it('Meldung bei Limit unterscheidet Plus und Gratis', () => {
-    expect(limitReachedMessage(true, 100)).toContain('Piggy Plus');
+    expect(limitReachedMessage(true, 100)).toContain('Piggy Gold');
     expect(limitReachedMessage(false, 10)).toContain('kostenlosen');
-    expect(limitReachedMessage(false, 10)).not.toContain('Piggy Plus');
+    expect(limitReachedMessage(false, 10)).not.toContain('Piggy Gold');
   });
 });

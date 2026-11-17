@@ -12,7 +12,7 @@ import { Platform } from 'react-native';
  *   sonst ginge Quittungstext ohne eigenen Einwilligungsdialog an Google. Zurück nur mit eigener Einwilligung.
  * analytics: Produkt-Ereignisse ohne Inhalte (src/lib/analytics.ts). Aus, bis Kaufmann-Legal geprüft hat,
  *   Datenschutzerklärung und App-Store-Label ergänzt sind und Migration 20261102000001 angewendet ist.
- * subscription: Abo «Piggy Plus» (RevenueCat, src/lib/subscription.ts). Verfügbar nur, wenn der Schalter an
+ * subscription: Abo «Piggy Gold» (RevenueCat, src/lib/subscription.ts). Verfügbar nur, wenn der Schalter an
  *   UND EXPO_PUBLIC_REVENUECAT_IOS_KEY gesetzt ist (siehe subscriptionAvailable); ohne Schlüssel bleibt alles unsichtbar.
  */
 export const FEATURES = {

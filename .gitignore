@@ -56,3 +56,10 @@ venv/
 .DS_Store
 *.log
 # --- Ende K-Dev Phase 1 ---
+
+# Native local configuration and Xcode output
+native/Piggy/Config/Local.xcconfig
+native/Piggy/.build/
+native/Piggy/.swiftpm/
+**/xcuserdata/
+DerivedData/

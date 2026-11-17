@@ -15,10 +15,13 @@ const mockOffer = {
 };
 jest.mock('../lib/subscription', () => ({
   buyPlus: jest.fn(), restorePlus: jest.fn(),
-  loadMonthlyOffer: jest.fn(async () => mockOffer),
+  loadGoldOffers: jest.fn(async () => [mockOffer]),
   getPlusStatus: jest.fn(async () => ({ isPlus: false, expiresAt: null, willRenew: false })),
   MANAGE_SUBSCRIPTIONS_URL: 'https://apps.apple.com/account/subscriptions',
 }));
+
+jest.mock('../hooks/usePlus', () => ({ usePlus: () => ({ status: { isPlus: false, expiresAt: null, willRenew: false }, refresh: jest.fn(async () => {}), setStatus: jest.fn() }) }));
+jest.mock('../brand/icons/PiggyIcon', () => ({ PiggyIcon: () => null }));
 
 import PlusRoute from '../../app/plus';
 
@@ -33,7 +36,7 @@ it('ohne Schlüssel: Weiterleitung, kein Absturz, kein Angebot geladen', () => {
   let tree!: renderer.ReactTestRenderer;
   act(() => { tree = renderer.create(<PlusRoute />); });
   expect(mockRedirect).toHaveBeenCalled();
-  expect(texts(tree)).not.toContain('Piggy Plus');
+  expect(texts(tree)).not.toContain('Piggy Gold');
 });
 
 it('mit Schlüssel: Pflichtangaben stehen da', async () => {
@@ -41,7 +44,7 @@ it('mit Schlüssel: Pflichtangaben stehen da', async () => {
   let tree!: renderer.ReactTestRenderer;
   await act(async () => { tree = renderer.create(<PlusRoute />); });
   const t = texts(tree);
-  for (const s of ['Piggy Plus', 'CHF 4.90', '1 Monat', 'Verlängert sich automatisch', 'Nutzungsbedingungen', 'Datenschutz', 'Käufe wiederherstellen']) {
+  for (const s of ['Piggy Gold', 'Ohne Werbung', 'CHF 4.90', '1 Monat', 'Verlängert sich automatisch', 'Nutzungsbedingungen', 'Datenschutz', 'Käufe wiederherstellen']) {
     expect(t).toContain(s);
   }
   expect(mockRedirect).not.toHaveBeenCalled();

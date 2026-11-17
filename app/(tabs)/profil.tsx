@@ -23,6 +23,8 @@ import { getAiConsent, setAiConsent } from '../../src/lib/aiConsent';
 import { featureCopy } from '../../src/lib/featureCopy';
 import { getAnalyticsEnabled, setAnalyticsEnabled } from '../../src/lib/analytics';
 import { FEATURES } from '../../src/constants/features';
+import { PiggyWordmark } from '../../src/components/PiggyWordmark';
+import { AdPrivacyCard } from '../../src/components/AdPrivacyCard';
 import { usePlus } from '../../src/hooks/usePlus';
 
 export default function ProfilScreen() {
@@ -348,7 +350,7 @@ export default function ProfilScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Profil</Text>
-        <PiggyIcon name="piggy" size={36} />
+        <PiggyWordmark compact />
       </View>
 
       {/* Toast */}
@@ -701,17 +703,19 @@ export default function ProfilScreen() {
         </View>
       </View>
 
-      {/* Piggy Plus (nur sichtbar, wenn das Abo-Feature verfügbar ist) */}
+      <AdPrivacyCard settings />
+
+      {/* Piggy Gold (nur sichtbar, wenn das Abo-Feature verfügbar ist) */}
       {plus.available && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Piggy Plus</Text>
+          <Text style={styles.sectionLabel}>Piggy Gold</Text>
           <View style={[card, styles.cardInner]}>
             <TouchableOpacity style={styles.row} onPress={() => router.push('/plus' as any)}>
               <View style={[styles.iconBox, { backgroundColor: plus.status.isPlus ? '#FF9F0A22' : C.bgAccent }]}>
                 <Ionicons name="sparkles-outline" size={20} color={plus.status.isPlus ? C.gold : C.textTertiary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowText}>Piggy Plus</Text>
+                <Text style={styles.rowText}>Piggy Gold</Text>
                 <Text style={[styles.rowSub, { color: C.textSecondary }]}>
                   {plus.status.isPlus
                     ? (plus.status.expiresAt

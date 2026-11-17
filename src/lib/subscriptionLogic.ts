@@ -1,5 +1,5 @@
 /**
- * subscriptionLogic.ts — reine Logik für «Piggy Plus» (ohne SDK, ohne natives Modul).
+ * subscriptionLogic.ts — reine Logik für «Piggy Gold» (ohne SDK, ohne natives Modul).
  *
  * Alles, was Apple pro Produkt liefert (Preis, Laufzeit, Einführungsphase), wird nur formatiert,
  * nie hartkodiert. Die SDK-Schicht liegt in src/lib/subscription.ts.
@@ -41,6 +41,7 @@ export interface PackageLike {
 }
 export interface OfferingLike {
   monthly?: PackageLike | null;
+  annual?: PackageLike | null;
   availablePackages?: PackageLike[];
 }
 export interface OfferingsLike {
@@ -80,6 +81,17 @@ export function pickMonthlyPackage(offerings: OfferingsLike | null | undefined):
   return offering.monthly
     ?? offering.availablePackages?.find(p => p.packageType === 'MONTHLY')
     ?? null;
+}
+
+/** Only recurring monthly/annual products; never accidentally sell lifetime or weekly access. */
+export function pickGoldPackages(offerings: OfferingsLike | null | undefined): PackageLike[] {
+  const offering = offerings?.all?.[PLUS_OFFERING];
+  if (!offering) return [];
+  const monthly = pickMonthlyPackage(offerings);
+  const annual = offering.annual ?? offering.availablePackages?.find(p => p.packageType === 'ANNUAL');
+  return [monthly, annual].filter((p): p is PackageLike =>
+    !!p && ((p.packageType === 'MONTHLY' && p.product.subscriptionPeriod === 'P1M') ||
+            (p.packageType === 'ANNUAL' && p.product.subscriptionPeriod === 'P1Y')));
 }
 
 const UNITS: Record<string, [string, string]> = {
@@ -150,8 +162,8 @@ export function buildOffer(pkg: PackageLike, introEligible: boolean): PlusOffer 
   return {
     pkg,
     priceString: p.priceString,
-    periodText: formatPeriod(p.subscriptionPeriod) ?? '1 Monat',
-    renewalPrice: recurringPhrase(p.priceString, p.subscriptionPeriod ?? 'P1M'),
+    periodText: formatPeriod(p.subscriptionPeriod) ?? 'Laufzeit laut Store',
+    renewalPrice: recurringPhrase(p.priceString, p.subscriptionPeriod),
     intro: introEligible ? introText(p) : null,
   };
 }

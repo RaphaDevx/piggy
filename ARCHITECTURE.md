@@ -96,3 +96,15 @@ graph TD
 ## Receipt capture subprocess
 
 The iOS camera uses `modules/piggy-receipt-scanner` (AVFoundation/Vision), with a shared explicit review/confirmation state for automatic and manual captures. `useScanner` waits for the source sheet to dismiss before presenting it and waits for native dismissal before routing to OCR. The native module must be included in a rebuilt app; an OTA update cannot add it. Detailed lifecycle, incident evidence, active parser path and physical-device acceptance are in `.kdev/partials/receipt-scan.md`; navigator stages in `.kdev/flow.json`.
+
+## Monetarisierung: Gold und Werbung
+
+`SubscriptionProvider` hält den pro Konto abgegrenzten RevenueCat-Status für Paywall, `PiggyWordmark` und Werbung. Öffentlicher Name **Piggy Gold**, technische Kennungen weiterhin `plus`, Offering `default`, Route `/plus`; diese nicht ohne Bestandskunden-/Webhook-Migration umbenennen. Monats-/Jahrespreise kommen ausschliesslich aus dem Store. Ein fehlgeschlagener Statusabruf ist `resolved=false` und erlaubt keine Werbung.
+
+`AdsProvider` lädt Google Mobile Ads erst nach Rolloutkonfiguration, bestätigtem Gratisstatus, eigener Wahl und Google UMP (`canRequestAds`). Native Appmessung wird über `app.config.js` verzögert. Werbeanfragen enthalten keine Beleginhalte oder Piggy-User-ID. `scan.tsx` ruft den Werbeschritt erst **nach** erfolgreichem Speichern eines neuen Belegs auf; Merge, Kamera, OCR und Review sind keine Anzeigenplätze. Geladene Interstitials folgen den Regeln in `adPolicy.ts`; ohne Anzeige bleibt der Speicherablauf erfolgreich. Goldstatus wird vor Präsentation nochmals geprüft. Banner sind optional, keine Overlaynavigation.
+
+Launchkonfiguration, Datenflussmeldung und noch offene echte Geräte-/Storeabnahme: `docs/PIGGY-GOLD-LAUNCH.md`. Ein neuer nativer Build ist erforderlich. Ein OTA-Update kann das neue native SDK nicht bereitstellen.
+
+## Nativer iPhone-Client (Umsetzung)
+
+`native/Piggy` enthält den neuen SwiftUI-Client; Entscheidungen und offene Validierung stehen in [ADR 0004](docs/adr/0004-native-swiftui-client.md). `Sources/Core` ist ein Foundation-Package, `Services` nutzt Supabase, `Screens` und `Onboarding` sind native SwiftUI-Ansichten. Finanzsummen kommen über den neuen Adapter `supabase/functions/native-finance` aus dem bestehenden kanonischen finance-core. `Resources/Brand/provenance.json` dokumentiert alle importierten K-Creative-Laufzeitassets. Neue Swift-Dateien erfordern `scripts/generate_project.py`; neue Brand-Exporte `scripts/sync_brand.py` und `scripts/validate_resources.py`.

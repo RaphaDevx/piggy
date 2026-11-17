@@ -1,4 +1,4 @@
-// Piggy Plus: Entitlement auswerten und Scan-Limit wählen.
+// Piggy Gold: Entitlement auswerten und Scan-Limit wählen.
 // Reine Logik ohne Deno-/Supabase-Abhängigkeit, damit Jest sie testen kann.
 
 export interface EntitlementRow {
@@ -26,6 +26,6 @@ export function scanLimitFor(plus: boolean, freeLimit: number, plusLimit: number
 
 export function limitReachedMessage(plus: boolean, limit: number): string {
   return plus
-    ? `Tageslimit von ${limit} Scans mit Piggy Plus erreicht. Morgen wieder verfügbar.`
-    : `Tageslimit von ${limit} kostenlosen Scans erreicht. Morgen wieder verfügbar oder eigenen Gemini API Key im Profil hinterlegen.`;
+    ? `Tageslimit von ${limit} Scans mit Piggy Gold erreicht. Morgen wieder verfügbar.`
+    : `Tageslimit von ${limit} kostenlosen Scans erreicht. Morgen wieder verfügbar.`;
 }

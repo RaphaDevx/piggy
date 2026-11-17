@@ -1,0 +1,32 @@
+{
+  "projectID": "piggy-native",
+  "parentProject": "piggy",
+  "buildRegistry": {
+    "name": "Piggy SwiftUI",
+    "type": "native-ios",
+    "sourcePath": "/home/raphael/K-Dev/Projekte/Piggy/native/Piggy",
+    "projectFile": "Piggy.xcodeproj",
+    "scheme": "PiggyNative",
+    "teamId": "H6X9JDXF96",
+    "bundleIdentifier": "com.heartbeat.piggy",
+    "ascAppId": "6802367826",
+    "testGroups": [
+      "Internal Testers",
+      "Raphael Private Beta"
+    ],
+    "exclude": [
+      ".build",
+      ".swiftpm",
+      "DerivedData"
+    ],
+    "platforms": [
+      "ios"
+    ],
+    "profiles": {
+      "ios": [
+        "local",
+        "production"
+      ]
+    }
+  }
+}

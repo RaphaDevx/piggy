@@ -8,6 +8,9 @@ import { Ionicons } from '@/components/Ionicons';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { PiggyIcon } from '../../src/brand/icons/PiggyIcon';
 import { semantic } from '../../src/brand/theme';
+import { PiggyWordmark } from '../../src/components/PiggyWordmark';
+import { AdPrivacyCard } from '../../src/components/AdPrivacyCard';
+import { AdBanner } from '../../src/components/AdBanner';
 import ReceiptCard from '../../src/components/ReceiptCard';
 import SpendingChart from '../../src/components/SpendingChart';
 import { OpenBalances } from '../../src/components/OpenBalances';
@@ -45,7 +48,7 @@ export default function DashboardScreen() {
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.greeting}>Deine Finanzen im Blick</Text>
-          <View style={styles.brandRow}><PiggyIcon name="piggy" size={30} color={semantic.color.text.brandPink} /><Text style={styles.title}>Piggy</Text></View>
+          <PiggyWordmark />
         </View>
         <TouchableOpacity
           accessibilityRole="button"
@@ -57,6 +60,8 @@ export default function DashboardScreen() {
           <Text style={styles.analyseBtnText}>Analyse</Text>
         </TouchableOpacity>
       </View>
+
+      <AdPrivacyCard />
 
       {/* Period Selector */}
       <View style={styles.periodRow}>
@@ -208,6 +213,7 @@ export default function DashboardScreen() {
         </>
       )}
 
+      <AdBanner />
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -218,7 +224,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 130, gap: 20 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start' },
   greeting:  { fontSize: S.sm, color: C.textSecondary, fontWeight: '600' },
   title:     { fontSize: S.xxl, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5, marginTop: 2 },
   analyseBtn: {

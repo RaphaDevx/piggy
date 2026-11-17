@@ -27,6 +27,7 @@ import DuplicateReceiptReview from '../src/components/DuplicateReceiptReview';
 import { loadDuplicateCandidates, mergeReceiptScan, saveSeparateReceiptScan, deleteReviewedReceipt, type MergeChoices } from '../src/lib/receiptDuplicates';
 import type { ReceiptWithItems, ParsedReceipt, ParsedReceiptItem, ReceiptExtraFields } from '../src/types/receipt';
 import type { CropRegion } from '../src/lib/ocr';
+import { useAds } from '../src/contexts/AdsContext';
 import { track } from '../src/lib/analytics';
 
 // ── NumericInput ────────────────────────────────────────────────────────────
@@ -384,6 +385,7 @@ function itemSubcategory(item: ParsedReceiptItem): string | null {
 }
 
 export default function ScanScreen() {
+  const ads = useAds();
   const { uri, precropped } = useLocalSearchParams<{ uri: string; precropped?: string }>();
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
@@ -568,6 +570,8 @@ export default function ScanScreen() {
     }
 
     void track('scan_saved', { mode: action?.mode === 'separate' ? 'separate' : 'new' });
+    // Receipt is committed before any ad. No-fill, consent failure or an upgrade skips it.
+    await ads.afterScanSaved();
     router.replace({ pathname: '/receipt/[id]', params: { id: newReceiptId } });
     } catch (error) {
       void track('scan_failed', { stage: 'save' });

@@ -1,0 +1,215 @@
+{
+  "source": "/storage/Public/K-Dev/Projekte/K-Creative-Cloud/07_Brands/Piggy/dist",
+  "assets": [
+    {
+      "path": "variants/index.json",
+      "sha256": "f9b965317cc85552195b30e5b126f819b0fef8babb6924dae28089c60cb30ac5",
+      "bytes": 5677
+    },
+    {
+      "path": "variants/base/signet@3x.png",
+      "sha256": "a3bec1e547fef6cb3c370f7ad98474a26864a4fa8b37ade5e96243932cf2a011",
+      "bytes": 35353
+    },
+    {
+      "path": "variants/base/logo@3x.png",
+      "sha256": "dbd451b0487886a6364f67f15a2b60e5a74bbf1c717674f26cb78550ee6e9497",
+      "bytes": 53459
+    },
+    {
+      "path": "variants/month-01-neujahr/signet@3x.png",
+      "sha256": "49916cec039035a571143cd771246ba9df61a5746c88fd9ddbc94ce1a4d13a6c",
+      "bytes": 37598
+    },
+    {
+      "path": "variants/month-01-neujahr/logo@3x.png",
+      "sha256": "7aa65856fab9ac62ee03c9da3376e93d120bdf659f6d83fc3a732eae67428145",
+      "bytes": 55370
+    },
+    {
+      "path": "variants/month-02-fasnacht/signet@3x.png",
+      "sha256": "858fa815ccb62d4c691cb98c862d2e7a0f8a057cd53d58190145c78887d19e06",
+      "bytes": 41362
+    },
+    {
+      "path": "variants/month-02-fasnacht/logo@3x.png",
+      "sha256": "60f698b995d7bf12eb25104a5eef482dbc8d7737f1195a8b059e2a2c6bcbfb1c",
+      "bytes": 59048
+    },
+    {
+      "path": "variants/month-03-steuern/signet@3x.png",
+      "sha256": "508ee87aeb04a630f179160a9d9613c556e06c6199b0c5bd9b985450649d52cf",
+      "bytes": 46021
+    },
+    {
+      "path": "variants/month-03-steuern/logo@3x.png",
+      "sha256": "66eba53dbc54c52214bec5bb5499346a05c0348bc97382e3d757e5c464b6f868",
+      "bytes": 63197
+    },
+    {
+      "path": "variants/month-04-ostern/signet@3x.png",
+      "sha256": "6f515de391003a21a52d47fb4f9774ffb6fea6884e324b921f4838fe2fd4b4f5",
+      "bytes": 43059
+    },
+    {
+      "path": "variants/month-04-ostern/logo@3x.png",
+      "sha256": "9a774bb4407a705003b1952aab22437f19dd5dd644610b7ee6ac809bbe2da8a3",
+      "bytes": 60235
+    },
+    {
+      "path": "variants/month-05-muttertag/signet@3x.png",
+      "sha256": "8028ccb4dbc3ab2532c5b237b37d432ed0d27a6cb336747c1b31a388473e8509",
+      "bytes": 40246
+    },
+    {
+      "path": "variants/month-05-muttertag/logo@3x.png",
+      "sha256": "3655a43a6a1f936ef717e9a8bc610f2dce4fd0cf986883e071ed77c14f7ea8f7",
+      "bytes": 54304
+    },
+    {
+      "path": "variants/month-06-badi/signet@3x.png",
+      "sha256": "2abe10a73dbeb12fd62d1a94452a17aba08afadf931563bd04b059a637775aa9",
+      "bytes": 49009
+    },
+    {
+      "path": "variants/month-06-badi/logo@3x.png",
+      "sha256": "d821b81e07b7290b221d115538c35f7fc9e446ae6b368282bc9031ac961f513f",
+      "bytes": 65527
+    },
+    {
+      "path": "variants/month-07-ferien/signet@3x.png",
+      "sha256": "af3b9d1bbf592c6f31b06cd74f83d42ac2374cdca61328b51a225efe5329f03e",
+      "bytes": 35036
+    },
+    {
+      "path": "variants/month-07-ferien/logo@3x.png",
+      "sha256": "3ef77f9aaae56e4de0474709cef2f3ce85fca760b5d98d60014533493269e2b0",
+      "bytes": 53338
+    },
+    {
+      "path": "variants/month-08-bundesfeier/signet@3x.png",
+      "sha256": "7f6eda7e3dca86a36ddc3234022aef23b732b682c2c9fe901fe10bc79ad9be4b",
+      "bytes": 38984
+    },
+    {
+      "path": "variants/month-08-bundesfeier/logo@3x.png",
+      "sha256": "29cca79d8fa4f871581cac58cf3e5025c3eaab4d3aa04ac3c96951a620152504",
+      "bytes": 53168
+    },
+    {
+      "path": "variants/month-09-alpabzug/signet@3x.png",
+      "sha256": "240ac23940a1d0b905fa9111c46e808a2d1eb35621e5556a34f99900aa0c9b40",
+      "bytes": 49049
+    },
+    {
+      "path": "variants/month-09-alpabzug/logo@3x.png",
+      "sha256": "de1000a336b7e6837493cb81f0d560d9c626c95c62c1e0c13b72f6f04da86516",
+      "bytes": 65255
+    },
+    {
+      "path": "variants/month-10-halloween/signet@3x.png",
+      "sha256": "0f697e14555cdd714a1cf47fd1a5b6dc729916fca95017b689212c49de21086e",
+      "bytes": 34998
+    },
+    {
+      "path": "variants/month-10-halloween/logo@3x.png",
+      "sha256": "e5809b31febba95c02c39a994c4b0b6cc927b6c3bd0f86a57a4282021091d99a",
+      "bytes": 53270
+    },
+    {
+      "path": "variants/month-11-raebeliechtli/signet@3x.png",
+      "sha256": "cc0e075217d8ad822bb16929e51f91bd66dea5c9f6f9dc171e6e81a1edd7ac03",
+      "bytes": 51821
+    },
+    {
+      "path": "variants/month-11-raebeliechtli/logo@3x.png",
+      "sha256": "0565219509da53d593f8cb314e3e52efefe3fd92cc9704c7e98c0a28c9473c19",
+      "bytes": 65005
+    },
+    {
+      "path": "variants/month-12-samichlaus/signet@3x.png",
+      "sha256": "21cc1ca957786cddf7efbd778b505ea592ceb1eb31594716842871e0ccfff306",
+      "bytes": 31907
+    },
+    {
+      "path": "variants/month-12-samichlaus/logo@3x.png",
+      "sha256": "18387464a62d8f9741331a64a0af0a6917a2a953c03a9c195302fe97d0adf5c3",
+      "bytes": 47443
+    },
+    {
+      "path": "variants/season-autumn/signet@3x.png",
+      "sha256": "0d01f89c2ed4efad4ee2226945681c6113955004b8de5a4fb537a98ebfed63f7",
+      "bytes": 39183
+    },
+    {
+      "path": "variants/season-autumn/logo@3x.png",
+      "sha256": "318c4d35289e5b6cf9efd803a91f42e09508e78da05ab8af06f1f4a1e8327873",
+      "bytes": 56735
+    },
+    {
+      "path": "variants/season-spring/signet@3x.png",
+      "sha256": "023a906783c1975e59827faaf47aacf6e720bc3012dca0bd6f00160b3a6bc7a6",
+      "bytes": 42651
+    },
+    {
+      "path": "variants/season-spring/logo@3x.png",
+      "sha256": "81c2269bbfd3d0193f627141c58a4167371aac95f480ff12a960d5de880286d3",
+      "bytes": 59530
+    },
+    {
+      "path": "variants/season-summer/signet@3x.png",
+      "sha256": "a75fb26b51a2ac94d5a05509e0dff12fcb47edba9537e56c0050ad62d34de1ca",
+      "bytes": 34164
+    },
+    {
+      "path": "variants/season-summer/logo@3x.png",
+      "sha256": "aaa7b5e3846097cc9f1b4cba5cfae15b0ab36695c0be485dd77f088fe46bcba4",
+      "bytes": 52543
+    },
+    {
+      "path": "variants/season-winter/signet@3x.png",
+      "sha256": "4f46e65e8ceb291adaf661384b0f382a4745560a7ef4fdfdb7c46cfc19dcb3b8",
+      "bytes": 35882
+    },
+    {
+      "path": "variants/season-winter/logo@3x.png",
+      "sha256": "1a15794ca2b8b14a71c8534c5c7c0e757a6649f5c1640d52bc1904562ea0e98e",
+      "bytes": 53659
+    },
+    {
+      "path": "3d/sprites/piggy-mascot-idle-happy@3x.png",
+      "sha256": "e0e9e2c81ff0c071aef02d6acc0907b7e2e9ace1e9306a08f8f2b72a7ba70b97",
+      "bytes": 403345
+    },
+    {
+      "path": "3d/sprites/piggy-mascot-catch-surprised@3x.png",
+      "sha256": "732cf773c2015632fd7436bf977972495af19d71ff41c174cfcd545bfe8ad5f8",
+      "bytes": 411071
+    },
+    {
+      "path": "3d/sprites/piggy-mascot-cheer-happy@3x.png",
+      "sha256": "8e162a49549e2fd11656d6c71fcfdb4b072417679c88be861fc6fc65437c84bc",
+      "bytes": 420549
+    },
+    {
+      "path": "3d/app-motion-v2/idle.png",
+      "sha256": "9401bbbc358d963f6c3880c10ad634cfd79789cc8abf9d31ab678839d3b9c18e",
+      "bytes": 4680697
+    },
+    {
+      "path": "3d/app-motion-v2/scan.png",
+      "sha256": "d3e825843b945134e393bf5c3f5a42037f64c0ee00a0ec2c412aafba2622973f",
+      "bytes": 3881032
+    },
+    {
+      "path": "3d/app-motion-v2/celebration.png",
+      "sha256": "231b7962daa0ae4e807a1096d5d64e9cfea78afc35bf2e737b8f3acc1970936c",
+      "bytes": 3193328
+    },
+    {
+      "path": "3d/app-motion-v2/manifest.json",
+      "sha256": "0546deb017a706eec5ae1663a5c45b0e0d284692dc492c07bee3693f7e0e3baa",
+      "bytes": 37143
+    }
+  ]
+}

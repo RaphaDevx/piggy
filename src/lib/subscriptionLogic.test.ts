@@ -1,5 +1,5 @@
 import {
-  plusStatusFromCustomerInfo, isUserCancelled, pickMonthlyPackage, formatPeriod, recurringPhrase,
+  plusStatusFromCustomerInfo, isUserCancelled, pickMonthlyPackage, pickGoldPackages, formatPeriod, recurringPhrase,
   introText, buildOffer, NO_PLUS, type PackageLike, type ProductLike,
 } from './subscriptionLogic';
 
@@ -114,5 +114,19 @@ describe('buildOffer', () => {
   it('Einführungsphase nur, wenn der Nutzer berechtigt ist', () => {
     expect(buildOffer(withIntro, true).intro).toContain('kostenlos');
     expect(buildOffer(withIntro, false).intro).toBeNull();
+  });
+});
+
+describe('Gold monthly and annual offerings', () => {
+  it('offers existing monthly and annual products, excluding lifetime and malformed periods', () => {
+    const monthly = pkg();
+    const annual = pkg({ identifier: '$rc_annual', packageType: 'ANNUAL', product: product({ subscriptionPeriod: 'P1Y', priceString: 'CHF 39.90' }) });
+    expect(pickGoldPackages({ all: { default: { monthly, annual } } })).toEqual([monthly, annual]);
+    expect(buildOffer(annual, false).renewalPrice).toBe('CHF 39.90 pro Jahr');
+    expect(pickGoldPackages({ all: { default: { availablePackages: [pkg({ packageType: 'LIFETIME' })] } } })).toEqual([]);
+    expect(pickGoldPackages({ all: { default: { monthly: pkg({ product: product({ subscriptionPeriod: null }) }) } } })).toEqual([]);
+  });
+  it('does not fabricate an available annual subscription', () => {
+    expect(pickGoldPackages({ all: { default: { monthly: pkg() } } })).toHaveLength(1);
   });
 });

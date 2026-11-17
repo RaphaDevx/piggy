@@ -4,7 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuth } from '../src/lib/supabase';
 import { syncAiConsent } from '../src/lib/aiConsent';
 import { track } from '../src/lib/analytics';
-import { initSubscription, logOutSubscription } from '../src/lib/subscription';
+import { AdsProvider } from '../src/contexts/AdsContext';
+import { SubscriptionProvider } from '../src/contexts/SubscriptionContext';
 
 function AuthGuard() {
   const { session, loading } = useAuth();
@@ -26,25 +27,23 @@ function AuthGuard() {
   useEffect(() => { if (userId) syncAiConsent(); }, [userId]);
   useEffect(() => { if (userId) void track('app_open'); }, [userId]);
 
-  // Piggy Plus: RevenueCat mit der Supabase-User-ID starten, bei Logout abmelden (ohne Schlüssel passiert nichts)
-  useEffect(() => {
-    if (userId) void initSubscription(userId);
-    return () => { if (userId) void logOutSubscription(); };
-  }, [userId]);
-
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)"          options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)"          options={{ headerShown: false }} />
-      <Stack.Screen name="duplicates" options={{ headerShown: false }} />
-      <Stack.Screen name="scan"            options={{ presentation: 'modal', headerShown: false }} />
-      {/* Geteilte Sub-Screens: zugänglich von jedem Tab */}
-      <Stack.Screen name="receipt/[id]"    options={{ headerShown: false }} />
-      <Stack.Screen name="category/[group]" options={{ headerShown: false }} />
-      <Stack.Screen name="friends"          options={{ headerShown: false }} />
-      <Stack.Screen name="split"            options={{ headerShown: false }} />
-      <Stack.Screen name="plus"             options={{ presentation: 'modal', headerShown: false }} />
-    </Stack>
+    <SubscriptionProvider userId={userId ?? null}>
+      <AdsProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)"          options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)"          options={{ headerShown: false }} />
+        <Stack.Screen name="duplicates" options={{ headerShown: false }} />
+        <Stack.Screen name="scan"            options={{ presentation: 'modal', headerShown: false }} />
+        {/* Geteilte Sub-Screens: zugänglich von jedem Tab */}
+        <Stack.Screen name="receipt/[id]"    options={{ headerShown: false }} />
+        <Stack.Screen name="category/[group]" options={{ headerShown: false }} />
+        <Stack.Screen name="friends"          options={{ headerShown: false }} />
+        <Stack.Screen name="split"            options={{ headerShown: false }} />
+        <Stack.Screen name="plus"             options={{ presentation: 'modal', headerShown: false }} />
+      </Stack>
+      </AdsProvider>
+    </SubscriptionProvider>
   );
 }
 

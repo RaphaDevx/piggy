@@ -1,0 +1,144 @@
+import Foundation
+import UIKit
+import Vision
+import Supabase
+
+extension PiggyStore {
+    func processImage(image: UIImage, allowAI: Bool) async throws -> ReceiptDraft {
+        let maxSide: CGFloat = 2200
+        let scale = min(1, maxSide / max(image.size.width, image.size.height))
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
+        let normalized = UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        guard let cgImage = normalized.cgImage else { throw PiggyFailure.validation("Das Bild konnte nicht gelesen werden.") }
+        let text = try await Task.detached(priority: .userInitiated) {
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.recognitionLanguages = ["de-DE", "fr-FR", "it-IT", "en-US"]
+            request.usesLanguageCorrection = true
+            try VNImageRequestHandler(cgImage: cgImage).perform([request])
+            return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
+        }.value
+        guard !text.isEmpty else { throw PiggyFailure.validation("Kein lesbarer Text erkannt. Bitte fotografiere den Beleg bei gutem Licht erneut.") }
+        guard allowAI && aiConsent else { return LocalReceiptParser.parse(text) }
+        struct ScanReply: Decodable { let result: ParsedReceipt }
+        let uid = try requireUser()
+        let reply: ScanReply = try await requireClient().functions.invoke("scan-receipt", options: .init(body: ["ocr_text": text]))
+        guard userID == uid else { throw PiggyFailure.signedOut }
+        return reply.result.draft(rawText: text)
+    }
+    func duplicateCandidates(for draft: ReceiptDraft) -> [Receipt] { ReceiptRules.duplicates(draft, in: receipts) }
+    private func upload(_ image: UIImage?, user: UUID) async throws -> String? {
+        guard let image else { return nil }
+        guard let data = image.jpegData(compressionQuality: 0.85) else { throw PiggyFailure.validation("Das Belegbild konnte nicht vorbereitet werden.") }
+        let path = "\(user.uuidString.lowercased())/\(UUID().uuidString.lowercased()).jpg"
+        try await requireClient().storage.from("receipt-images").upload(path, data: data, options: .init(contentType: "image/jpeg"))
+        return path
+    }
+    private func scanPayload(_ draft: ReceiptDraft, path: String?) -> JSONValue {
+        .object([
+            "store_name": .string(draft.store_name), "receipt_date": .string(draft.receipt_date),
+            "store_category": .optional(draft.store_category), "total_amount": .number(draft.total_amount),
+            "currency": .string(draft.currency), "payment_method": .string(draft.payment_method),
+            "payment_card": .optional(draft.payment_card), "notes": .string(draft.notes),
+            "raw_ocr_text": .string(draft.raw_ocr_text), "image_url": .optional(path),
+            "receipt_items": .array(draft.items.map { .object([
+                "name": .string($0.name), "quantity": .number($0.quantity), "unit": .string($0.unit),
+                "unit_price": .number($0.unit_price), "total_price": .number($0.total_price),
+                "tags": .array($0.tags.map(JSONValue.string)), "subcategory": .optional($0.subcategory)
+            ]) })
+        ])
+    }
+    func save(draft: ReceiptDraft, image: UIImage?, separateFrom: [UUID]) async throws -> UUID {
+        try ReceiptRules.validate(draft)
+        let uid = try requireUser(); let client = try requireClient()
+        let path = try await upload(image, user: uid)
+        do {
+            guard userID == uid else { throw PiggyFailure.signedOut }
+            let id: UUID = try await client.rpc("save_separate_receipt_scan", params: [
+                "p_scan": scanPayload(draft, path: path), "p_separate_ids": .array(separateFrom.map(JSONValue.uuid))
+            ]).execute().value
+            await reload(); return id
+        } catch {
+            // A lost HTTP response can follow a committed RPC. Keep the uploaded image
+            // and reload before retrying so we never remove a now-referenced receipt image.
+            await reload()
+            throw PiggyFailure.service("Die Speicherbestätigung fehlt. Prüfe zuerst deine Belegliste, bevor du erneut speicherst. " + error.localizedDescription)
+        }
+    }
+    func merge(draft: ReceiptDraft, image: UIImage?, target: Receipt) async throws -> UUID {
+        try ReceiptRules.validate(draft)
+        let uid = try requireUser(); let client = try requireClient()
+        // Keep the reviewed existing values and image; merge only missing metadata and new article evidence.
+        let id: UUID = try await client.rpc("merge_receipt_scan", params: [
+            "p_target_id": .uuid(target.id), "p_scan": scanPayload(draft, path: nil), "p_choices": .object([:])
+        ]).execute().value
+        guard userID == uid else { throw PiggyFailure.signedOut }
+        await reload(); return id
+    }
+    func signedImageURL(path: String) async throws -> URL {
+        guard !path.contains("://"), !path.hasPrefix("/"), !path.contains("..") else { throw PiggyFailure.validation("Ungültiger Belegpfad.") }
+        return try await requireClient().storage.from("receipt-images").createSignedURL(path: path, expiresIn: 600)
+    }
+    func delete(receipt: Receipt) async throws {
+        try await requireClient().rpc("delete_reviewed_receipt", params: ["p_receipt_id": receipt.id]).execute()
+        await reload()
+    }
+    func assign(receiptID: UUID, projectID: UUID?) async throws {
+        try await requireClient().from("receipts").update(["project_id": projectID.map(JSONValue.uuid) ?? .null]).eq("id", value: receiptID.uuidString).execute()
+        await reload()
+    }
+    func update(receipt: Receipt) async throws {
+        let client = try requireClient(); let uid = try requireUser()
+        guard receipt.user_id == uid else { throw PiggyFailure.signedOut }
+        var draft = ReceiptDraft()
+        draft.store_name = receipt.store_name; draft.receipt_date = receipt.receipt_date ?? ""
+        draft.total_amount = receipt.total_amount ?? 0; draft.currency = receipt.currency
+        try ReceiptRules.validate(draft)
+        // All receipt metadata is one update; item edits are individually acknowledged.
+        do {
+            try await client.from("receipts").update([
+                "store_name": JSONValue.string(receipt.store_name), "receipt_date": .optional(receipt.receipt_date),
+                "total_amount": receipt.total_amount.map(JSONValue.number) ?? .null,
+                "currency": .string(receipt.currency), "notes": .optional(receipt.notes),
+                "payment_method": .optional(receipt.payment_method)
+            ]).eq("id", value: receipt.id.uuidString).eq("user_id", value: uid.uuidString).execute()
+            for item in receipt.receipt_items {
+                try await client.from("receipt_items").update([
+                    "name": JSONValue.string(item.name), "tags": .array(item.tags.map(JSONValue.string)),
+                    "subcategory": .optional(item.subcategory), "total_price": item.total_price.map(JSONValue.number) ?? .null,
+                    "quantity": item.quantity.map(JSONValue.number) ?? .null, "unit_price": item.unit_price.map(JSONValue.number) ?? .null,
+                    "classified_at": .string(ISO8601DateFormatter().string(from: Date()))
+                ]).eq("id", value: item.id.uuidString).eq("receipt_id", value: receipt.id.uuidString).execute()
+            }
+        } catch {
+            await reload()
+            throw PiggyFailure.service("Nicht alle Änderungen konnten gespeichert werden. Bitte prüfe den neu geladenen Beleg und versuche es erneut.")
+        }
+        await reload()
+    }
+}
+
+private struct ParsedReceipt: Decodable {
+    var store_name: String?; var date: String?; var total_amount: Decimal?; var currency: String?
+    var payment_method: String?; var payment_card: String?; var store_category: String?
+    var items: [ParsedItem]?
+    struct ParsedItem: Decodable {
+        var name: String?; var quantity: Decimal?; var unit: String?; var unit_price: Decimal?
+        var total_price: Decimal?; var tags: [String]?; var subcategory: String?
+    }
+    func draft(rawText: String) -> ReceiptDraft {
+        var draft = ReceiptDraft()
+        draft.store_name = store_name ?? ""; draft.receipt_date = date ?? draft.receipt_date
+        draft.total_amount = total_amount ?? 0; draft.currency = currency ?? "CHF"
+        draft.payment_method = payment_method ?? "Unbekannt"; draft.payment_card = payment_card
+        draft.store_category = store_category; draft.raw_ocr_text = rawText
+        draft.items = (items ?? []).map { item in
+            var row = DraftItem(); row.name = item.name ?? "Artikel"; row.quantity = item.quantity ?? 1
+            row.unit = item.unit ?? "Stk"; row.unit_price = item.unit_price ?? 0
+            row.total_price = item.total_price ?? 0; row.tags = item.tags ?? ["Diverses"]
+            row.subcategory = item.subcategory; return row
+        }
+        return draft
+    }
+}
