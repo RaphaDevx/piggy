@@ -1,0 +1,27 @@
+{
+  "display_name": "Piggy Finance | Money Tips",
+  "handles": [
+    "piggy.finance",
+    "piggyfinance.app",
+    "getpiggyfinance"
+  ],
+  "handle_status": "proposals; availability unverified",
+  "bio_variants": [
+    "Your little money buddy. 🐷\nSmall saving habits. Clearer spending.\nMeet Piggy ↓",
+    "Receipts, spending & tiny money wins. 🐷\nSimple tips with Piggy.\nExplore the app ↓",
+    "Less receipt chaos. More clarity. 🐷\nMoney tips + the Piggy app.\nMeet your money buddy ↓"
+  ],
+  "selected_bio": 0,
+  "website": null,
+  "website_status": "blocked_pending_verified_store_or_owned_landing_link",
+  "avatar_source": "assets/piggy-classic-source.png",
+  "avatar_layout": "assets/avatar-master.svg",
+  "highlights": [
+    "Start Here",
+    "Save",
+    "Money 101",
+    "The App",
+    "Tiny Wins"
+  ],
+  "apply_status": "manual-required"
+}

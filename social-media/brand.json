@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "brand_id": "piggy-finance",
+  "name": "Piggy Finance",
+  "language": "en",
+  "audience": "Working hypothesis: students and young adults, initially Switzerland; everyday spending, shared shopping and first savings habits.",
+  "goal": "Turn useful everyday money content into interest in the Piggy app and a first successful receipt scan.",
+  "positioning": "Your little money buddy. Small habits, clearer spending.",
+  "voice": [
+    "warm",
+    "playful",
+    "specific",
+    "no money shaming",
+    "occasional purposeful oink"
+  ],
+  "content_pillars": [
+    "Piggy Saves: everyday saving habits",
+    "Piggy Explains: simple money concepts",
+    "Piggy in Action: real app demonstrations",
+    "Piggy Moments: relatable character comedy"
+  ],
+  "visuals": {
+    "source": "/storage/Public/K-Dev/Projekte/K-Creative-Cloud/07_Brands/Piggy/tokens/piggy.json",
+    "character_source": "/storage/Public/K-Dev/Projekte/K-Creative-Cloud/07_Brands/Piggy/CURRENT.json",
+    "colors": {
+      "canvas": "#FAFAF9",
+      "pink": "#FFB8C6",
+      "pink_soft": "#FFF0F4",
+      "gold": "#FF9F0A",
+      "ink": "#3A1E2A"
+    },
+    "fonts": [
+      "Inter"
+    ],
+    "reference_assets": [
+      "profile/assets/piggy-classic-source.png"
+    ],
+    "character": "User-selected pink Piggy Classic; gold only as material variant"
+  },
+  "platforms": {
+    "instagram": {
+      "proposed_handle": "piggy.finance",
+      "account_id": null,
+      "connection_status": "not_connected",
+      "handle_availability": "unverified"
+    }
+  },
+  "automation": {
+    "mode": "drafts-only",
+    "timezone": "Europe/Zurich",
+    "authorization_reference": null
+  },
+  "canonical_production_brief": "/storage/Public/K-Dev/Projekte/K-Creative-Cloud/07_Brands/Piggy/social-media/PRODUCTION.md",
+  "scope": "Marketing-light planning package; no new video renders or account changes"
+}

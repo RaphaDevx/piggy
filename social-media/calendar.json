@@ -1,0 +1,275 @@
+{
+  "mode": "relative_launch_days_not_scheduled",
+  "day_1": null,
+  "timezone": "Europe/Zurich",
+  "posting_time_note": "Initial operational hypotheses, not evidence of best posting time.",
+  "feed_posts": 12,
+  "stories": 12,
+  "review_days": 6,
+  "entries": [
+    {
+      "day": 1,
+      "type": "feed",
+      "content_id": "P01",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 2,
+      "type": "story",
+      "sticker": "poll",
+      "copy": "Receipts: keep them or bin them?",
+      "options": [
+        "Keep",
+        "Bin"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 3,
+      "type": "feed",
+      "content_id": "P02",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 4,
+      "type": "story",
+      "sticker": "quiz",
+      "copy": "Which comes first: check the cupboard or buy more?",
+      "options": [
+        "Check first",
+        "Shop first"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 5,
+      "type": "feed",
+      "content_id": "P03",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": "Use the next unposted non-app draft if capture is still blocked; record actual order."
+    },
+    {
+      "day": 6,
+      "type": "story",
+      "sticker": "question",
+      "copy": "Which money word should Piggy explain next?",
+      "options": [],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 7,
+      "type": "review",
+      "action": "Log performance, answer on-topic comments manually and prepare the next batch.",
+      "status": "planned"
+    },
+    {
+      "day": 8,
+      "type": "feed",
+      "content_id": "P04",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 9,
+      "type": "story",
+      "sticker": "poll",
+      "copy": "Do you make a shopping list?",
+      "options": [
+        "Usually",
+        "Rarely"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 10,
+      "type": "feed",
+      "content_id": "P05",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 11,
+      "type": "story",
+      "sticker": "poll",
+      "copy": "Impulse buy: pause or purchase?",
+      "options": [
+        "Pause",
+        "Purchase"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 12,
+      "type": "feed",
+      "content_id": "P06",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 13,
+      "type": "story",
+      "sticker": "question",
+      "copy": "What makes shared groceries awkward?",
+      "options": [],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 14,
+      "type": "review",
+      "action": "Log performance, answer on-topic comments manually and prepare the next batch.",
+      "status": "planned"
+    },
+    {
+      "day": 15,
+      "type": "feed",
+      "content_id": "P07",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": "Use the next unposted non-app draft if capture is still blocked; record actual order."
+    },
+    {
+      "day": 16,
+      "type": "story",
+      "sticker": "poll",
+      "copy": "Do you review spending weekly?",
+      "options": [
+        "Yes",
+        "Not yet"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 17,
+      "type": "feed",
+      "content_id": "P08",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 18,
+      "type": "story",
+      "sticker": "quiz",
+      "copy": "Emergency fund: planned holiday or unexpected repair?",
+      "options": [
+        "Holiday",
+        "Repair"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 19,
+      "type": "feed",
+      "content_id": "P09",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": "Use the next unposted non-app draft if capture is still blocked; record actual order."
+    },
+    {
+      "day": 20,
+      "type": "story",
+      "sticker": "question",
+      "copy": "Which receipt category surprises you most?",
+      "options": [],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 21,
+      "type": "review",
+      "action": "Log performance, answer on-topic comments manually and prepare the next batch.",
+      "status": "planned"
+    },
+    {
+      "day": 22,
+      "type": "feed",
+      "content_id": "P10",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 23,
+      "type": "story",
+      "sticker": "poll",
+      "copy": "Sale sign spotted. Was it on your list?",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 24,
+      "type": "feed",
+      "content_id": "P11",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": "Use the next unposted non-app draft if capture is still blocked; record actual order."
+    },
+    {
+      "day": 25,
+      "type": "story",
+      "sticker": "question",
+      "copy": "Which Piggy demo should we make next?",
+      "options": [],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 26,
+      "type": "feed",
+      "content_id": "P12",
+      "time_local": "18:30",
+      "status": "draft",
+      "fallback": null
+    },
+    {
+      "day": 27,
+      "type": "story",
+      "sticker": "poll",
+      "copy": "One tiny check-in this week?",
+      "options": [
+        "Done",
+        "Trying today"
+      ],
+      "time_local": "12:30",
+      "status": "draft"
+    },
+    {
+      "day": 28,
+      "type": "review",
+      "action": "Log performance, answer on-topic comments manually and prepare the next batch.",
+      "status": "planned"
+    },
+    {
+      "day": 29,
+      "type": "review",
+      "action": "Log performance, answer on-topic comments manually and prepare the next batch.",
+      "status": "planned"
+    },
+    {
+      "day": 30,
+      "type": "review",
+      "action": "Log performance, answer on-topic comments manually and prepare the next batch.",
+      "status": "planned"
+    }
+  ]
+}

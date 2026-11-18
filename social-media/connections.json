@@ -1,0 +1,24 @@
+{
+  "platform": "instagram",
+  "checked_on": "2026-11-18",
+  "account_id": null,
+  "verified_handle": null,
+  "status": "not_connected",
+  "capabilities": {
+    "create_account": "manual",
+    "read_profile": "unknown",
+    "write_bio": "manual",
+    "write_profile_photo": "manual",
+    "publish_image": "unknown",
+    "publish_carousel": "unknown",
+    "publish_reel": "unknown",
+    "publish_story": "unknown",
+    "schedule": "unknown",
+    "insights": "unknown"
+  },
+  "discovery": "No connected Instagram tools available. Plugin search found uninstalled Windsor.ai, Metricool and Supermetrics options; availability is not a verified account connection.",
+  "preferred_route": "Own official Meta integration, following Cortex project preference. No publishing adapter implemented for Piggy.",
+  "meta_documentation": "https://developers.facebook.com/documentation/instagram-platform",
+  "secret_reference": null,
+  "account_isolation": "Never use CortexFinancial token, queue, account ID or publisher for Piggy."
+}

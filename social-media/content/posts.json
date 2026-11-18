@@ -1,0 +1,485 @@
+[
+  {
+    "id": "P01",
+    "format": "reel",
+    "pillar": "character",
+    "language": "en",
+    "hook": "Meet your little money buddy.",
+    "cta": "Follow for small money wins.",
+    "voiceover": "I’m Piggy. Receipts in every pocket? Same energy. Let’s make everyday money a little less messy. One small habit at a time.",
+    "caption": "Meet your little money buddy. 🐷 Simple saving habits, everyday money explanations and a closer look at the Piggy app. Follow along for small money wins.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Piggy peeks around a pile of blank prop receipts.",
+        "on_screen": "Receipts. Everywhere."
+      },
+      {
+        "start_s": 2,
+        "end_s": 8,
+        "visual": "Classic reacts, collects three receipts; keep poses within tested rig.",
+        "on_screen": "I’m Piggy. Let’s make money a little less messy."
+      },
+      {
+        "start_s": 8,
+        "end_s": 13,
+        "visual": "Piggy waves; no invented app screen.",
+        "on_screen": "One small habit at a time. Follow for small money wins."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": false,
+    "status": "copy_ready_media_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  },
+  {
+    "id": "P02",
+    "format": "carousel",
+    "pillar": "saving",
+    "language": "en",
+    "hook": "The cheapest grocery? The one already in your kitchen.",
+    "cta": "Save this before your next shop.",
+    "voiceover": null,
+    "caption": "Before the next grocery run: check what you already have, pick a few meals and write down what is actually missing. A smaller list can be a useful place to start. Save this for your next shop.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [],
+    "slides": [
+      "The cheapest grocery? The one already in your kitchen.",
+      "Check your fridge, freezer and cupboard.",
+      "Choose a few meals using what is there.",
+      "Write a list of what is missing.",
+      "Try it on your next shop. Save this checklist."
+    ],
+    "requires_app_capture": false,
+    "status": "media_ready_review_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Render every slide using the approved Classic asset and layout; review text at phone size.",
+    "media": [
+      "content/P02/slide-01.png",
+      "content/P02/slide-02.png",
+      "content/P02/slide-03.png",
+      "content/P02/slide-04.png",
+      "content/P02/slide-05.png"
+    ]
+  },
+  {
+    "id": "P03",
+    "format": "reel",
+    "pillar": "app",
+    "language": "en",
+    "hook": "Don’t bin the story of your shopping.",
+    "cta": "Follow to see Piggy in action.",
+    "voiceover": "Wait. Don’t bin that. Scan your receipt, check what Piggy reads and keep your shopping together. Little receipt. Bigger picture.",
+    "caption": "A receipt can become a clearer record of your shopping. Piggy is designed to scan the receipt, let you check the result and organise the purchase. This demo must show the real flow, including any corrections.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Classic hoof rescues a fictional receipt.",
+        "on_screen": "Wait. Don’t bin that."
+      },
+      {
+        "start_s": 2,
+        "end_s": 9,
+        "visual": "Real recorded scan/import, recognition and review; expand duration if needed.",
+        "on_screen": "Scan. Check. Keep."
+      },
+      {
+        "start_s": 9,
+        "end_s": 13,
+        "visual": "Original saved receipt with same merchant, items and total.",
+        "on_screen": "Little receipt. Bigger picture."
+      },
+      {
+        "start_s": 13,
+        "end_s": 16,
+        "visual": "Classic satisfied glance, one soft oink.",
+        "on_screen": "Follow to see Piggy in action."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": true,
+    "status": "blocked_capture",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  },
+  {
+    "id": "P04",
+    "format": "carousel",
+    "pillar": "money",
+    "language": "en",
+    "hook": "A budget is a plan for the money you have.",
+    "cta": "Save this for your next money check-in.",
+    "voiceover": null,
+    "caption": "Start with the money coming in, the bills due and what you need for daily life. Then decide what is left for goals and flexible spending. You can adjust the plan when your situation changes. General education; your circumstances matter.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [],
+    "slides": [
+      "A budget is a plan for the money you have.",
+      "Write down income and when it arrives.",
+      "List bills and essential costs with due dates.",
+      "Plan flexible spending and savings you can afford.",
+      "Check what happened. Adjust the next plan."
+    ],
+    "requires_app_capture": false,
+    "status": "media_ready_review_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Render every slide using the approved Classic asset and layout; review text at phone size.",
+    "media": [
+      "content/P04/slide-01.png",
+      "content/P04/slide-02.png",
+      "content/P04/slide-03.png",
+      "content/P04/slide-04.png",
+      "content/P04/slide-05.png"
+    ]
+  },
+  {
+    "id": "P05",
+    "format": "reel",
+    "pillar": "character",
+    "language": "en",
+    "hook": "Me on payday.",
+    "cta": "Follow for more Piggy moments.",
+    "voiceover": null,
+    "caption": "Payday confidence meets the rent reminder. 🐷 Piggy has been humbled. Follow for more tiny money moments.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Classic looks proudly at a few toy coins.",
+        "on_screen": "Me on payday."
+      },
+      {
+        "start_s": 2,
+        "end_s": 5,
+        "visual": "A paper labelled RENT enters; Piggy gives surprised expression.",
+        "on_screen": "Me remembering rent exists."
+      },
+      {
+        "start_s": 5,
+        "end_s": 7,
+        "visual": "Piggy quietly puts down one coin; optional snort.",
+        "on_screen": "A very short celebration."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": false,
+    "status": "copy_ready_media_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  },
+  {
+    "id": "P06",
+    "format": "carousel",
+    "pillar": "saving",
+    "language": "en",
+    "hook": "Try a pause before a non-essential purchase.",
+    "cta": "Save this for your next impulse buy.",
+    "voiceover": null,
+    "caption": "Here is an experiment: move a non-essential item to a list and revisit it tomorrow. Ask whether you still want it and whether it fits your budget. A pause is an option, not a rule for essentials or urgent needs.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [],
+    "slides": [
+      "Want it now? Try a pause.",
+      "Put the non-essential item on a list.",
+      "Revisit it tomorrow.",
+      "Still useful? Still affordable?",
+      "Choose deliberately. Save this reminder."
+    ],
+    "requires_app_capture": false,
+    "status": "media_ready_review_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Render every slide using the approved Classic asset and layout; review text at phone size.",
+    "media": [
+      "content/P06/slide-01.png",
+      "content/P06/slide-02.png",
+      "content/P06/slide-03.png",
+      "content/P06/slide-04.png",
+      "content/P06/slide-05.png"
+    ]
+  },
+  {
+    "id": "P07",
+    "format": "reel",
+    "pillar": "app",
+    "language": "en",
+    "hook": "Who bought what? Let the receipt help.",
+    "cta": "Follow for practical Piggy demos.",
+    "voiceover": "Shared groceries. Different items. Check the receipt, assign the items and review the split. Clearer than guessing.",
+    "caption": "Shared shopping gets easier to discuss when everyone can see the items. This planned Piggy demo shows item allocation and the reviewed split. Piggy does not move money.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Two prop shopping bags; one has clearly different items.",
+        "on_screen": "Who bought what?"
+      },
+      {
+        "start_s": 2,
+        "end_s": 11,
+        "visual": "Real app recording: item allocation then reviewed totals.",
+        "on_screen": "Assign items. Check the split."
+      },
+      {
+        "start_s": 11,
+        "end_s": 15,
+        "visual": "Real share preview; no payment animation.",
+        "on_screen": "A clearer split. Piggy does not move money."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": true,
+    "status": "blocked_capture",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  },
+  {
+    "id": "P08",
+    "format": "carousel",
+    "pillar": "money",
+    "language": "en",
+    "hook": "An emergency fund is for the unexpected.",
+    "cta": "Save this definition.",
+    "voiceover": null,
+    "caption": "An emergency fund is money set aside for unexpected costs. The amount depends on your situation. If your budget allows, start with a manageable goal and review it over time. General education, not personal financial advice. Source: CFPB, An essential guide to building an emergency fund.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [],
+    "slides": [
+      "An emergency fund is for the unexpected.",
+      "Think: an urgent repair or a sudden loss of income.",
+      "Pick a first goal that fits your situation.",
+      "Keep the money accessible when it is needed.",
+      "A small start is still a start."
+    ],
+    "requires_app_capture": false,
+    "status": "media_ready_review_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Render every slide using the approved Classic asset and layout; review text at phone size.",
+    "sources": [
+      "https://www.consumerfinance.gov/an-essential-guide-to-building-an-emergency-fund/"
+    ],
+    "media": [
+      "content/P08/slide-01.png",
+      "content/P08/slide-02.png",
+      "content/P08/slide-03.png",
+      "content/P08/slide-04.png",
+      "content/P08/slide-05.png"
+    ]
+  },
+  {
+    "id": "P09",
+    "format": "reel",
+    "pillar": "app",
+    "language": "en",
+    "hook": "Where did this week’s shopping go?",
+    "cta": "Follow for the full Piggy walkthrough.",
+    "voiceover": "Those little receipts add up. Check the purchases you recorded, look at the categories and choose one thing to review. Start with what you can see.",
+    "caption": "Turn the receipts you record into a shopping check-in. The planned Piggy demo shows recorded spending by category. These views cover captured receipts, not every transaction in your bank account.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Three fictional shopping receipts, no real personal data.",
+        "on_screen": "Where did this week’s shopping go?"
+      },
+      {
+        "start_s": 2,
+        "end_s": 10,
+        "visual": "Original app category view from the same receipts and period.",
+        "on_screen": "Recorded receipts → category view."
+      },
+      {
+        "start_s": 10,
+        "end_s": 15,
+        "visual": "Piggy points to one actual category value.",
+        "on_screen": "Pick one thing to review."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": true,
+    "status": "blocked_capture",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  },
+  {
+    "id": "P10",
+    "format": "carousel",
+    "pillar": "saving",
+    "language": "en",
+    "hook": "A discount is not a reason to buy more.",
+    "cta": "Save this before your next sale.",
+    "voiceover": null,
+    "caption": "A sale can be useful when the item is something you need and the price fits your budget. Before buying, check the total, the quantity and whether you would buy it without the sale sign. This is a shopping prompt, not a promised saving.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [],
+    "slides": [
+      "A discount is not a reason to buy more.",
+      "Did you need it before seeing the sale?",
+      "Compare the total and the quantity.",
+      "Will you use it before it expires?",
+      "A deliberate no can be a tiny win."
+    ],
+    "requires_app_capture": false,
+    "status": "media_ready_review_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Render every slide using the approved Classic asset and layout; review text at phone size.",
+    "media": [
+      "content/P10/slide-01.png",
+      "content/P10/slide-02.png",
+      "content/P10/slide-03.png",
+      "content/P10/slide-04.png",
+      "content/P10/slide-05.png"
+    ]
+  },
+  {
+    "id": "P11",
+    "format": "reel",
+    "pillar": "app",
+    "language": "en",
+    "hook": "Same receipt. Check the details.",
+    "cta": "Follow for honest app walkthroughs.",
+    "voiceover": "Piggy reads the receipt. You check the details. If something needs fixing, correct it before you save. Your review matters.",
+    "caption": "Receipt recognition deserves a review. This planned walkthrough shows Piggy’s actual result and a real correction if needed. No perfect-scan promise, no hidden retouching.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Fictional receipt next to device.",
+        "on_screen": "Same receipt. Check the details."
+      },
+      {
+        "start_s": 2,
+        "end_s": 11,
+        "visual": "Real result: merchant, date, items, total; genuine edit if required.",
+        "on_screen": "Piggy reads. You review."
+      },
+      {
+        "start_s": 11,
+        "end_s": 16,
+        "visual": "Save action and original saved state.",
+        "on_screen": "Check first. Save second."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": true,
+    "status": "blocked_capture",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  },
+  {
+    "id": "P12",
+    "format": "reel",
+    "pillar": "character",
+    "language": "en",
+    "hook": "POV: you finally looked at your spending.",
+    "cta": "Follow for your next tiny money win.",
+    "voiceover": null,
+    "caption": "No perfect budget required for this tiny victory. 🐷 A little check-in counts. Follow for the next small money habit.",
+    "hashtags": [
+      "#PiggyFinance",
+      "#MoneyHabits",
+      "#EverydayMoney"
+    ],
+    "beats": [
+      {
+        "start_s": 0,
+        "end_s": 2,
+        "visual": "Classic looks nervously at a paper checklist.",
+        "on_screen": "POV: you finally looked at your spending."
+      },
+      {
+        "start_s": 2,
+        "end_s": 5,
+        "visual": "Piggy checks a box and performs a restrained happy hoof-tap.",
+        "on_screen": "Tiny check-in. Tiny victory."
+      },
+      {
+        "start_s": 5,
+        "end_s": 7,
+        "visual": "Return to starting pose for a loop.",
+        "on_screen": "One small habit at a time."
+      }
+    ],
+    "slides": [],
+    "requires_app_capture": false,
+    "status": "copy_ready_media_pending",
+    "approved": false,
+    "remote_id": null,
+    "permalink": null,
+    "production_notes": "Timing is a target; preserve real actions. Captions use follow CTA until a destination is verified. Voiceover needs English audition approval."
+  }
+]
