@@ -1,6 +1,6 @@
 # Piggy Native
 
-SwiftUI iPhone-Client (iOS 17+), Umsetzung noch nicht auf Apple-SDK kompiliert. Bestehende Expo-App bleibt im Repository erhalten. Kein Release/TestFlight ausgeführt.
+SwiftUI iPhone-Client (iOS 17+), auf Apple-SDK erfolgreich kompiliert am 2026-11-18. Bestehende Expo-App bleibt im Repository erhalten. Kein Release/TestFlight ausgeführt.
 
 ## Projekt vorbereiten
 
@@ -23,10 +23,10 @@ Der neue read-only Adapter `supabase/functions/native-finance` muss im bestehend
 
 ## Verifikation und Build
 
-Apple-Builds ausschliesslich über K-Dev, nicht direkt per SSH/Xcode-MCP. `Config/kdev-native-registry.json` dokumentiert den separaten nativen Eintrag `piggy-native`, registriert am 2026-11-18 zur Meldung `KI-20261117-0f3851`. Der Expo-Build wurde aus der aktiven Registry entfernt; sein Quellstand 69353114 und seine Registry liegen unter `/storage/Public/K-Dev/archive/Piggy-Expo-20261118/`. Gemeinsame Quellen bleiben für die Migration im Repository. Ein lokaler Simulator-Build ist beauftragt; kein Production-/TestFlight-Auftrag. Der Worker führt nach Registrierung `PiggyCore`-Tests und eine unsignierte Simulator-Kompilierung aus.
+Apple-Builds ausschliesslich über K-Dev, nicht direkt per SSH/Xcode-MCP. `Config/kdev-native-registry.json` dokumentiert den separaten nativen Eintrag `piggy-native`, registriert am 2026-11-18 zur Meldung `KI-20261117-0f3851`. Der Expo-Build wurde aus der aktiven Registry entfernt; sein Quellstand 69353114 und seine Registry liegen unter `/storage/Public/K-Dev/archive/Piggy-Expo-20261118/`. Gemeinsame Quellen bleiben für die Migration im Repository. Lokaler Simulator-Build `67279f9d4772c0a9` erfolgreich: Version 1.0 (27), 7 Swift-Core-Tests ohne Fehler. Kein Production-/TestFlight-Auftrag. Der Worker führt nach Registrierung `PiggyCore`-Tests und eine unsignierte Simulator-Kompilierung aus.
 
-Bereits geprüft: bestehende 266 Jest-Tests/21 Suites und TypeScript; Deno-Typprüfung des neuen Adapters; native Swift-Syntaxparser; Asset-Hashes, 17 Varianten, 222 Frames, APNG-Timing/Naht/Ränder, Icon und Plists. Syntaxparser und Ressourcenprüfung ersetzen keine Apple-Typprüfung. Core-XCTest-Dateien sind geschrieben, noch nicht ausgeführt.
+Bereits geprüft: bestehende 266 Jest-Tests/21 Suites und TypeScript; Deno-Typprüfung des neuen Adapters; native Swift-Syntaxparser; Asset-Hashes, 17 Varianten, 222 Frames, APNG-Timing/Naht/Ränder, Icon und Plists. Syntaxparser und Ressourcenprüfung ersetzen keine Apple-Typprüfung. Alle 7 Core-XCTest-Prüfungen auf dem MacBook bestanden; unsignierte Simulator-Kompilierung mit Xcode 26.6 bestanden.
 
-Offen: Apple-Build, echter Simulator-Walkthrough mit Neustart/Skip/Replay/Reduce Motion/Dynamic Type, Login über beide Provider, RLS/Speichern/Bild-URLs, KI-Zustimmungswiderruf, tatsächliche Kamera auf iPhone, StoreKit-Sandbox-Kauf/Restore und Gold-Werbefreiheit. PDF-/Bankimport bleiben ausserhalb des aktivierten Umfangs. Vor Veröffentlichung Datenschutzangaben und SDK-Manifeste mit dem Build-Owner abgleichen. Die eigenen Datentypen folgen [Apples Manifest-Dokumentation](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype).
+Offen: echter Simulator-Walkthrough mit Neustart/Skip/Replay/Reduce Motion/Dynamic Type, Login über beide Provider, RLS/Speichern/Bild-URLs, KI-Zustimmungswiderruf, tatsächliche Kamera auf iPhone, StoreKit-Sandbox-Kauf/Restore und Gold-Werbefreiheit. PDF-/Bankimport bleiben ausserhalb des aktivierten Umfangs. Vor Veröffentlichung Datenschutzangaben und SDK-Manifeste mit dem Build-Owner abgleichen. Die eigenen Datentypen folgen [Apples Manifest-Dokumentation](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype).
 
 Architektur: [ADR 0004](../../docs/adr/0004-native-swiftui-client.md).

@@ -29,3 +29,9 @@ K-Dev erhält einen separaten Registry-Vorschlag `Config/kdev-native-registry.js
 ## Prüfungen
 
 Linux: Ressourcenhashes, APNG-Framezahl/Timing/Naht, Icon/Plists, deterministische Projektgenerierung, Swift-Syntaxparser, Deno-Check des Adapters, bestehende TypeScript-/Jest-Prüfungen. Offen: SwiftPM-Tests, Apple-Typprüfung/Simulator-Kompilierung, interaktiver Walkthrough, Auth/Käufe/Restore und reales Kamera-/OCR-/RLS-Verhalten.
+
+## Verifizierter Stand 18.11.2026
+
+Der Nutzer beauftragt die Archivierung des alten Expo-Buildwegs. Registry `piggy-native` (native-ios), Parent-Verknüpfung und Signer-Zuordnung sind aktiv; Expo ist aus der aktiven Build-Registry entfernt. Archiv: `/storage/Public/K-Dev/archive/Piggy-Expo-20261118/`, Quellstand 69353114, Registry und SHA256SUMS. Gemeinsame Quellen bleiben im Repository.
+
+K-Dev-Job `67279f9d4772c0a9`: Xcode 26.6, alle 7 PiggyCore-Tests bestanden, Simulator-Build erfolgreich, ZIP-Artefakt Version 1.0 (27), Bundle-ID `com.heartbeat.piggy`, iOS 17+. Keine Veröffentlichung. UI-Walkthrough, echte Kamera/OCR, Auth, Backend und Käufe bleiben separat zu prüfen. Meldung `KI-20261117-0f3851` damit behoben.
