@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabase';
+import { getSignedUrls, signedUrlTtlSeconds } from './objectStorage';
 
 const BUCKET = 'receipt-images';
-const TTL_SECONDS = 3600;
-/** Cache etwas kürzer als die Signatur gültig ist, damit nie ein abgelaufener Link ausgeliefert wird. */
-const CACHE_MS = 50 * 60 * 1000;
+/** Cache etwas kürzer als die Signatur gültig ist (5/6), damit nie ein abgelaufener Link ausgeliefert wird. */
+const cacheMs = () => Math.floor(signedUrlTtlSeconds() * 1000 * 5 / 6);
 const LEGACY_MARKER = `/storage/v1/object/public/${BUCKET}/`;
 
 const cache = new Map<string, { url: string; expires: number }>();
@@ -42,15 +41,12 @@ export async function getSignedReceiptImageUrls(values: (string | null | undefin
     const request = (async () => {
       const result = new Map<string, string>();
       try {
-        const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(list, TTL_SECONDS);
-        if (error) throw error;
-        for (const row of data ?? []) {
-          if (row.path && row.signedUrl && !row.error) result.set(row.path, row.signedUrl);
-        }
+        const urls = await getSignedUrls(BUCKET, list, signedUrlTtlSeconds());
+        list.forEach((path, i) => { const url = urls[i]; if (url) result.set(path, url); });
       } catch (e) {
         console.warn('receipt image sign failed', (e as Error)?.message);
       }
-      const expires = Date.now() + CACHE_MS;
+      const expires = Date.now() + cacheMs();
       for (const [path, url] of result) cache.set(path, { url, expires });
       return result;
     })();

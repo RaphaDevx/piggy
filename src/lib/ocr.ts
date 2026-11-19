@@ -17,6 +17,7 @@ import { Platform } from 'react-native';
 import type { ParsedReceipt, ParsedReceiptItem } from '../types/receipt';
 import { generateMarkdown } from './markdown';
 import { supabase } from './supabase';
+import { upload } from './objectStorage';
 import { ensureAiConsent, askAiConsent, getAiConsent } from './aiConsent';
 import { suggestedCategory } from './categories';
 import { categoryOfSubcategory, classifyItemName, receiptItemCategoryPrompt } from './taxonomy';
@@ -389,9 +390,7 @@ async function enqueueForEdge(
   const fileBytes = new Uint8Array(binaryStr.length);
   for (let i = 0; i < binaryStr.length; i++) fileBytes[i] = binaryStr.charCodeAt(i);
 
-  const { error: uploadError } = await supabase.storage
-    .from('receipts')
-    .upload(storagePath, fileBytes, { contentType: mime });
+  const { error: uploadError } = await upload('receipts', storagePath, fileBytes, { contentType: mime });
 
   if (uploadError) {
     throw new Error(`Storage upload failed: ${uploadError.message}`);

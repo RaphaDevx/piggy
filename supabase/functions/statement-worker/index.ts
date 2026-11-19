@@ -17,6 +17,9 @@ import { dedupeTransactions, normalizeTransactionCategory } from '../_shared/fin
 import { runMatching, type AccountType } from '../_shared/finance-core/matching.ts';
 import { findSuggestions } from '../_shared/finance-core/discrepancies.ts';
 import { classifyItemsLlm, type ItemToClassify } from '../_shared/classify/items.ts';
+import { parseBackend } from '../_shared/storage/paths.ts';
+import { createR2, r2ConfigFromEnv } from '../_shared/storage/r2.ts';
+import { readObject } from '../_shared/storage/read.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY  = Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -79,9 +82,16 @@ const fileCache = new Map<string, Uint8Array>();
 async function loadFile(admin: Admin, path: string): Promise<Uint8Array> {
   const cached = fileCache.get(path);
   if (cached) return cached;
-  const { data, error } = await admin.storage.from('bank-statements').download(path);
-  if (error || !data) throw new Error(`Datei nicht ladbar: ${error?.message ?? path}`);
-  const bytes = new Uint8Array(await data.arrayBuffer());
+  const r2Config = r2ConfigFromEnv((name) => Deno.env.get(name));
+  const bytes = await readObject({
+    backend: parseBackend(Deno.env.get('STORAGE_BACKEND')),
+    r2: r2Config ? createR2(r2Config) : null,
+    async supabaseDownload(bucket, p) {
+      const { data, error } = await admin.storage.from(bucket).download(p);
+      if (error || !data) return null;
+      return new Uint8Array(await data.arrayBuffer());
+    },
+  }, 'bank-statements', path);
   fileCache.set(path, bytes);
   return bytes;
 }

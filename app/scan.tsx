@@ -29,6 +29,7 @@ import type { ReceiptWithItems, ParsedReceipt, ParsedReceiptItem, ReceiptExtraFi
 import type { CropRegion } from '../src/lib/ocr';
 import { useAds } from '../src/contexts/AdsContext';
 import { track } from '../src/lib/analytics';
+import { upload } from '../src/lib/objectStorage';
 
 // ── NumericInput ────────────────────────────────────────────────────────────
 interface NumericInputProps {
@@ -125,9 +126,9 @@ async function uploadNativeImage(srcUri: string, path: string, ext: string): Pro
   for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
     try {
       const base64 = await FileSystem.readAsStringAsync(srcUri, { encoding: 'base64' });
-      const { error } = await supabase.storage
-        .from('receipt-images')
-        .upload(path, decodeBase64(base64), { contentType: ext === 'jpg' ? 'image/jpeg' : `image/${ext}`, upsert: true });
+      const { error } = await upload('receipt-images', path, decodeBase64(base64), {
+        contentType: ext === 'jpg' ? 'image/jpeg' : `image/${ext}`, upsert: true,
+      });
       if (error) throw error;
       return path;
     } catch (e) {
@@ -536,9 +537,7 @@ export default function ScanScreen() {
         const blob = await resp.blob();
         const ext  = blob.type === 'image/png' ? 'png' : 'jpg';
         const path = `${userId}/${ts}.${ext}`;
-        const { error } = await supabase.storage
-          .from('receipt-images')
-          .upload(path, blob, { contentType: blob.type });
+        const { error } = await upload('receipt-images', path, blob, { contentType: blob.type });
         if (!error) imageUrl = path;
       }
     } catch {

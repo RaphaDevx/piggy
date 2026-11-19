@@ -3,11 +3,13 @@
 // POST { confirm: "DELETE", apple_authorization_code?: string }
 //   1. Revoke Sign in with Apple (best effort; needs a fresh authorization code
 //      from the client and the SIWA key secrets below).
-//   2. Remove the user's files from every storage bucket ("<uid>/..." paths).
+//   2. Remove the user's files from every storage bucket ("<uid>/..." paths):
+//      Supabase Storage (Übergangszeit, bleibt) und Cloudflare R2 (falls R2_* Secrets gesetzt).
 //   3. Delete auth.users → all public tables cascade (migration 20260929000001).
 
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { importPKCS8, SignJWT } from 'npm:jose@5';
+import { createR2, deleteUserObjects, r2ConfigFromEnv } from '../_shared/storage/r2.ts';
 
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY    = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -108,6 +110,13 @@ async function listFilesRecursive(admin: SupabaseClient, bucket: string, prefix:
   }
 }
 
+/** R2-Objekte des Nutzers (Schlüssel `<bucket>/<uid>/...`). Ohne R2-Secrets: übersprungen. */
+async function deleteR2Files(userId: string): Promise<number> {
+  const config = r2ConfigFromEnv((name) => Deno.env.get(name));
+  if (!config) return 0;
+  return deleteUserObjects(createR2(config), userId);
+}
+
 async function deleteUserFiles(admin: SupabaseClient, userId: string): Promise<number> {
   let deleted = 0;
   for (const bucket of USER_BUCKETS) {
@@ -150,11 +159,12 @@ Deno.serve(async (req) => {
   const apple = hasApple ? (appleCode ? await revokeApple(appleCode) : 'failed') : 'not_linked';
 
   try {
+    const r2Files = await deleteR2Files(user.id);
     const files = await deleteUserFiles(admin, user.id);
     const { error } = await admin.auth.admin.deleteUser(user.id);
     if (error) throw new Error(`deleteUser: ${error.message}`);
-    console.log('account deleted', { files, apple });
-    return jsonResponse({ deleted: true, files, apple });
+    console.log('account deleted', { files, r2Files, apple });
+    return jsonResponse({ deleted: true, files, r2Files, apple });
   } catch (e) {
     console.error('account deletion failed', e instanceof Error ? e.message : e);
     return jsonResponse({ error: 'Konto konnte nicht gelöscht werden' }, 500);

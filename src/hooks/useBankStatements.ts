@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../lib/supabase';
+import { upload } from '../lib/objectStorage';
 import { ensureAiConsent } from '../lib/aiConsent';
 import type { AccountType, BankStatement, BankTransaction } from '../types/bank';
 import type { Receipt } from '../types/receipt';
@@ -128,9 +129,7 @@ export function useBankStatements() {
       if (size === 0) throw new Error('Die Datei ist leer oder konnte nicht gelesen werden.');
       if (size > MAX_STATEMENT_BYTES) throw new Error('Die Datei ist grösser als 50 MB.');
       const filePath = `${userId}/${Date.now()}_${safeStorageName(fileName)}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('bank-statements')
-        .upload(filePath, body, { contentType: mimeType });
+      const { error: uploadErr } = await upload('bank-statements', filePath, body, { contentType: mimeType });
       if (uploadErr) throw new Error(`Datei-Upload fehlgeschlagen: ${uploadErr.message}`);
 
       // 2. Auszug in die Warteschlange stellen
