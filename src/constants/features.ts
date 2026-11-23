@@ -16,7 +16,7 @@ import { Platform } from 'react-native';
  *   UND EXPO_PUBLIC_REVENUECAT_IOS_KEY gesetzt ist (siehe subscriptionAvailable); ohne Schlüssel bleibt alles unsichtbar.
  */
 export const FEATURES = {
-  bankStatements: false,
+  bankStatements: true,
   friendRequests: true,
   analytics: false,
   ownApiKeys: false,
