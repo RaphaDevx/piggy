@@ -41,6 +41,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Fotografiere deine Belege, um Ausgaben zu erfassen.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>PIGGY_BANK_IMPORT</key>
 	<string>$(PIGGY_BANK_IMPORT)</string>
 	<key>PIGGY_SHARE_BANK_ITEMS</key>
