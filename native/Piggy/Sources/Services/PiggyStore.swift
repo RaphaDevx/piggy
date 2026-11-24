@@ -80,7 +80,10 @@ final class PiggyStore: ObservableObject {
     /// Internal capture/testing only. Uses normal Supabase authentication and RLS.
     /// Credentials are entered interactively and never bundled or logged.
     func signInSimulatorTest(email: String, password: String) async throws {
-        let session = try await requireClient().auth.signIn(email: email, password: password)
+        // A synthetic example.com alias also works with simulator keyboards that
+        // cannot enter an at-sign. This does not create or bypass an account.
+        let address = email.contains("@") ? email : email + "@example.com"
+        let session = try await requireClient().auth.signIn(email: address, password: password)
         await accept(session)
     }
     #endif
