@@ -43,8 +43,15 @@ final class PiggyStore: ObservableObject {
            let url = URL(string: raw), url.scheme == "https", !raw.contains("$("),
            let key = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String,
            !key.isEmpty, !key.contains("$(") {
-            // Supabase's Apple default auth storage is Keychain; tokens never enter UserDefaults.
+            #if DEBUG && targetEnvironment(simulator)
+            // Unsigned capture builds cannot use an application's Keychain access group.
+            // Keep the genuine authenticated session in locked process memory only.
+            client = SupabaseClient(supabaseURL: url, supabaseKey: key,
+                                    options: .init(auth: .init(storage: SimulatorAuthStorage())))
+            #else
+            // Device/release sessions use the SDK's Keychain storage.
             client = SupabaseClient(supabaseURL: url, supabaseKey: key)
+            #endif
         } else { client = nil }
     }
     deinit { authTask?.cancel() }
@@ -180,3 +187,20 @@ private struct FriendshipRow: Decodable {
     let id: UUID; let requester_id: UUID; let recipient_id: UUID; let status: String
     let requester: Profile; let recipient: Profile
 }
+
+#if DEBUG && targetEnvironment(simulator)
+/// Ephemeral storage for unsigned simulator sessions. No credentials on disk.
+private final class SimulatorAuthStorage: AuthLocalStorage, @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: Data] = [:]
+    func store(key: String, value: Data) throws {
+        lock.lock(); defer { lock.unlock() }; values[key] = value
+    }
+    func retrieve(key: String) throws -> Data? {
+        lock.lock(); defer { lock.unlock() }; return values[key]
+    }
+    func remove(key: String) throws {
+        lock.lock(); defer { lock.unlock() }; values.removeValue(forKey: key)
+    }
+}
+#endif
