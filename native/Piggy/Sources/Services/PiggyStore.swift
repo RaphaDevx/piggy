@@ -13,6 +13,7 @@ final class PiggyStore: ObservableObject {
     @Published var splits: [ExpenseSplit] = []
     @Published var profile: Profile?
     @Published var finance: NativeFinanceSummary?
+    @Published var bank = BankSnapshot()
     @Published var busy = false
     @Published var errorMessage: String?
     @Published private(set) var hasAppleIdentity = false
@@ -72,7 +73,7 @@ final class PiggyStore: ObservableObject {
     }
     private func clearAccount() {
         reloadGeneration = UUID(); userID = nil; receipts = []; friends = []; requests = []
-        projects = []; splits = []; profile = nil; finance = nil; hasAppleIdentity = false; busy = false
+        projects = []; splits = []; profile = nil; finance = nil; bank = BankSnapshot(); hasAppleIdentity = false; busy = false
         settingConsent = true; aiConsent = false; settingConsent = false
     }
     func signInGoogle() async throws {

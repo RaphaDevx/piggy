@@ -54,10 +54,24 @@ struct SocialHomeView: View {
                     }
                 }
             }
+            if !store.settledEntries.isEmpty {
+                Section("Beglichen") {
+                    ForEach(store.settledEntries.prefix(20)) { entry in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.otherName).font(.headline)
+                            Text("\(entry.owedToMe ? "Hat dir bezahlt" : "Du hast bezahlt"): \(money(entry.amount, entry.currency))")
+                            Text(entry.receiptName + (entry.settledAt.map { " · " + receiptDate($0) } ?? "")).font(.caption).foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            SharedItemsSection()
             if let error { Section { ScreenError(message: error) } }
         }
         .navigationTitle("Gemeinsam")
-        .refreshable { await store.reload() }
+        .refreshable { await store.reload(); try? await store.loadSharedItems() }
+        .task { try? await store.loadSharedItems() }
         .sheet(isPresented: $creating) {
             NavigationStack {
                 Form {

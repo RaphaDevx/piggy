@@ -80,3 +80,31 @@ extension PiggyStore {
     }
 }
 private struct SplitID: Decodable { let id: UUID }
+
+/// Option A: beglichene Beträge, für beide Seiten sichtbar.
+struct SettledEntry: Identifiable, Hashable {
+    var id: UUID
+    var otherName: String
+    var amount: Decimal
+    var currency: String
+    var owedToMe: Bool
+    var receiptName: String
+    var settledAt: String?
+}
+
+extension PiggyStore {
+    var settledEntries: [SettledEntry] {
+        guard let uid = userID else { return [] }
+        let rows: [SettledEntry] = splits.flatMap { split in
+            split.split_participants.compactMap { participant -> SettledEntry? in
+                guard participant.settled, participant.user_id != split.payer_id,
+                      split.payer_id == uid || participant.user_id == uid else { return nil }
+                return SettledEntry(id: participant.id,
+                                    otherName: split.payer_id == uid ? (participant.profile?.name ?? "Kontakt") : (split.payer_profile?.name ?? "Kontakt"),
+                                    amount: participant.amount, currency: split.currency, owedToMe: split.payer_id == uid,
+                                    receiptName: split.receipt?.store_name ?? "Beleg", settledAt: participant.settled_at)
+            }
+        }
+        return rows.sorted { ($0.settledAt ?? "") > ($1.settledAt ?? "") }
+    }
+}

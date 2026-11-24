@@ -13,3 +13,8 @@ ADMOB_APP_ID = ca-app-pub-3940256099942544~1458002511
 
 // Jahrespreis noch nicht freigegeben.
 PIGGY_ANNUAL_ENABLED = NO
+
+// Kontoauszug-Abgleich. Vor der Store-Einreichung nur nach Rechtsprüfung (Store-Legal-Gate) auf YES lassen.
+PIGGY_BANK_IMPORT = YES
+// Ausgaben an Freunde senden: braucht Tabelle shared_bank_items (Migration 20261124000001) und Datenschutz-Freigabe.
+PIGGY_SHARE_BANK_ITEMS = NO

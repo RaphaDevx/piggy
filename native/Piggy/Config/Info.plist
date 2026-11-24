@@ -41,6 +41,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Fotografiere deine Belege, um Ausgaben zu erfassen.</string>
+	<key>PIGGY_BANK_IMPORT</key>
+	<string>$(PIGGY_BANK_IMPORT)</string>
+	<key>PIGGY_SHARE_BANK_ITEMS</key>
+	<string>$(PIGGY_SHARE_BANK_ITEMS)</string>
 	<key>PIGGY_ADS_ENABLED</key>
 	<string>$(PIGGY_ADS_ENABLED)</string>
 	<key>PIGGY_ADS_REVIEW_APPROVED</key>

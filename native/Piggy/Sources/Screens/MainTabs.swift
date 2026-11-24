@@ -9,6 +9,10 @@ struct MainTabs: View {
                 .tabItem { Label("Übersicht", systemImage: "house.fill") }
             NavigationStack { ReceiptListView(openScanner: { scannerPresented = true }) }
                 .tabItem { Label("Belege", systemImage: "receipt.fill") }
+            if BankFeature.enabled {
+                NavigationStack { BankHomeView() }
+                    .tabItem { Label("Abgleich", systemImage: "checkmark.seal.fill") }
+            }
             NavigationStack { SocialHomeView() }
                 .tabItem { Label("Gemeinsam", systemImage: "person.2.fill") }
             NavigationStack { ProfileView() }
