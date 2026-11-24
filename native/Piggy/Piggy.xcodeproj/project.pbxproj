@@ -55,7 +55,7 @@ D04AF157FB143F17000DA183 = {isa = PBXBuildFile; fileRef = 5F2C0BAFF5ECE16FF3ADD7
 2158C3D97DCD9738909D5816 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/supabase/supabase-swift.git"; requirement = {kind = exactVersion; version = 2.55.7;};};
 094839FB9C1E1C3AD8D769FE = {isa = XCSwiftPackageProductDependency; package = 2158C3D97DCD9738909D5816; productName = Supabase;};
 5184B3B7EAEE95224CE8B487 = {isa = PBXBuildFile; productRef = 094839FB9C1E1C3AD8D769FE;};
-FD759B7A458C8585B0D10450 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/RevenueCat/purchases-ios.git"; requirement = {kind = exactVersion; version = 5.43.0;};};
+FD759B7A458C8585B0D10450 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/RevenueCat/purchases-ios.git"; requirement = {kind = exactVersion; version = 5.103.2;};};
 DBE2CDF9D9E4EDE2CD9E05AA = {isa = XCSwiftPackageProductDependency; package = FD759B7A458C8585B0D10450; productName = RevenueCat;};
 8018923A0D3B62CB4FB27557 = {isa = PBXBuildFile; productRef = DBE2CDF9D9E4EDE2CD9E05AA;};
 8D9B57A96758071C65350C25 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git"; requirement = {kind = exactVersion; version = 12.11.0;};};

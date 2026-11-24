@@ -24,7 +24,8 @@ for path, kind in [('Resources/Brand','folder'), ('Resources/Assets.xcassets','f
 framework_builds, dependencies, packages = [], [], []
 for name, url, version in [
     ('Supabase','https://github.com/supabase/supabase-swift.git','2.55.7'),
-    ('RevenueCat','https://github.com/RevenueCat/purchases-ios.git','5.43.0'),
+    # Includes the designated-initializer fix required by Xcode 27 (upstream #6949).
+    ('RevenueCat','https://github.com/RevenueCat/purchases-ios.git','5.103.2'),
     ('GoogleMobileAds','https://github.com/googleads/swift-package-manager-google-mobile-ads.git','12.11.0'),
     ('GoogleUserMessagingPlatform','https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git','3.0.0')]:
     package = obj('package:'+name, '{isa = XCRemoteSwiftPackageReference; repositoryURL = '+q(url)+'; requirement = {kind = exactVersion; version = '+version+';};}')
