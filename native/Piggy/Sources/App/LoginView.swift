@@ -8,6 +8,11 @@ struct LoginView: View {
     @State private var nonce = ""
     @State private var busy = false
     @State private var error: String?
+    #if DEBUG && targetEnvironment(simulator)
+    @State private var testEmail = ""
+    @State private var testPassword = ""
+    @State private var showTestLogin = false
+    #endif
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -42,6 +47,23 @@ struct LoginView: View {
                     Task { do { try await store.signInGoogle() } catch { self.error = "Die Google-Anmeldung konnte nicht abgeschlossen werden." }; busy = false }
                 } label: { Text("Mit Google fortfahren").fontWeight(.semibold).frame(maxWidth: .infinity).padding(16).background(Theme.surface, in: RoundedRectangle(cornerRadius: 12)) }
                     .disabled(busy || !store.configured)
+                #if DEBUG && targetEnvironment(simulator)
+                DisclosureGroup("Simulator-Testkonto", isExpanded: $showTestLogin) {
+                    TextField("Test-E-Mail", text: $testEmail)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .keyboardType(.emailAddress).accessibilityIdentifier("capture.email")
+                    SecureField("Test-Passwort", text: $testPassword)
+                        .accessibilityIdentifier("capture.password")
+                    Button("Testkonto anmelden") {
+                        busy = true
+                        Task {
+                            defer { busy = false; testPassword = "" }
+                            do { try await store.signInSimulatorTest(email: testEmail, password: testPassword) }
+                            catch { self.error = "Testanmeldung fehlgeschlagen." }
+                        }
+                    }.disabled(busy || testEmail.isEmpty || testPassword.isEmpty || !store.configured)
+                }.font(.footnote)
+                #endif
                 if busy { ProgressView("Anmeldung wird geprüft") }
                 if !store.configured { Text("Piggy ist hier noch nicht verfügbar. Bitte versuche es mit einer freigegebenen App-Version.").font(.footnote).foregroundStyle(.secondary) }
                 if let error { Text(error).foregroundStyle(.red).accessibilityAddTraits(.updatesFrequently) }

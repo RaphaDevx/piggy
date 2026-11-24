@@ -76,6 +76,14 @@ final class PiggyStore: ObservableObject {
         projects = []; splits = []; profile = nil; finance = nil; bank = BankSnapshot(); hasAppleIdentity = false; busy = false
         settingConsent = true; aiConsent = false; settingConsent = false
     }
+    #if DEBUG && targetEnvironment(simulator)
+    /// Internal capture/testing only. Uses normal Supabase authentication and RLS.
+    /// Credentials are entered interactively and never bundled or logged.
+    func signInSimulatorTest(email: String, password: String) async throws {
+        let session = try await requireClient().auth.signIn(email: email, password: password)
+        await accept(session)
+    }
+    #endif
     func signInGoogle() async throws {
         let session = try await requireClient().auth.signInWithOAuth(provider: .google, redirectTo: URL(string: "piggy://auth/callback"))
         await accept(session)
