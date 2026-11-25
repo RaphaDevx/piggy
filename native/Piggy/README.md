@@ -36,3 +36,5 @@ Architektur: [ADR 0004](../../docs/adr/0004-native-swiftui-client.md).
 Login, Tokens und Datenbank bleiben bei Supabase. `STORAGE_BACKEND=r2-with-fallback` ist der Standard in Base.xcconfig: neue Belegbilder und Kontoauszüge werden über `storage-url` direkt in den privaten EU-R2-Bucket geschrieben. Nur Lesen hat für ältere Dateien einen Supabase-Fallback. Ein fehlgeschlagener R2-Upload bleibt ein Fehler. Supabase-Tokens werden niemals an R2 geschickt, und R2-Schlüssel gelangen nie in die App.
 
 Die Backendfunktionen und die Kopie der 333 bisherigen Dateien sind aktiv. Installierte Altversionen bleiben bis zum App-Update beim bisherigen Speicherweg; deshalb keine Supabase-Dateien entfernen und vor Abschaltung erneut abgleichen. Details und aktueller Nachweis in ADR 0005.
+
+R2-Integration auf Apple verifiziert: lokaler K-Dev-Build `509eb0bb97e74f46`, Version 1.0 (28), Swift-Core-Prüfungen und Simulator-Build bestanden. Die gebaute Info.plist bestätigt den R2-Modus und die unveränderte Supabase-Adresse. Kein TestFlight-/App-Store-Upload.

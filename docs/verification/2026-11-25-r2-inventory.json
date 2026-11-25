@@ -1,0 +1,36 @@
+{
+  "verifiedAt": "2026-11-25T13:46:21.539Z",
+  "buckets": [
+    {
+      "bucket": "receipts",
+      "sourceObjects": 12,
+      "targetObjects": 12,
+      "sourceBytes": 16547686,
+      "targetBytes": 16547686,
+      "sourceMD5Comparable": 12,
+      "metadataMD5Matches": 12,
+      "validTargetMD5": 12
+    },
+    {
+      "bucket": "receipt-images",
+      "sourceObjects": 321,
+      "targetObjects": 321,
+      "sourceBytes": 723246606,
+      "targetBytes": 723246606,
+      "sourceMD5Comparable": 321,
+      "metadataMD5Matches": 321,
+      "validTargetMD5": 321
+    },
+    {
+      "bucket": "bank-statements",
+      "sourceObjects": 0,
+      "targetObjects": 0,
+      "sourceBytes": 0,
+      "targetBytes": 0,
+      "sourceMD5Comparable": 0,
+      "metadataMD5Matches": 0,
+      "validTargetMD5": 0
+    }
+  ],
+  "ok": true
+}
