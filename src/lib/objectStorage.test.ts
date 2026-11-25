@@ -26,8 +26,9 @@ beforeEach(() => {
 afterAll(() => setBackend(undefined));
 
 describe('Schalter', () => {
-  test('Standard und unbekannte Werte: supabase, 1 h', () => {
-    expect(getStorageBackend()).toBe('supabase');
+  test('Standard: R2 mit Lese-Fallback; unbekannte Werte bleiben explizit kompatibel', () => {
+    expect(getStorageBackend()).toBe('r2-with-fallback');
+    expect(signedUrlTtlSeconds()).toBe(600);
     setBackend('quatsch');
     expect(getStorageBackend()).toBe('supabase');
     expect(signedUrlTtlSeconds()).toBe(3600);
@@ -39,6 +40,7 @@ describe('Schalter', () => {
 });
 
 describe('supabase', () => {
+  beforeEach(() => setBackend('supabase'));
   test('lesen/schreiben/löschen nur über Supabase, kein Function-Aufruf', async () => {
     expect(await getSignedUrls('receipt-images', ['u/a.jpg'], 3600)).toEqual(['https://sb/u/a.jpg']);
     expect(mockCreateSignedUrls).toHaveBeenCalledWith(['u/a.jpg'], 3600);
@@ -115,10 +117,10 @@ describe('r2-with-fallback', () => {
     expect(await getSignedUrls('receipts', ['u/a'])).toEqual([null]);
     expect(mockCreateSignedUrls).not.toHaveBeenCalled();
   });
-  test('Upload: R2-Fehler -> Supabase', async () => {
+  test('Upload: R2-Fehler bleibt sichtbar, kein Zurückschreiben nach Supabase', async () => {
     mockInvoke.mockResolvedValue({ data: null, error: new Error('down') });
-    expect(await upload('receipts', 'u/a', new Uint8Array([1]), { contentType: 'image/png' })).toEqual({ error: null });
-    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect((await upload('receipts', 'u/a', new Uint8Array([1]), { contentType: 'image/png' })).error?.message).toBe('down');
+    expect(mockUpload).not.toHaveBeenCalled();
   });
   test('Löschen: in beiden', async () => {
     mockInvoke.mockResolvedValue({ data: { results: [{ path: 'u/a', url: 'https://r2/del' }] }, error: null });

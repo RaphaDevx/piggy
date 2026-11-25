@@ -155,7 +155,7 @@ async function main() {
   }
   const report = await migrate({ source, target, buckets: args.buckets, dryRun: args.dryRun, log: (m) => console.log(m) });
   const json = JSON.stringify(report, null, 2);
-  if (args.report) writeFileSync(args.report, json + '\n');
+  if (args.report) writeFileSync(args.report, json + '\n', { mode: 0o600 });
   else console.log(json);
   if (!report.ok) process.exitCode = 2;
 }

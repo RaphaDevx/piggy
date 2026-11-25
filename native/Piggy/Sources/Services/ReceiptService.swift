@@ -32,7 +32,7 @@ extension PiggyStore {
         guard let image else { return nil }
         guard let data = image.jpegData(compressionQuality: 0.85) else { throw PiggyFailure.validation("Das Belegbild konnte nicht vorbereitet werden.") }
         let path = "\(user.uuidString.lowercased())/\(UUID().uuidString.lowercased()).jpg"
-        try await requireClient().storage.from("receipt-images").upload(path, data: data, options: .init(contentType: "image/jpeg"))
+        try await uploadObject(bucket: "receipt-images", path: path, data: data, contentType: "image/jpeg")
         return path
     }
     private func scanPayload(_ draft: ReceiptDraft, path: String?) -> JSONValue {
@@ -78,7 +78,7 @@ extension PiggyStore {
     }
     func signedImageURL(path: String) async throws -> URL {
         guard !path.contains("://"), !path.hasPrefix("/"), !path.contains("..") else { throw PiggyFailure.validation("Ungültiger Belegpfad.") }
-        return try await requireClient().storage.from("receipt-images").createSignedURL(path: path, expiresIn: 600)
+        return try await signedObjectURL(bucket: "receipt-images", path: path)
     }
     func delete(receipt: Receipt) async throws {
         try await requireClient().rpc("delete_reviewed_receipt", params: ["p_receipt_id": receipt.id]).execute()

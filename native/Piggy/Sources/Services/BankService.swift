@@ -57,7 +57,7 @@ extension PiggyStore {
         let fileName = fileURL.lastPathComponent
         let mime = try StatementFile.validate(fileName: fileName, byteCount: data.count)
         let path = "\(uid.uuidString.lowercased())/\(Int(Date().timeIntervalSince1970 * 1000))_\(StatementFile.safeName(fileName))"
-        try await client.storage.from("bank-statements").upload(path, data: data, options: FileOptions(contentType: mime))
+        try await uploadObject(bucket: "bank-statements", path: path, data: data, contentType: mime)
         struct Inserted: Decodable { let id: UUID }
         let name = label.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
@@ -68,7 +68,7 @@ extension PiggyStore {
             ]).select("id").single().execute().value
         } catch {
             // Keine verwaiste Datei ohne Eintrag zurücklassen.
-            _ = try? await client.storage.from("bank-statements").remove(paths: [path])
+            try? await removeObject(bucket: "bank-statements", path: path)
             throw error
         }
         _ = try? await client.rpc("kick_statement_worker").execute()
@@ -79,7 +79,7 @@ extension PiggyStore {
     func deleteStatement(_ statement: BankStatement) async throws {
         let client = try requireClient()
         if let path = statement.file_path, !path.isEmpty {
-            _ = try await client.storage.from("bank-statements").remove(paths: [path])
+            try await removeObject(bucket: "bank-statements", path: path)
         }
         try await client.from("bank_statements").delete().eq("id", value: statement.id.uuidString).execute()
         try await loadBank()

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "SUPABASE_SERVICE_ROLE",
+    "service": "supabase",
+    "purpose": "Edge Functions und Backups; nie in die App",
+    "rotate": "provider",
+    "rotateEveryDays": 180
+  },
+  {
+    "name": "SUPABASE_ANON_KEY",
+    "service": "supabase",
+    "purpose": "Öffentlicher Client-Schlüssel der App",
+    "rotate": "provider"
+  },
+  {
+    "name": "R2_ACCESS_KEY_ID",
+    "service": "cloudflare-r2",
+    "purpose": "Cloudflare R2, nur Piggy EU Bucket; nur Backend",
+    "rotate": "provider",
+    "rotateEveryDays": 180
+  },
+  {
+    "name": "R2_SECRET_ACCESS_KEY",
+    "service": "cloudflare-r2",
+    "purpose": "Privater R2 S3-Schlüssel; nie in die App",
+    "rotate": "provider",
+    "rotateEveryDays": 180
+  }
+]

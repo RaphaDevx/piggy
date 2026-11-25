@@ -1,5 +1,5 @@
 // Adapter für Beleg-Dateien: Supabase Storage oder Cloudflare R2 (ADR 0005).
-// Umschalter: EXPO_PUBLIC_STORAGE_BACKEND = 'supabase' (Standard) | 'r2' | 'r2-with-fallback'.
+// Umschalter: EXPO_PUBLIC_STORAGE_BACKEND = 'supabase' (Rollback) | 'r2' | 'r2-with-fallback' (Standard).
 //   r2-with-fallback: Lesen zuerst R2, fehlt das Objekt dort (404) -> Supabase.
 //                     Schreiben nach R2, schlägt das fehl -> Supabase (Übergangszeit).
 // Die Objekt-Pfade sind in allen Modi gleich (`<user_id>/...`), DB-Zeilen bleiben unverändert.
@@ -16,7 +16,7 @@ export const R2_URL_TTL_SECONDS = 600;
 const SUPABASE_URL_TTL_SECONDS = 3600;
 
 export function getStorageBackend(): StorageBackend {
-  const value = process.env.EXPO_PUBLIC_STORAGE_BACKEND;
+  const value = process.env.EXPO_PUBLIC_STORAGE_BACKEND ?? 'r2-with-fallback';
   return value === 'r2' || value === 'r2-with-fallback' ? value : 'supabase';
 }
 
@@ -110,12 +110,8 @@ export async function upload(
 ): Promise<{ error: Error | null }> {
   const backend = getStorageBackend();
   if (backend === 'supabase') return supabaseUpload(bucket, path, body, options.contentType, options.upsert);
-  const result = await r2Upload(bucket, path, body, options.contentType);
-  if (result.error && backend === 'r2-with-fallback') {
-    console.warn('R2-Upload fehlgeschlagen, Fallback auf Supabase');
-    return supabaseUpload(bucket, path, body, options.contentType, options.upsert);
-  }
-  return result;
+  // The migration fallback is read-only; never silently write new files back to Supabase.
+  return r2Upload(bucket, path, body, options.contentType);
 }
 
 // ── Löschen ──────────────────────────────────────────────────────────────────

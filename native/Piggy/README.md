@@ -30,3 +30,9 @@ Bereits geprüft: bestehende 266 Jest-Tests/21 Suites und TypeScript; Deno-Typpr
 Offen: echter Simulator-Walkthrough mit Neustart/Skip/Replay/Reduce Motion/Dynamic Type, Login über beide Provider, RLS/Speichern/Bild-URLs, KI-Zustimmungswiderruf, tatsächliche Kamera auf iPhone, StoreKit-Sandbox-Kauf/Restore und Gold-Werbefreiheit. PDF-/Bankimport bleiben ausserhalb des aktivierten Umfangs. Vor Veröffentlichung Datenschutzangaben und SDK-Manifeste mit dem Build-Owner abgleichen. Die eigenen Datentypen folgen [Apples Manifest-Dokumentation](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacycollecteddatatypes/nsprivacycollecteddatatype).
 
 Architektur: [ADR 0004](../../docs/adr/0004-native-swiftui-client.md).
+
+## R2-Dateispeicher (25.11.2026)
+
+Login, Tokens und Datenbank bleiben bei Supabase. `STORAGE_BACKEND=r2-with-fallback` ist der Standard in Base.xcconfig: neue Belegbilder und Kontoauszüge werden über `storage-url` direkt in den privaten EU-R2-Bucket geschrieben. Nur Lesen hat für ältere Dateien einen Supabase-Fallback. Ein fehlgeschlagener R2-Upload bleibt ein Fehler. Supabase-Tokens werden niemals an R2 geschickt, und R2-Schlüssel gelangen nie in die App.
+
+Die Backendfunktionen und die Kopie der 333 bisherigen Dateien sind aktiv. Installierte Altversionen bleiben bis zum App-Update beim bisherigen Speicherweg; deshalb keine Supabase-Dateien entfernen und vor Abschaltung erneut abgleichen. Details und aktueller Nachweis in ADR 0005.

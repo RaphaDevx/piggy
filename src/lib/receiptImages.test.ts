@@ -1,6 +1,8 @@
 const mockCreateSignedUrls = jest.fn();
+const mockInvoke = jest.fn();
+const previousStorageBackend = process.env.EXPO_PUBLIC_STORAGE_BACKEND;
 jest.mock('./supabase', () => ({
-  supabase: { storage: { from: () => ({ createSignedUrls: mockCreateSignedUrls }) } },
+  supabase: { functions: { invoke: (...args: unknown[]) => mockInvoke(...args) }, storage: { from: () => ({ createSignedUrls: mockCreateSignedUrls }) } },
 }));
 import { toStoragePath, getSignedReceiptImageUrls, clearReceiptImageCache } from './receiptImages';
 
@@ -10,9 +12,16 @@ const sign = (paths: string[]) => ({
 });
 
 beforeEach(() => {
+  process.env.EXPO_PUBLIC_STORAGE_BACKEND = 'supabase';
+  mockInvoke.mockReset();
   clearReceiptImageCache();
   mockCreateSignedUrls.mockReset();
   mockCreateSignedUrls.mockImplementation(async (paths: string[]) => sign(paths));
+});
+
+afterAll(() => {
+  if (previousStorageBackend === undefined) delete process.env.EXPO_PUBLIC_STORAGE_BACKEND;
+  else process.env.EXPO_PUBLIC_STORAGE_BACKEND = previousStorageBackend;
 });
 
 describe('toStoragePath', () => {
@@ -72,4 +81,18 @@ describe('getSignedReceiptImageUrls', () => {
     mockCreateSignedUrls.mockResolvedValueOnce({ data: [{ path: 'u/x.jpg', signedUrl: null, error: 'Object not found' }], error: null });
     expect(await getSignedReceiptImageUrls(['u/x.jpg', 'file:///a.jpg'])).toEqual([null, 'file:///a.jpg']);
   });
+});
+
+test('R2 links are renewed within their ten-minute validity, without touching Supabase', async () => {
+  process.env.EXPO_PUBLIC_STORAGE_BACKEND = 'r2-with-fallback';
+  mockInvoke.mockResolvedValue({ data: { results: [{ path: 'u/r2.jpg', url: 'https://account.eu.r2.cloudflarestorage.com/bucket/u/r2.jpg', found: true }], expiresIn: 600 }, error: null });
+  const now = jest.spyOn(Date, 'now');
+  try {
+    now.mockReturnValue(1_000_000);
+    await getSignedReceiptImageUrls(['u/r2.jpg']);
+    now.mockReturnValue(1_000_000 + 9 * 60 * 1000);
+    await getSignedReceiptImageUrls(['u/r2.jpg']);
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+    expect(mockCreateSignedUrls).not.toHaveBeenCalled();
+  } finally { now.mockRestore(); }
 });

@@ -18,3 +18,6 @@ PIGGY_ANNUAL_ENABLED = NO
 PIGGY_BANK_IMPORT = YES
 // Ausgaben an Freunde senden: braucht Tabelle shared_bank_items (Migration 20261124000001) und Datenschutz-Freigabe.
 PIGGY_SHARE_BANK_ITEMS = NO
+
+// Only legacy reads may use Supabase; new files are always uploaded to R2.
+STORAGE_BACKEND = r2-with-fallback

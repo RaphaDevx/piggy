@@ -78,7 +78,7 @@ export function createR2(config: R2Config, fetchImpl: typeof fetch = fetch, now:
     },
     /** Metadaten oder null bei 404. */
     async head(key: string): Promise<{ size: number; etag: string } | null> {
-      const res = await fetchImpl(await sign('HEAD', objectPath(key), 60));
+      const res = await fetchImpl(await sign('HEAD', objectPath(key), 60), { method: 'HEAD' });
       if (res.status === 404) return null;
       if (!res.ok) throw fail('HEAD', res.status);
       return { size: Number(res.headers.get('content-length') ?? 0), etag: unquote(res.headers.get('etag')) };
@@ -94,12 +94,12 @@ export function createR2(config: R2Config, fetchImpl: typeof fetch = fetch, now:
       const res = await fetchImpl(await sign('PUT', objectPath(key), 300), {
         method: 'PUT',
         headers: contentType ? { 'Content-Type': contentType } : undefined,
-        body,
+        body: new Uint8Array(body).buffer,
       });
       if (!res.ok) throw fail('PUT', res.status);
     },
     async delete(key: string): Promise<void> {
-      const res = await fetchImpl(await sign('DELETE', objectPath(key), 60));
+      const res = await fetchImpl(await sign('DELETE', objectPath(key), 60), { method: 'DELETE' });
       if (!res.ok && res.status !== 404) throw fail('DELETE', res.status);
     },
     /** Alle Objekte unter dem Präfix (paginiert). */

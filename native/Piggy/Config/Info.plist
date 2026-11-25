@@ -37,26 +37,28 @@
 	<string>$(ADMOB_APP_ID)</string>
 	<key>GADIsAdManagerApp</key>
 	<false/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Fotografiere deine Belege, um Ausgaben zu erfassen.</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>PIGGY_BANK_IMPORT</key>
-	<string>$(PIGGY_BANK_IMPORT)</string>
-	<key>PIGGY_SHARE_BANK_ITEMS</key>
-	<string>$(PIGGY_SHARE_BANK_ITEMS)</string>
 	<key>PIGGY_ADS_ENABLED</key>
 	<string>$(PIGGY_ADS_ENABLED)</string>
 	<key>PIGGY_ADS_REVIEW_APPROVED</key>
 	<string>$(PIGGY_ADS_REVIEW_APPROVED)</string>
 	<key>PIGGY_ANNUAL_ENABLED</key>
 	<string>$(PIGGY_ANNUAL_ENABLED)</string>
+	<key>PIGGY_BANK_IMPORT</key>
+	<string>$(PIGGY_BANK_IMPORT)</string>
+	<key>PIGGY_SHARE_BANK_ITEMS</key>
+	<string>$(PIGGY_SHARE_BANK_ITEMS)</string>
 	<key>PRIVACY_URL</key>
 	<string>$(PRIVACY_URL)</string>
 	<key>REVENUECAT_IOS_KEY</key>
 	<string>$(REVENUECAT_IOS_KEY)</string>
+	<key>STORAGE_BACKEND</key>
+	<string>$(STORAGE_BACKEND)</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>

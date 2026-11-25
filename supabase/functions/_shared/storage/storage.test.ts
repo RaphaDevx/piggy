@@ -159,3 +159,12 @@ describe('readObject (Edge-Function-Lesen)', () => {
     await expect(readObject({ backend: 'r2', r2: null, supabaseDownload: sb(bytes) }, 'receipts', 'u/a')).rejects.toThrow(/konfiguriert/);
   });
 });
+
+// SigV4 binds the HTTP verb: signing HEAD/DELETE but sending GET fails in real R2.
+test('R2 head and delete send the exact signed method', async () => {
+  const calls: RequestInit[] = [];
+  const r2 = createR2({ accountId: 'account', accessKeyId: 'key', secretAccessKey: 'secret', bucket: 'bucket' }, (async (_url: unknown, init?: RequestInit) => { calls.push(init ?? {}); return new Response(null, { status: 200 }); }) as never);
+  await r2.head('receipt-images/user/file.jpg');
+  await r2.delete('receipt-images/user/file.jpg');
+  expect(calls.map(c => c.method)).toEqual(['HEAD', 'DELETE']);
+});

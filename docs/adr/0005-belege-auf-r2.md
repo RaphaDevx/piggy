@@ -1,18 +1,18 @@
 # ADR 0005: Belege auf Cloudflare R2
 
-Status: Vorschlag, Code vorbereitet, nichts ausgeführt oder bereitgestellt. 19.11.2026.
+Status: Backend und Datenkopie am 25.11.2026 aktiviert; App-Update noch auszuliefern. Ursprünglicher Vorschlag 19.11.2026.
 
 ## Kontext
 
-Quittungsbilder und Kontoauszug-Dateien liegen in Supabase Storage (`receipt-images` 303 Dateien / 669 MB, `receipts` 12 / 16 MB, `bank-statements`). Das Free-Kontingent (1 GB) ist ausgeschöpft. Datenbank, Auth und Edge Functions sind klein und bleiben auf Supabase. Nur die Dateien sollen nach R2 (S3-kompatibel, privat), damit das Abo gekündigt werden kann.
+Quittungsbilder und Kontoauszug-Dateien liegen in Supabase Storage (`receipt-images` 303 Dateien / 669 MB, `receipts` 12 / 16 MB, `bank-statements`). Diese historischen Zahlen allein belegen keine ausgeschöpfte Quote. Aktuelle Messung am 25.11.: 333 Objekte / 739.794.292 Bytes (705,5 MiB), Datenbank ca. 31 MiB. Abgerechnete Organisationsquoten sind separat zu prüfen. Datenbank, Auth und Edge Functions sind klein und bleiben auf Supabase. Nur die Dateien sollen nach R2 (S3-kompatibel, privat), damit das Abo gekündigt werden kann.
 
 ## Entscheidung
 
 1. **Gleiche Pfade.** App und Datenbank behalten `<user_id>/...` (`receipts.image_url`, `original_image_url`, `scan_queue.image_path`, `bank_statements.file_path` bleiben unverändert). Abweichung nur intern: R2 hat einen Bucket, der Objektschlüssel lautet `<supabase-bucket>/<pfad>`. Grund: ein R2-Bucket, keine Kollision zwischen den drei Supabase-Buckets, Löschen pro Nutzer per Präfix `<bucket>/<uid>/`.
 2. **Edge Function `storage-url`** (`supabase/functions/storage-url`, Logik in `_shared/storage/`). Prüft `auth.getUser()`, erlaubt nur Pfade unter `<eigene uid>/` (kein `..`, keine leeren Segmente, kein Backslash), liefert vorsignierte R2-URLs für GET, PUT und DELETE, Gültigkeit höchstens 600 Sekunden. Ein fremder Pfad lehnt die ganze Anfrage mit 403 ab. Secrets nur aus `Deno.env`: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
    - **Freigaben:** Die vorhandenen Storage-Policies (`receipt_images_own_*`, `bank_statements_storage_*`) schränken auf den eigenen Ordner ein. Geteilte Belege (`shared_receipts`) und Projekte geben Bilder heute nicht frei, nur die Datenbankzeilen. Die Function bildet das ab: nur eigene Pfade. Die `receipt_images_own_*`-Policies stehen nicht im Repo (nur im Kommentar von `20261022000002`); das Verhalten ist deshalb aus dem Code abgeleitet und gegen das echte Projekt zu bestätigen.
-3. **Adapter `src/lib/objectStorage.ts`** mit `upload`, `getSignedUrls`/`getSignedUrl`, `remove` und Schalter `EXPO_PUBLIC_STORAGE_BACKEND` = `supabase` (Standard) | `r2` | `r2-with-fallback`.
-   - `r2-with-fallback`: Lesen zuerst R2 (die Function prüft per HEAD, ob das Objekt existiert), bei 404 Supabase; ist die Function nicht erreichbar, ebenfalls Supabase. Schreiben nach R2, bei Fehler nach Supabase. Löschen in beiden.
+3. **Adapter `src/lib/objectStorage.ts`** mit `upload`, `getSignedUrls`/`getSignedUrl`, `remove` und Schalter `EXPO_PUBLIC_STORAGE_BACKEND` = `supabase` (expliziter Rückweg) | `r2` | `r2-with-fallback` (Standard für neue Builds).
+   - `r2-with-fallback`: Lesen zuerst R2 (die Function prüft per HEAD, ob das Objekt existiert), bei 404 Supabase; ist die Function nicht erreichbar, ebenfalls Supabase. Neue Dateien ausschliesslich nach R2. Fehler beim R2-Upload bleiben sichtbar und schreiben nicht unbemerkt nach Supabase zurück. Löschen in beiden.
    - Umgestellt: `receiptImages.ts`, `app/scan.tsx` (2 Uploads), `useBankStatements.ts`, `ocr.ts`. `getPublicUrl` wird nirgends mehr benutzt.
    - URL-Cache in `receiptImages.ts` folgt der Gültigkeit (R2: 10 Minuten, Supabase: 1 Stunde).
 4. **`delete-account`** löscht zusätzlich alle R2-Objekte des Nutzers (Liste und Löschen je Präfix), sofern die R2-Secrets gesetzt sind. Das Supabase-Löschen bleibt für die Übergangszeit.
@@ -24,7 +24,7 @@ Quittungsbilder und Kontoauszug-Dateien liegen in Supabase Storage (`receipt-ima
 - Mehr Latenz beim Anzeigen (ein Function-Aufruf pro Batch, im Fallback-Modus zusätzlich ein HEAD je Bild).
 - Edge-Function-Aufrufe und R2-Operationen verursachen Kosten (R2 ohne Egress-Gebühren, Free-Tier prüfen).
 - R2 CORS muss für die Web-App (PUT/GET) konfiguriert werden.
-- Der native SwiftUI-Client (`native/Piggy/Sources/Services/ReceiptService.swift`) benutzt noch direkt `storage.from("receipt-images")`. Er ist **nicht** umgestellt; Migration der Daten und endgültiges Abschalten von Supabase Storage sind erst möglich, wenn auch er `storage-url` nutzt (oder bis dahin im Modus `supabase` bzw. mit Fallback-Schreibweg bleibt).
+- Der native SwiftUI-Client verwendet seit 25.11. `ObjectStorageService.swift` für Quittungsbilder und Kontoauszüge. Standard `r2-with-fallback`: neue Uploads nur R2, Lese-Fallback für noch nicht übertragene Dateien alter App-Versionen. Installierte Altversionen können bis zu ihrem Update weiter in Supabase schreiben. Vor Abschaltung nochmals synchronisieren.
 - Datenschutz: Bilder liegen künftig bei Cloudflare (Jurisdiktion und DPA prüfen, siehe `LEGAL-COMPLIANCE.md` 2.3). Keine Rechtsberatung.
 
 ## Einführung
@@ -43,3 +43,13 @@ Quittungsbilder und Kontoauszug-Dateien liegen in Supabase Storage (`receipt-ima
 
 ## Änderung 2026-11-19: EU-Jurisdiktion
 Ein Bucket mit EU-Jurisdiktion ist nur über `<konto>.eu.r2.cloudflarestorage.com` erreichbar. Das Secret `R2_JURISDICTION=eu` schaltet den Endpunkt um (`eu` oder `fedramp`, sonst Standard). Die Jurisdiktion lässt sich nach Anlage des Buckets nicht mehr ändern, deshalb vor dem Anlegen festlegen. Folgeplan: `docs/umzug-eigenes-backend.md`.
+
+## Umsetzung und Nachweis 25.11.2026
+
+Bestehender EU-Bucket `piggy-receipts`, öffentliche Domains deaktiviert, keine Custom Domains. Separater Bucket-Objektschlüssel mit nur Object Read/Write, in kvault unter piggy/R2_ACCESS_KEY_ID und R2_SECRET_ACCESS_KEY, nie in Clients. Secrets in Supabase gesetzt. `storage-url`, `delete-account`, `statement-worker` bereitgestellt; vorhandene JWT-Gateway-Einstellungen beibehalten. Kein Auth-/DB-Umzug.
+
+333 Dateien, 739.794.292 Bytes nach R2 kopiert; keine fehlenden Objekte, keine Grössen-/MD5-Abweichungen. Bericht ausserhalb Git unter `/storage/Public/K-Dev/archive/piggy-r2-migrate-2026-11-25T13-39-48-018Z.json`. Supabase-Dateien bleiben vollständig erhalten.
+
+Fehler im vorbereiteten S3-Adapter behoben: signierte HEAD-/DELETE-Anfragen müssen auch tatsächlich mit HEAD/DELETE gesendet werden. Deno-Typprüfung für WebCrypto-/BodyInit-ArrayBuffer-Kompatibilität ergänzt.
+
+Rückweg ist weiterhin explizit, keine automatische vollständige Backend-Umschaltung: `STORAGE_BACKEND=supabase` bzw. `EXPO_PUBLIC_STORAGE_BACKEND=supabase` erfordert erneute App-Auslieferung. R2-Neudateien sind vor einem solchen Rückweg zurückzukopieren.
