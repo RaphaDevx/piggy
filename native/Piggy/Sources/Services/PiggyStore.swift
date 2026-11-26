@@ -8,6 +8,7 @@ final class PiggyStore: ObservableObject {
     @Published var passwordRecovery = false
     @Published var userID: UUID?
     @Published var receipts: [Receipt] = []
+    @Published var dismissedDuplicates: [DismissedDuplicate] = []
     @Published var cards: [ProfileCard] = []
     @Published var friends: [Friend] = []
     @Published var requests: [Friend] = []
@@ -82,7 +83,7 @@ final class PiggyStore: ObservableObject {
         } catch { /* Absence of a saved session is the normal first-launch state. */ }
     }
     private func clearAccount() {
-        reloadGeneration = UUID(); passwordRecovery = false; userID = nil; receipts = []; cards = []; friends = []; requests = []
+        reloadGeneration = UUID(); passwordRecovery = false; userID = nil; receipts = []; cards = []; dismissedDuplicates = []; friends = []; requests = []
         projects = []; splits = []; profile = nil; finance = nil; bank = BankSnapshot(); hasAppleIdentity = false; busy = false
         settingConsent = true; aiConsent = false; settingConsent = false
     }

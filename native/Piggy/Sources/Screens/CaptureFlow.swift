@@ -6,6 +6,7 @@ struct CaptureFlow: View {
     @EnvironmentObject private var store: PiggyStore
     @Environment(\.dismiss) private var dismiss
     @State private var cameraPresented = false
+    @State private var pendingCameraImage: UIImage?
     @State private var photo: PhotosPickerItem?
     @State private var pages: [UIImage] = []
     @State private var draft: ReceiptDraft?
@@ -69,13 +70,15 @@ struct CaptureFlow: View {
                 Button("Ungespeicherte Aufnahmen verwerfen", role: .destructive) { dismiss() }
                 Button("Weiter prüfen", role: .cancel) {}
             } message: { Text("Bereits gespeicherte Belege bleiben erhalten.") }
-            .sheet(isPresented: $cameraPresented) {
+            .sheet(isPresented: $cameraPresented, onDismiss: {
+                if let image = pendingCameraImage { pendingCameraImage = nil; beginRecognition(image) }
+            }) {
                 DocumentCamera { result in
                     cameraPresented = false
                     switch result {
                     case .success(let images):
                         pages = images
-                        if let image = images.first { beginRecognition(image) }
+                        pendingCameraImage = images.first
                     case .failure(let error): if !(error is CancellationError) { message = error.localizedDescription }
                     }
                 }
@@ -164,10 +167,14 @@ struct DraftReviewView: View {
     @State private var message: String?
     @State private var candidates: [Receipt] = []
     @State private var duplicateSheet = false
+    @State private var checkingDuplicates = false
+    @State private var mergeWithNewImage = false
+    @State private var mergeWithNewItems = false
+    @State private var mergeConfirmation: Receipt?
     @State private var previewPhoto = false
     init(draft: ReceiptDraft, image: UIImage?, warning: String? = nil, onSaved: @escaping () -> Void) {
         _draft = State(initialValue: draft)
-        _message = State(initialValue: warning)
+        _message = State(initialValue: warning ?? draft.recognition_warning)
         self.image = image
         self.onSaved = onSaved
     }
@@ -209,9 +216,10 @@ struct DraftReviewView: View {
             } header: { Text("Artikel prüfen") } footer: {
                 Text("Die Angaben der Erkennung können falsch sein. Vergleiche Artikel und Gesamtbetrag mit dem Original.")
             }
+            ReceiptExtrasEditor(extras: $draft.extra_fields, rawText: draft.raw_ocr_text, receiptDate: draft.receipt_date)
             Section("Notiz") { TextField("Optional", text: $draft.notes, axis: .vertical).lineLimit(3...6) }
             Section {
-                BusyButton(title: "Beleg speichern", busy: saving, disabled: !valid) { Task { await prepareSave() } }
+                BusyButton(title: "Beleg speichern", busy: saving || checkingDuplicates, disabled: !valid) { Task { await prepareSave() } }
             }
         }
         .disabled(saving)
@@ -223,10 +231,16 @@ struct DraftReviewView: View {
                     Section {
                         Text("Dieser Beleg ähnelt einem bereits gespeicherten Einkauf. Du entscheidest, ob es derselbe Einkauf ist.")
                     }
+                    Section("Aus neuem Scan übernehmen") {
+                        Toggle("Neues Foto verwenden", isOn: $mergeWithNewImage).disabled(image == nil)
+                        Toggle("Neue Artikelliste verwenden", isOn: $mergeWithNewItems)
+                        Text("Vergleiche den vorhandenen Beleg mit dem Scan. Ohne Auswahl bleiben vorhandene Angaben erhalten; fehlende werden ergänzt.").font(.footnote)
+                    }
                     ForEach(candidates) { candidate in
                         Section {
                             ReceiptRow(receipt: candidate)
-                            Button("Fehlende Angaben im vorhandenen Beleg ergänzen") { Task { await merge(candidate) } }
+                            NavigationLink("Vorhandenen Beleg vergleichen") { ReceiptDetailView(receiptID: candidate.id) }
+                            Button("Diesen Beleg ergänzen …") { mergeConfirmation = candidate }
                         }
                     }
                     Section {
@@ -240,12 +254,20 @@ struct DraftReviewView: View {
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Zurück") { duplicateSheet = false }.disabled(saving) } }
                 .disabled(saving)
                 .interactiveDismissDisabled(saving)
+                .confirmationDialog("Mit diesem Beleg zusammenführen?", isPresented: Binding(get: { mergeConfirmation != nil }, set: { if !$0 { mergeConfirmation = nil } }), presenting: mergeConfirmation) { candidate in
+                    Button("Auswahl bestätigen") { Task { await merge(candidate) } }
+                    Button("Abbrechen", role: .cancel) { mergeConfirmation = nil }
+                } message: { _ in Text("Vorhandene Angaben bleiben erhalten, fehlende werden ergänzt. Bild und Artikel folgen deiner Auswahl. Verknüpfungen bleiben geschützt.") }
             }
         }
     }
     private var valid: Bool { (try? ReceiptRules.validate(draft)) != nil }
     @MainActor private func prepareSave() async {
-        guard !saving, valid else { return }
+        guard !saving, !checkingDuplicates, valid else { return }
+        checkingDuplicates = true
+        defer { checkingDuplicates = false }
+        do { try await store.refreshReceipts() }
+        catch { message = "Vor dem Speichern konnte die Duplikatprüfung nicht aktualisiert werden. " + error.localizedDescription; return }
         candidates = store.duplicateCandidates(for: draft)
         if !candidates.isEmpty { duplicateSheet = true }
         else { await save(separateFrom: []) }
@@ -267,7 +289,7 @@ struct DraftReviewView: View {
         saving = true
         message = nil
         do {
-            _ = try await store.merge(draft: draft, image: image, target: receipt)
+            _ = try await store.merge(draft: draft, image: image, target: receipt, choices: ["image": .string(mergeWithNewImage ? "source" : (receipt.image_url == nil && image != nil ? "source" : "target")), "items": .string(mergeWithNewItems || receipt.receipt_items.isEmpty ? "source" : "target")])
             duplicateSheet = false
             onSaved()
         } catch { message = error.localizedDescription }

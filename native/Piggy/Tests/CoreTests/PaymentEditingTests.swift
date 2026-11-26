@@ -27,7 +27,7 @@ final class PaymentEditingTests: XCTestCase {
     }
     func testMaskedAndBareCardFormatsNormalizeToSameStoredCard() {
         let saved = card()
-        for text in ["5327", "****5327", "XXXX 5327", "XXXX-5327", "MasterCard **** 5327", "Mastercard ···· 5327"] {
+        for text in ["5327", "****5327", "XXXX 5327", "XXXX-5327", "MasterCard **** 5327", "Mastercard ···· 5327", "Mastercard 535456******5327"] {
             XCTAssertEqual(PaymentCard.normalized(text, method: nil, cards: [saved]), "Mastercard ···· 5327", text)
             XCTAssertEqual(PaymentCard.display(text, method: nil, cards: [saved]), saved.displayName, text)
         }
@@ -50,6 +50,7 @@ final class PaymentEditingTests: XCTestCase {
     func testOfflineOCRUsesCardEvidenceAndDoesNotInventPANFromOtherNumbers() {
         XCTAssertEqual(PaymentCard.fromOCR("Coop\nMastercard\nXXXX 5327\nTotal CHF 15.50"), "Mastercard ···· 5327")
         XCTAssertNil(PaymentCard.fromOCR("Coop\nTerminal 5327\nDatum 26.11.2026\nTotal 5327"))
+        XCTAssertNil(PaymentCard.fromOCR("Mastercard Terminal 5327"))
         XCTAssertNil(PaymentCard.fromOCR("Visa **** 5327\nMastercard **** 1234"))
         XCTAssertEqual(LocalReceiptParser.parse("Coop\nVisa **** 1234\nTotal 12.50").payment_card, "Visa ···· 1234")
     }

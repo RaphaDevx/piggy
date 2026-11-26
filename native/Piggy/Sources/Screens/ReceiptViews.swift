@@ -8,12 +8,13 @@ struct ReceiptListView: View {
     private var filtered: [Receipt] {
         store.receipts.filter { receipt in
             (selectedCurrency == "all" || receipt.currency == selectedCurrency) &&
-            (search.isEmpty || receipt.store_name.localizedCaseInsensitiveContains(search) || receipt.receipt_items.contains { $0.name.localizedCaseInsensitiveContains(search) })
+            (search.isEmpty || receipt.searchText.localizedCaseInsensitiveContains(search))
         }
     }
     var body: some View {
         List {
             if store.busy && store.receipts.isEmpty { ProgressView("Belege werden geladen …") }
+            Section { NavigationLink { DuplicatesView() } label: { Label("Duplikate prüfen", systemImage: "doc.on.doc") } }
             if !store.receipts.isEmpty {
                 Picker("Währung", selection: $selectedCurrency) {
                     Text("Alle Währungen").tag("all")
@@ -107,6 +108,21 @@ struct ReceiptDetailView: View {
                             }.padding(.vertical, 4)
                         }
                     }
+                    let parking = ParkingDetails.read(extras: receipt.extra_fields, raw: receipt.raw_ocr_text, receiptDate: receipt.receipt_date)
+                    if parking.hasDetails { ParkingSummary(details: parking, total: receipt.total_amount, currency: receipt.currency) }
+                    if let fields = receipt.extra_fields, !fields.isEmpty {
+                        Section("Zusatzangaben") {
+                            ForEach(ReceiptExtras.labels, id: \.0) { key, title in
+                                if let wrapped = fields[key], let value = wrapped, !value.isEmpty { LabeledContent(title, value: value) }
+                            }
+                        }
+                    }
+                    if let text = receipt.raw_ocr_text, !text.isEmpty {
+                        Section { DisclosureGroup("Erkannten Originaltext anzeigen") { Text(text).textSelection(.enabled) } }
+                    }
+                    if let text = receipt.markdown_content, !text.isEmpty {
+                        Section { DisclosureGroup("Belegtext anzeigen") { Text(text).textSelection(.enabled) } }
+                    }
                     if let notes = receipt.notes, !notes.isEmpty { Section("Notiz") { Text(notes) } }
                     Section("Gemeinsam") {
                         NavigationLink { SplitReceiptView(receipt: receipt) } label: { Label("Ausgabe aufteilen", systemImage: "person.2") }
@@ -185,6 +201,7 @@ struct ReceiptEditView: View {
                     TextField("Geschäft", text: $receipt.store_name)
                     TextField("Datum (JJJJ-MM-TT)", text: Binding(get: { receipt.receipt_date ?? "" }, set: { receipt.receipt_date = $0 }))
                     DecimalField(title: "Gesamtbetrag", value: Binding(get: { receipt.total_amount ?? 0 }, set: { receipt.total_amount = $0 }))
+                    TextField("Ladenkategorie", text: Binding(get: { receipt.store_category ?? "" }, set: { receipt.store_category = $0 }))
                     TextField("Währung", text: $receipt.currency).textInputAutocapitalization(.characters).autocorrectionDisabled()
                     ReceiptPaymentFields(method: Binding(get: { receipt.payment_method ?? "" }, set: { receipt.payment_method = $0 }), card: $receipt.payment_card)
                 }
@@ -193,12 +210,24 @@ struct ReceiptEditView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             TextField("Artikelname", text: $item.name)
                             DecimalField(title: "Menge", value: Binding(get: { item.quantity ?? 1 }, set: { item.quantity = $0 }))
+                            TextField("Einheit (Stk, kg, L …)", text: Binding(get: { item.unit ?? "" }, set: { item.unit = $0 }))
                             DecimalField(title: "Einzelpreis", value: Binding(get: { item.unit_price ?? 0 }, set: { item.unit_price = $0 }))
                             DecimalField(title: "Artikelbetrag", value: Binding(get: { item.total_price ?? 0 }, set: { item.total_price = $0 }))
                             CategoryPicker(category: Binding(get: { item.tags.first ?? "Diverses" }, set: { item.tags = [$0]; item.subcategory = nil }))
                         }.padding(.vertical, 4)
+                            .disabled(item.is_adjustment == true)
+                            .deleteDisabled(item.is_adjustment == true)
+                    }
+                    .onDelete { offsets in
+                        for index in offsets.sorted(by: >) where receipt.receipt_items[index].is_adjustment != true {
+                            receipt.receipt_items.remove(at: index)
+                        }
+                    }
+                    Button { receipt.receipt_items.append(ReceiptItem(name: "Neuer Artikel", quantity: 1, unit: "Stk", unit_price: 0, total_price: 0, tags: ["Diverses"])) } label: {
+                        Label("Artikel hinzufügen", systemImage: "plus")
                     }
                 }
+                ReceiptExtrasEditor(extras: $receipt.extra_fields, rawText: receipt.raw_ocr_text, receiptDate: receipt.receipt_date)
                 Section("Notiz") {
                     TextField("Optional", text: Binding(get: { receipt.notes ?? "" }, set: { receipt.notes = $0 }), axis: .vertical).lineLimit(3...6)
                 }

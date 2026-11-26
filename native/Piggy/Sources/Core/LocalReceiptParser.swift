@@ -3,7 +3,7 @@ import Foundation
 /// Conservative offline draft. The user reviews every field before persistence.
 enum LocalReceiptParser {
     static func parse(_ text: String) -> ReceiptDraft {
-        var draft = ReceiptDraft(); draft.raw_ocr_text = text
+        var draft = ReceiptDraft(); draft.raw_ocr_text = text; draft.receipt_date = ""
         let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         draft.store_name = lines.first ?? ""
         if text.range(of: "\\bEUR\\b|€", options: .regularExpression) != nil { draft.currency = "EUR" }

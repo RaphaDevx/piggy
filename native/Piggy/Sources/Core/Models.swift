@@ -14,6 +14,8 @@ struct Receipt: Identifiable, Codable, Hashable {
     var original_image_url: String?
     var raw_ocr_text: String?
     var notes: String?
+    var extra_fields: [String: String?]?
+    var markdown_content: String?
     var created_at: String = ""
     var project_id: UUID?
     var receipt_items: [ReceiptItem] = []
@@ -45,6 +47,7 @@ struct ReceiptDraft: Identifiable, Hashable {
     var raw_ocr_text = ""
     var items: [DraftItem] = []
     var extra_fields: [String: String?]?
+    var recognition_warning: String?
 }
 struct DraftItem: Identifiable, Hashable {
     var id = UUID()
@@ -209,5 +212,13 @@ extension Project {
         currency = try box.decodeIfPresent(String.self, forKey: .currency) ?? "CHF"
         created_by = try box.decodeIfPresent(UUID.self, forKey: .created_by)
         project_members = try box.decodeIfPresent([ProjectMember].self, forKey: .project_members)
+    }
+}
+
+
+extension Receipt {
+    var searchText: String {
+        ([store_name, payment_method ?? "", payment_card ?? "", notes ?? "", raw_ocr_text ?? ""] +
+         receipt_items.map(\.name) + (extra_fields ?? [:]).values.compactMap { $0 }).joined(separator: " ")
     }
 }
