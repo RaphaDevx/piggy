@@ -50,7 +50,7 @@ Die iPhone-App wurde neu in SwiftUI geschrieben. Der Build wurde geprüft, aber 
 | C03 | Apple-Pay-Kartennummer | Separate Endziffern möglich, keine automatische Token-zu-Plastikkarte-Behauptung | Gerät |
 | C04 | Freunde über Karten vorschlagen, Beleg senden | Alter CardMatchBanner; native Beleg-Sharing fehlt | P2 |
 | F01 | Monatsausgaben/Währungsseparation | Vorhanden über kanonischen Serveradapter | Gerät/API |
-| F02 | Woche/Monat/Quartal/Jahr/Kategorien | Vorhanden | Core/Apple geprüft, Gerät offen |
+| F02 | Woche/Monat/3 Monate/Jahr/Kategorien | Woche/Monat/Jahr vorhanden; native Quartalsauswahl ist Kalenderquartal statt altem 3-Monats-Zeitraum | Core/Apple geprüft; Zeitraumparität offen |
 | F03 | Kategorie → Artikel/Belege | Vorhanden | Gerät |
 | F04 | Händlerstatistik und Finanzprofil | Alte Analyse-/Profilansichten umfangreicher, native nur Kategorien | P2 |
 | F05 | Bankdaten in Gesamtübersicht | Native-finance lädt nur Belege, obwohl Banktab aktiv ist | P1, kanonische Backendintegration |
@@ -142,3 +142,24 @@ Die Spalten der vorhandenen profile_cards-Tabelle sind per leerer anonymer REST-
 - `app/scan.tsx`
 - `app/split/[receiptId].tsx`
 - `app/split/_layout.tsx`
+
+## Abschliessender Prüfstand dieser Reparaturrunde
+
+Finaler Code `92ad51b3`, Apple-Job `50bfd78d5be9fbff`: Coretests und Simulator-Build bestanden. Alle 18 bestehenden PostgreSQL-Duplikatszenarien in isolierter Engine bestanden. Ressourcenhashes/Projektgenerierung und Whitespaceprüfung bestanden. Interner TestFlight-Folgeauftrag `3595b72e0414fa9f` läuft; keine externe Gruppe oder Store-Einreichung. Diese Runde schliesst die oben aufgeführten Reparaturen ab, nicht den gesamten verbleibenden Paritäts- und Geräteprüfungsbacklog.
+
+## Nächste Iterationen mit Abnahmekriterien
+
+1. **Echte Datenabläufe abnehmen:** aktueller interner Build, normales Testkonto; Karten anlegen/ändern/entfernen, Betrag speichern, doppelt scannen, Bestandspaar zusammenführen/getrennt halten, Parkzeiten korrigieren. Keine Besitzerpasswörter oder destruktiven Tests am echten Hauptkonto. Offen bis tatsächlicher Nachweis.
+2. **Weitere Social-Parität:** QR/Add-Link, Senden/Annehmen/Ablehnen echter Belege, Projektmitglieder und gemeinsame Belege, vorhandene Aufteilungen; getrennte Tests für Nutzerrechte, Bildzugriff und bestehende Zahlungen. Aufteilung nie still neu erzeugen.
+3. **Bank-/Analyse-Parität:** kanonischen Serveradapter um die bestehende Bankübersicht ergänzen, Händler-/Finanzprofil, Zeitraumparität; robusten Datei-Lösch-/Aufräumablauf planen und prüfen. Schema-/Deploymentänderungen erst mit verfügbarer Backendberechtigung und reproduzierbarer Prüfung.
+4. **Politur/weitere Optionen:** Unterkategorien, präzise Scanlimitmeldungen, Sprachlabels, lokale Modellverfügbarkeit und Hintergrundscan-Wiederaufnahme. Garantie/Fristen/PDF/Preisvergleich sind zusätzliche Produktentscheidungen.
+
+Ledger `20261127-001850-6fb6` hält Inventur und erste Reparaturrunden fest; die weiteren Social-/Bank-/Geräteprüfschritte bleiben ausdrücklich offen. Keine automatische Behauptung „alles fertig“ aus einem grünen Build.
+
+## Später ergänzter Nutzerauftrag: Social-Media-Demomodus
+
+Eigene spätere Ausbaustufe nach den Kernreparaturen: konkrete lustige/fiktive Quittungen in der echten App hochladen und tatsächlich verarbeiten, mit K-Creative-Piggy (Lupe, Brille, Nachdenken, Schreibmaschine) als ereignisgesteuerte Begleitung. Demoausgaben bleiben getrennt von privaten Finanzen. Konzept und Abnahmekriterien: [SOCIAL-DEMO-MODE.md](SOCIAL-DEMO-MODE.md). Noch nicht implementiert; kein Bestandteil des aktuellen TestFlight-Auftrags.
+
+## Auslieferung dieser Runde
+
+**1.0 (32)** ist intern in TestFlight freigegeben: K-Dev `3595b72e0414fa9f`, Apple **VALID**, `released: true`, ausschliesslich **Internal Testers**, bestätigt 27.11.2026 00:39:46 CET. Quelle `92ad51b3`; alle fünf Build-/Apple-/Freigabegates bestanden. Der spätere Social-Media-Demomodus ist ausschliesslich geplant. Noch offene Punkte der Inventur werden durch diesen Release nicht als erledigt markiert.
