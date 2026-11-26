@@ -38,3 +38,9 @@ Login, Tokens und Datenbank bleiben bei Supabase. `STORAGE_BACKEND=r2-with-fallb
 Die Backendfunktionen und die Kopie der 333 bisherigen Dateien sind aktiv. Installierte Altversionen bleiben bis zum App-Update beim bisherigen Speicherweg; deshalb keine Supabase-Dateien entfernen und vor Abschaltung erneut abgleichen. Details und aktueller Nachweis in ADR 0005.
 
 R2-Integration auf Apple verifiziert: lokaler K-Dev-Build `509eb0bb97e74f46`, Version 1.0 (28), Swift-Core-Prüfungen und Simulator-Build bestanden. Die gebaute Info.plist bestätigt den R2-Modus und die unveränderte Supabase-Adresse. Kein TestFlight-/App-Store-Upload.
+
+## Wiederhergestellte Anmeldung (26.11.2026)
+
+Der iPhone-Google-Login verwendet den vorhandenen iOS-Client direkt mit System-Anmeldefenster, PKCE, State und Nonce; Supabase prüft danach das ID-Token. Der Web-OAuth-Weg mit diesem iOS-Client führte reproduzierbar zu redirect_uri_mismatch. Vorhandene E-Mail-Konten sind wieder über «Mit E-Mail anmelden» zugänglich; keine neue Registrierung. Passwort-Zurücksetzen verwendet den exakten Supabase-Allowlist-Callback `piggy://auth/reset-password` und SDK-PKCE. Nutzer muss den Link auf demselben Gerät anfordern und öffnen.
+
+Lokaler Build `e96e423b1557357b` und Core-Tests erfolgreich; beide Callbackschemata im gebauten Artefakt verifiziert. Echter technischer E-Mail-Login HTTP200. Vollständiger Google-Consent und UI-Bedienung auf dem aktualisierten Gerät bleiben offen. Keine automatische Recovery-Mail oder Production-/TestFlight-Auslieferung. Details: `docs/verification/2026-11-26-native-login.md`.

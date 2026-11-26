@@ -18,6 +18,10 @@ Das bestätigte Outlook-Konto ist weiterhin vorhanden, Provider `email`, letzter
 
 ## Verifikation
 
-324 bestehende Jest-Tests und TypeScript bestanden. Zusätzliche Swift-Core-Prüfungen decken nativen Redirect/PKCE, State/Host/Pfad/Parameter-Duplikate, Google-Abbruch, Form-Encoding und Recovery-URL-Grenzen ab. Apple-Build und UI-Nachweis werden nach K-Dev-Lauf ergänzt.
+324 bestehende Jest-Tests und TypeScript bestanden. Zusätzliche Swift-Core-Prüfungen decken nativen Redirect/PKCE, State/Host/Pfad/Parameter-Duplikate, Google-Abbruch, Form-Encoding und Recovery-URL-Grenzen ab. K-Dev-Job `e96e423b1557357b` für Quellcommit `0a5dcb0bef4006b07028a1761ae08b756fbcc634` erfolgreich: Swift-Package-Prüfungen und Simulator-Build bestanden. Artefakt Version 1.0 (28), SHA256 `c60bf53badc185e587d6820298fe9469c9f019e40106974ea43469c7729402e5` unabhängig bestätigt; die gebaute Info.plist enthält das native Google-Callbackschema und die unveränderte Supabase-Projektadresse.
+
+Echter E-Mail-/Passwort-Login mit technischem Testkonto sowie anschliessende Nutzerprüfung jeweils HTTP 200. Keine Besitzerpasswörter gelesen/geändert und keine Recovery-E-Mail an den Besitzer ausgelöst.
+
+Interaktive UI-Prüfung nicht als bestanden behauptet: Der Builder räumt sein Arbeitsverzeichnis nach dem Artefakt-Upload auf; der direkte Installationsversuch des neuen Bundles im MCP-Simulator fand daher keine Datei. Eine versehentlich anschliessend gestartete alte Test-App wurde wieder gestoppt und ist kein Nachweis für diesen Build. Die Oberfläche und die echte Google-Consent-Rückkehr sind auf dem aktualisierten Gerät noch zu prüfen.
 
 Grenze: Die Web-Google-Konfiguration braucht weiterhin einen Web-Client; dieser Fix stellt den passenden iPhone-Flow wieder her. Ein kompletter Google-Login mit echtem Benutzer-Consent sowie die tatsächliche Zustellung einer Recovery-Mail sind noch nicht nachgewiesen. Die installierte iPhone-App benötigt das Update; kein Production-/TestFlight-Upload ohne gesonderten Auftrag.
