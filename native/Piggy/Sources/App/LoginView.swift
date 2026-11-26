@@ -8,6 +8,7 @@ struct LoginView: View {
     @State private var nonce = ""
     @State private var busy = false
     @State private var error: String?
+    @State private var showEmailLogin = false
     #if DEBUG && targetEnvironment(simulator)
     @State private var testEmail = ""
     @State private var testPassword = ""
@@ -44,9 +45,12 @@ struct LoginView: View {
                     .disabled(busy || !store.configured)
                 Button {
                     busy = true
-                    Task { do { try await store.signInGoogle() } catch { self.error = "Die Google-Anmeldung konnte nicht abgeschlossen werden." }; busy = false }
+                    Task { do { try await store.signInGoogle() } catch is CancellationError {} catch { self.error = "Die Google-Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut oder nutze E-Mail." }; busy = false }
                 } label: { Text("Mit Google fortfahren").fontWeight(.semibold).frame(maxWidth: .infinity).padding(16).background(Theme.surface, in: RoundedRectangle(cornerRadius: 12)) }
                     .disabled(busy || !store.configured)
+                Button("Mit E-Mail anmelden") { error = nil; showEmailLogin = true }
+                    .frame(minHeight: 44).disabled(busy || !store.configured)
+                    .accessibilityIdentifier("login.emailOption")
                 #if DEBUG && targetEnvironment(simulator)
                 DisclosureGroup("Simulator-Testkonto", isExpanded: $showTestLogin) {
                     TextField("Test-E-Mail", text: $testEmail)
@@ -73,6 +77,7 @@ struct LoginView: View {
                 }.font(.footnote)
             }.padding(28).frame(maxWidth: 500).frame(maxWidth: .infinity)
         }.background(Theme.background)
+            .sheet(isPresented: $showEmailLogin) { EmailLoginView() }
     }
 }
 

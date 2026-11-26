@@ -5,6 +5,7 @@ import Supabase
 
 @MainActor
 final class PiggyStore: ObservableObject {
+    @Published var passwordRecovery = false
     @Published var userID: UUID?
     @Published var receipts: [Receipt] = []
     @Published var friends: [Friend] = []
@@ -60,11 +61,12 @@ final class PiggyStore: ObservableObject {
     func start() async {
         guard authTask == nil, let client else { return }
         authTask = Task { [weak self] in
-            for await (_, session) in client.auth.authStateChanges {
+            for await (event, session) in client.auth.authStateChanges {
                 guard !Task.isCancelled, let self else { return }
                 let changed = self.userID != session?.user.id
                 if changed { self.clearAccount() }
                 self.userID = session?.user.id
+                if event == .passwordRecovery { self.passwordRecovery = true }
                 self.hasAppleIdentity = session?.user.identities?.contains(where: { $0.provider == "apple" }) == true
                 if changed, self.userID != nil { await self.reload() }
             }
@@ -79,7 +81,7 @@ final class PiggyStore: ObservableObject {
         } catch { /* Absence of a saved session is the normal first-launch state. */ }
     }
     private func clearAccount() {
-        reloadGeneration = UUID(); userID = nil; receipts = []; friends = []; requests = []
+        reloadGeneration = UUID(); passwordRecovery = false; userID = nil; receipts = []; friends = []; requests = []
         projects = []; splits = []; profile = nil; finance = nil; bank = BankSnapshot(); hasAppleIdentity = false; busy = false
         settingConsent = true; aiConsent = false; settingConsent = false
     }
@@ -95,8 +97,36 @@ final class PiggyStore: ObservableObject {
     }
     #endif
     func signInGoogle() async throws {
-        let session = try await requireClient().auth.signInWithOAuth(provider: .google, redirectTo: URL(string: "piggy://auth/callback"))
+        let google = try await NativeGoogleSignIn.signIn()
+        let session = try await requireClient().auth.signInWithIdToken(credentials: .init(provider: .google, idToken: google.idToken, nonce: google.nonce))
         await accept(session)
+    }
+    func signInEmail(email: String, password: String) async throws {
+        let email = try NativeAuthPolicy.email(email)
+        guard !password.isEmpty else { throw PiggyFailure.validation("Bitte gib dein Passwort ein.") }
+        let session = try await requireClient().auth.signIn(email: email, password: password)
+        await accept(session)
+    }
+    func requestPasswordReset(email: String) async throws {
+        let email = try NativeAuthPolicy.email(email)
+        try await requireClient().auth.resetPasswordForEmail(email, redirectTo: NativeAuthPolicy.recoveryRedirect)
+    }
+    func receivePasswordRecovery(_ url: URL) async throws {
+        guard NativeAuthPolicy.isRecoveryCallback(url) else { return }
+        let session = try await requireClient().auth.session(from: url)
+        await accept(session)
+        passwordRecovery = true
+    }
+    func cancelPasswordRecovery() async throws {
+        try await requireClient().auth.signOut(scope: .local)
+        clearAccount()
+    }
+    func setRecoveredPassword(_ password: String) async throws {
+        let uid = try requireUser()
+        guard passwordRecovery, password.count >= 8 else { throw PiggyFailure.validation("Bitte verwende mindestens 8 Zeichen.") }
+        _ = try await requireClient().auth.update(user: .init(password: password))
+        guard userID == uid else { throw PiggyFailure.signedOut }
+        passwordRecovery = false
     }
     func signInApple(idToken: String, nonce: String) async throws {
         let session = try await requireClient().auth.signInWithIdToken(credentials: .init(provider: .apple, idToken: idToken, nonce: nonce))

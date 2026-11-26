@@ -20,6 +20,7 @@ private struct NativeRootView: View {
     @AppStorage("piggy.onboarding.completed.v1") private var completedWalkthrough = false
     @State private var starting = true
     @State private var replayWalkthrough = false
+    @State private var recoveryError: String?
     @Environment(\.scenePhase) private var phase
     var body: some View {
         Group {
@@ -27,12 +28,24 @@ private struct NativeRootView: View {
                 OnboardingView { completedWalkthrough = true }
             } else if starting {
                 VStack { MascotView(size: 180); ProgressView("Piggy wird geöffnet") }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.background)
+            } else if store.passwordRecovery && store.userID != nil {
+                RecoveredPasswordView()
             } else if store.userID == nil {
                 LoginView()
             } else {
                 MainTabs()
             }
         }
+        .onOpenURL { url in
+            guard NativeAuthPolicy.isRecoveryCallback(url) else { return }
+            Task {
+                do { try await store.receivePasswordRecovery(url) }
+                catch { recoveryError = "Der Link ist abgelaufen oder wurde auf einem anderen Gerät angefordert. Fordere auf diesem iPhone einen neuen Link an." }
+            }
+        }
+        .alert("Passwort-Link", isPresented: Binding(get: { recoveryError != nil }, set: { if !$0 { recoveryError = nil } })) {
+            Button("OK") { recoveryError = nil }
+        } message: { Text(recoveryError ?? "") }
         .task { await store.start(); starting = false; await gold.configure(userID: store.userID) }
         .onChange(of: store.userID) { _, userID in Task { await gold.configure(userID: userID) } }
         .onChange(of: phase) { _, state in
