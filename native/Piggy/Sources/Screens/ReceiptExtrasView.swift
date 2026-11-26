@@ -1,5 +1,30 @@
 import SwiftUI
 
+struct ReceiptBankSection: View {
+    @EnvironmentObject private var store: PiggyStore
+    let receiptID: UUID
+    @State private var error: String?
+    private var transactions: [BankTransaction] {
+        let ids = Set(store.bank.matches.filter { $0.receipt_id == receiptID }.map(\.transaction_id))
+        return store.bank.transactions.filter { ids.contains($0.id) }
+    }
+    var body: some View {
+        Section("Bankbeleg") {
+            if let error { Text(error).foregroundStyle(.secondary) }
+            else if !store.bank.loaded { ProgressView("Zuordnungen werden geladen …") }
+            else if transactions.isEmpty { Text("Kein Bankbeleg zugeordnet").foregroundStyle(.secondary) }
+            ForEach(transactions) { transaction in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(transaction.description)
+                    Text("\(receiptDate(transaction.booking_date)) · \(money(abs(transaction.amount), transaction.currency))").font(.subheadline)
+                }
+            }
+            NavigationLink("Abgleich öffnen") { BankHomeView() }
+        }
+        .task { do { try await store.loadBank(); error = nil } catch { self.error = error.localizedDescription } }
+    }
+}
+
 struct ReceiptExtrasEditor: View {
     @Binding var extras: [String: String?]?
     let rawText: String?

@@ -18,7 +18,7 @@ enum PaymentCard {
     static let networks = ["Mastercard", "Visa", "American Express", "Maestro", "PostFinance", "Diners Club", "Discover", "UnionPay"]
     static func network(in text: String) -> String? {
         let patterns = [#"master\s*card"#, #"\bvisa\b"#, #"american\s*express|\bamex\b"#,
-                        #"\bmaestro\b"#, #"post\s*finance"#, #"diners\s*club"#, #"\bdiscover\b"#, #"union\s*pay"#]
+                        #"\bmaestro\b"#, #"post\s*(?:finance|card)|\byellowone\b"#, #"diners\s*club"#, #"\bdiscover\b"#, #"union\s*pay"#]
         let found = zip(networks, patterns).compactMap { name, pattern in
             text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) == nil ? nil : name
         }

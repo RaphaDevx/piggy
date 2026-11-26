@@ -6,6 +6,7 @@ struct SocialHomeView: View {
     @State private var name = ""
     @State private var projectDescription = ""
     @State private var creating = false
+    @State private var invited: Set<UUID> = []
     @State private var busy = false
     @State private var error: String?
     var body: some View {
@@ -77,9 +78,16 @@ struct SocialHomeView: View {
                 Form {
                     TextField("Projektname", text: $name)
                     TextField("Beschreibung", text: $projectDescription, axis: .vertical)
+                    Section("Freunde einladen") {
+                        ForEach(store.friends) { friend in
+                            Toggle(friend.profile.name, isOn: Binding(get: { invited.contains(friend.profile.id) }, set: { selected in
+                                if selected { invited.insert(friend.profile.id) } else { invited.remove(friend.profile.id) }
+                            }))
+                        }
+                    }
                     if let error { Text(error).foregroundStyle(.red) }
                     BusyButton(title: "Projekt erstellen", busy: busy, disabled: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
-                        run { try await store.createProject(name: name, description: projectDescription, friendIDs: []); name = ""; projectDescription = ""; creating = false }
+                        run { try await store.createProject(name: name, description: projectDescription, friendIDs: Array(invited)); name = ""; projectDescription = ""; invited = []; creating = false }
                     }
                 }.navigationTitle("Neues Projekt").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { creating = false }.disabled(busy) } }
             }.interactiveDismissDisabled(busy)

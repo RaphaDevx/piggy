@@ -147,6 +147,9 @@ struct DecimalField: View {
         .toolbar {
             if focused {
                 ToolbarItemGroup(placement: .keyboard) {
+                    Button("+/−") {
+                        if text.hasPrefix("-") { text.removeFirst() } else { text = "-" + text }
+                    }.accessibilityLabel("Vorzeichen ändern")
                     Spacer()
                     Button("Fertig") { focused = false }
                 }

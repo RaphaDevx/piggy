@@ -42,13 +42,14 @@ struct DuplicatePairReview: View {
     @EnvironmentObject private var store: PiggyStore
     @Environment(\.dismiss) private var dismiss
     @State private var fields: [String: String] = [:]
+    @State private var extras: [String: String] = [:]
     @State private var image = "target"
     @State private var items = "target"
     @State private var busy = false
     @State private var error: String?
     @State private var confirming = false
     private var choices: [String: JSONValue] {
-        ["fields": .object(fields.mapValues(JSONValue.string)), "image": .string(image), "items": .string(items)]
+        ["fields": .object(fields.mapValues(JSONValue.string)), "extras": .object(extras.mapValues(JSONValue.string)), "image": .string(image), "items": .string(items)]
     }
     var body: some View {
         Form {
@@ -64,6 +65,18 @@ struct DuplicatePairReview: View {
                     let b = field.value(pair.source)
                     if a != b {
                         Picker(field.label, selection: Binding(get: { fields[field.key] ?? (a.isEmpty ? "source" : "target") }, set: { fields[field.key] = $0 })) {
+                            Text("A: \(a.isEmpty ? "Leer" : a)").tag("target")
+                            Text("B: \(b.isEmpty ? "Leer" : b)").tag("source")
+                        }
+                    }
+                }
+            }
+            Section("Zusatzangaben auswählen") {
+                ForEach(ReceiptExtras.labels, id: \.0) { key, title in
+                    let a = (pair.target.extra_fields?[key] ?? nil) ?? ""
+                    let b = (pair.source.extra_fields?[key] ?? nil) ?? ""
+                    if a != b {
+                        Picker(title, selection: Binding(get: { extras[key] ?? (a.isEmpty ? "source" : "target") }, set: { extras[key] = $0 })) {
                             Text("A: \(a.isEmpty ? "Leer" : a)").tag("target")
                             Text("B: \(b.isEmpty ? "Leer" : b)").tag("source")
                         }
@@ -87,6 +100,13 @@ struct DuplicatePairReview: View {
                     let side = fields[field.key] ?? (field.value(pair.target).isEmpty ? "source" : "target")
                     let value = field.value(side == "source" ? pair.source : pair.target)
                     if !value.isEmpty { LabeledContent(field.label, value: value) }
+                }
+                ForEach(ReceiptExtras.labels, id: \.0) { key, title in
+                    let a = (pair.target.extra_fields?[key] ?? nil) ?? ""
+                    let b = (pair.source.extra_fields?[key] ?? nil) ?? ""
+                    let side = extras[key] ?? (a.isEmpty ? "source" : "target")
+                    let value = side == "source" ? b : a
+                    if !value.isEmpty { LabeledContent(title, value: value) }
                 }
                 Text("Bild \(image == "source" ? "B" : "A"), Artikel \(items == "source" ? "B" : "A")")
             }

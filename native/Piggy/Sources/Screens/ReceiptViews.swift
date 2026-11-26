@@ -5,9 +5,19 @@ struct ReceiptListView: View {
     let openScanner: () -> Void
     @State private var search = ""
     @State private var selectedCurrency = "all"
+    @State private var selectedCategory = "all"
+    @State private var selectedMethod = "all"
+    @State private var selectedPeriod: FinancePeriod?
+    @State private var filterDate = Date()
     private var filtered: [Receipt] {
         store.receipts.filter { receipt in
             (selectedCurrency == "all" || receipt.currency == selectedCurrency) &&
+            (selectedCategory == "all" || receipt.receipt_items.contains { $0.category == selectedCategory }) &&
+            (selectedMethod == "all" || receipt.payment_method == selectedMethod) &&
+            (selectedPeriod.map { period in
+                let range = period.range(containing: filterDate)
+                return receipt.displayDate >= range.start && receipt.displayDate < range.endExclusive
+            } ?? true) &&
             (search.isEmpty || receipt.searchText.localizedCaseInsensitiveContains(search))
         }
     }
@@ -16,22 +26,38 @@ struct ReceiptListView: View {
             if store.busy && store.receipts.isEmpty { ProgressView("Belege werden geladen …") }
             Section { NavigationLink { DuplicatesView() } label: { Label("Duplikate prüfen", systemImage: "doc.on.doc") } }
             if !store.receipts.isEmpty {
+                DisclosureGroup("Filter") {
+                    Picker("Zeitraum", selection: $selectedPeriod) {
+                        Text("Alle Zeiträume").tag(FinancePeriod?.none)
+                        ForEach(FinancePeriod.allCases) { Text($0.rawValue).tag(Optional($0)) }
+                    }
+                    if selectedPeriod != nil { DatePicker("Datum im Zeitraum", selection: $filterDate, displayedComponents: .date) }
+                    Picker("Kategorie", selection: $selectedCategory) {
+                        Text("Alle Kategorien").tag("all")
+                        ForEach(Array(Set(store.receipts.flatMap { $0.receipt_items.map(\.category) })).sorted(), id: \.self) { Text($0).tag($0) }
+                    }
+                    Picker("Zahlungsart", selection: $selectedMethod) {
+                        Text("Alle Zahlungsarten").tag("all")
+                        ForEach(Array(Set(store.receipts.compactMap(\.payment_method))).sorted(), id: \.self) { Text($0).tag($0) }
+                    }
+                    Button("Filter zurücksetzen") { selectedCategory = "all"; selectedMethod = "all"; selectedPeriod = nil; selectedCurrency = "all" }
+                }
                 Picker("Währung", selection: $selectedCurrency) {
                     Text("Alle Währungen").tag("all")
                     ForEach(Array(Set(store.receipts.map(\.currency))).sorted(), id: \.self) { Text($0).tag($0) }
                 }
             }
             if filtered.isEmpty && !store.busy {
-                EmptyPiggy(title: search.isEmpty ? "Noch keine Belege" : "Nichts gefunden",
-                           message: search.isEmpty ? "Dein nächster Einkauf ist ein guter Anfang." : "Versuche einen anderen Geschäfts- oder Artikelnamen.")
+                EmptyPiggy(title: store.receipts.isEmpty ? "Noch keine Belege" : "Nichts gefunden",
+                           message: store.receipts.isEmpty ? "Dein nächster Einkauf ist ein guter Anfang." : "Prüfe deine Filter oder versuche einen anderen Suchbegriff.")
                     .listRowBackground(Color.clear)
-                if search.isEmpty { Button("Erste Quittung scannen", action: openScanner) }
+                if store.receipts.isEmpty { Button("Erste Quittung scannen", action: openScanner) }
             }
             ForEach(filtered) { receipt in
                 NavigationLink { ReceiptDetailView(receiptID: receipt.id) } label: { ReceiptRow(receipt: receipt) }
             }
         }
-        .searchable(text: $search, prompt: "Geschäft oder Artikel suchen")
+        .searchable(text: $search, prompt: "Geschäft, Artikel oder Belegdetails")
         .navigationTitle("Deine Belege")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -124,6 +150,7 @@ struct ReceiptDetailView: View {
                         Section { DisclosureGroup("Belegtext anzeigen") { Text(text).textSelection(.enabled) } }
                     }
                     if let notes = receipt.notes, !notes.isEmpty { Section("Notiz") { Text(notes) } }
+                    if BankFeature.enabled { ReceiptBankSection(receiptID: receipt.id) }
                     Section("Gemeinsam") {
                         NavigationLink { SplitReceiptView(receipt: receipt) } label: { Label("Ausgabe aufteilen", systemImage: "person.2") }
                         Picker("Projekt", selection: Binding(get: { receipt.project_id }, set: { id in Task { await assignProject(id, receipt: receipt) } })) {
@@ -259,12 +286,23 @@ struct ReceiptEditView: View {
 struct CategoryPicker: View {
     @EnvironmentObject private var store: PiggyStore
     @Binding var category: String
+    @State private var adding = false
+    @State private var newCategory = ""
     private var categories: [String] {
         Array(Set(store.receipts.flatMap { $0.receipt_items.flatMap(\.tags) }).union(PiggyTaxonomy.categories).union([category, "Diverses"])).sorted()
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Kategorie", selection: $category) { ForEach(categories, id: \.self) { Text($0).tag($0) } }
+            Button("Eigene Kategorie …") { newCategory = ""; adding = true }
+                .alert("Eigene Kategorie", isPresented: $adding) {
+                    TextField("Name", text: $newCategory)
+                    Button("Übernehmen") {
+                        let trimmed = newCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty { category = String(trimmed.prefix(60)) }
+                    }
+                    Button("Abbrechen", role: .cancel) {}
+                }
         }
     }
 }

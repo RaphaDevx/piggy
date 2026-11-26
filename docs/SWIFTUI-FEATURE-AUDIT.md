@@ -1,6 +1,6 @@
 # Piggy — vollständiger Funktionsvergleich Expo → SwiftUI
 
-Stand 27.11.2026. Grundlage: alle 27 alten App-Routen, src/hooks, aktive Feature-Schalter und alle nativen Screens/Services. Dies ist eine Quellcode-Inventur mit gezielten automatisierten Prüfungen, kein behaupteter vollständiger iPhone-End-to-End-Test. „Vorhanden“ bedeutet implementiert, nicht am Gerät vollständig verifiziert. Änderungen nach TestFlight 1.0(31) sind separat ausgewiesen.
+Stand 27.11.2026. Grundlage: alle 23 alten App-Dateien (inklusive Layout-Routen), src/hooks, aktive Feature-Schalter und alle nativen Screens/Services. Dies ist eine Quellcode-Inventur mit gezielten automatisierten Prüfungen, kein behaupteter vollständiger iPhone-End-to-End-Test. „Vorhanden“ bedeutet implementiert, nicht am Gerät vollständig verifiziert. Änderungen nach TestFlight 1.0(31) sind separat ausgewiesen.
 
 ## Ursache der Regressionen
 
@@ -86,3 +86,59 @@ Die iPhone-App wurde neu in SwiftUI geschrieben. Der Build wurde geprüft, aber 
 2. Duplikate, Metadaten, Parkbelege und konkrete Quellcodefehler: in Arbeit. Keine stillen automatischen Zusammenführungen. Vor Auslieferung neue Tests und Apple-Build.
 
 Alle offenen Geräte-/Backendprüfungen bleiben offen, bis echte Nachweise vorliegen. Ein erfolgreicher Compilerlauf ist keine Bestätigung von Kamera, OAuth-Consent, Bezahlvorgängen oder authentifiziertem Datenbank-CRUD.
+
+## Reparaturstand nach Iteration 2/3
+
+| Einträge | Aktueller Stand im Quellcode | Nachweis / verbleibende Grenze |
+|---|---|---|
+| R01, C01, C02 | Beträge direkt antippbar, Dezimaleingabe inkl. Komma/Punkt/Minus; Kartenverwaltung und einheitliche Darstellung | Erste Apple-Prüfung ec405a3719a81b0a erfolgreich; finale Varianten erneut prüfen |
+| D01 | Bestand wird vor Scan-Duplikatprüfung neu geladen; unbekanntes Scandatum nicht als heutiger Tag erfunden; parallele Speicherklicks blockiert | Coretests; finaler Apple-Build ausstehend |
+| D02, D03 | Belege → Duplikate prüfen, vollständige eigene Belegliste und persistierte Getrennt-Entscheidungen; Paarvergleich pro Konto/Währung | Apple-Prüfung 1327c4b062f1c590 erfolgreich; echte RPC-Bedienung offen |
+| D04 | Bestandsmerge mit Auswahl/Vorschau für Felder, Zusatzdaten, Bild und Artikel; Scanmerge mit neuem Fotoupload und ausdrücklicher Bestätigung | Bild-/Artikelauswahl beim Scan; Feldkonflikte dort konservativ beim Bestand. Keine automatische Zusammenführung. Zusätzliche Parkfelder behalten beim Merge vorhandene Werte; anschliessend separat editierbar |
+| R02, R03, R05 | Menge/Einzelpreis/Einheit/Ladenkategorie editierbar; Artikel ergänzen/entfernen, Ausgleichsposten geschützt, Entfernung bei vorhandener Aufteilung blockiert | Apple-Prüfung 1327c4b062f1c590 erfolgreich; echte RLS-/CRUD-Abnahme offen |
+| R07 | Eigene Kategorie anlegbar und vorhandene eigene Kategorien im Picker | Keine separate Kategorieverwaltung in der alten App; dort ebenfalls aus Artikel-Tags abgeleitet |
+| R08 | Legacy-Supabase-Bildadressen werden nur vom konfigurierten Host und eigenen Nutzerpfad in frisch signierte Pfade überführt | Neue Negativtests für fremde Hosts/Nutzer; keine Direktfreigabe öffentlicher Fremd-URLs |
+| R09, R10, R14 | Zusatzfelder werden dekodiert/gespeichert, OCR-/Belegtext angezeigt, Suche erweitert auf Notiz/Zahlung/Zusatzfelder | Apple-Prüfung 1327c4b062f1c590 erfolgreich |
+| R15 | Zeitraum-/Kategorie-/Zahlungsartfilter ergänzt, leerer Filtertreffer nicht als fehlender Belegbestand bezeichnet | Finaler Apple-Build ausstehend |
+| S04, S10 | Cloudfehler behalten lokalen OCR-Entwurf mit sichtbarer Warnung; Erkennung startet nach Kameradismiss | Apple-Prüfung 1327c4b062f1c590 erfolgreich; echte Kamera offen |
+| G04 | Projekterstellung erlaubt nun Freundesauswahl statt immer leerer Einladungsliste | Finaler Apple-Build und echtes RLS offen |
+| B05 | Bankzuordnung mit Datum/Betrag im Belegdetail und Link zum Abgleich ergänzt | Finaler Apple-Build ausstehend |
+| N01 | Ankunft/Abfahrt/gedruckte Minuten/Parkplatz/Kennzeichen aus beschriftetem OCR oder manueller Korrektur; Dauer, Durchschnitt je Minute/Stunde | Neue Tests inkl. Nachtwechsel, fehlender Zeit, ungültigem Datum, gedruckter Dauer und bewusst gelöschtem Wert. Kein Tarifversprechen |
+
+### Weiter offen, nicht als fertig markieren
+
+- Vollständige iPhone-Abnahme für Login/Kamera/Karten-CRUD/Bankworker/Mehrfachscan/StoreKit, Datenschutzlinks und Dynamic Type. Simulator-Kompilierung beweist diese Abläufe nicht.
+- A05 Konten verknüpfen/trennen; G02 QR und Add-Deep-Link; G03/C04 echte Belegweitergabe/Empfang/Kartenvorschläge von Freunden; G05/G06 volle gemeinsame Projektbelege und Projektbilanz; G07 vorhandene Splits ändern; G09 Zahlungsanforderungen; G10 Echtzeit.
+- R06 Unterkategorieauswahl; F04 Händler-/Finanzprofil; F05 Bankdaten in der zentralen Finanzübersicht; S08 Foundation Models, S09 konkrete Scanlimitmeldungen, S03 persistente Hintergrund-Scanqueue; U02 gesamte UI-Lokalisierung.
+- B06 robustes gemeinsames Löschen von Datenbankeintrag und externer Datei braucht eine Backend-Aufräumstrategie. Der bestehende Ablauf wurde nicht als atomar zertifiziert.
+- PDF-Export/Garantie-/Rückgabefristen/Preisvergleiche sind zusätzliche Produktideen; die alte App enthielt dafür keinen fertigen Ablauf. Rabatte waren bereits negative Artikel, Trinkgeld ein Bank-Differenzvorschlag.
+
+### Backend-Verifikationsgrenze
+
+Die Spalten der vorhandenen profile_cards-Tabelle sind per leerer anonymer REST-Abfrage erreichbar (HTTP200, keine Zeilen abgerufen). Authentifizierte Karten-CRUD und vorhandene UPDATE-Policy sind dadurch **nicht** verifiziert. Der lokale kvault-Zugriff für eine nur lesende Policy-Abfrage scheitert an Socket-Rechten; sudo ist nicht passwortlos freigegeben. Kein Service-Key/Passwort angefordert, keine Policies verändert. Das ist eine offene Prüfung, kein bestätigter RLS-Fehler.
+
+## Geprüfte alte Routen/Layouts
+
+- `app/(auth)/_layout.tsx`
+- `app/(auth)/login.tsx`
+- `app/(tabs)/_layout.tsx`
+- `app/(tabs)/analyse.tsx`
+- `app/(tabs)/finanzen.tsx`
+- `app/(tabs)/index.tsx`
+- `app/(tabs)/profil.tsx`
+- `app/(tabs)/projekte.tsx`
+- `app/(tabs)/quittungen.tsx`
+- `app/_layout.tsx`
+- `app/category/[group].tsx`
+- `app/duplicates.tsx`
+- `app/friends/_layout.tsx`
+- `app/friends/add.tsx`
+- `app/friends/index.tsx`
+- `app/plus.tsx`
+- `app/project/[id].tsx`
+- `app/project/_layout.tsx`
+- `app/project/create.tsx`
+- `app/receipt/[id].tsx`
+- `app/scan.tsx`
+- `app/split/[receiptId].tsx`
+- `app/split/_layout.tsx`

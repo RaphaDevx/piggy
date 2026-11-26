@@ -2,6 +2,16 @@ import XCTest
 @testable import PiggyCore
 
 final class ObjectStoragePolicyTests: XCTestCase {
+    func testLegacyReceiptURLsAreReSignedWithoutTrustingForeignHosts() throws {
+        let user = UUID()
+        let path = "\(user.uuidString.lowercased())/old.jpg"
+        let base = "https://piggy.supabase.co"
+        XCTAssertEqual(try ObjectStoragePolicy.receiptPath(base + "/storage/v1/object/public/receipt-images/" + path + "?token=old", supabaseURL: base, userID: user), path)
+        XCTAssertEqual(try ObjectStoragePolicy.receiptPath(path, supabaseURL: base, userID: user), path)
+        XCTAssertThrowsError(try ObjectStoragePolicy.receiptPath("https://evil.example/storage/v1/object/public/receipt-images/" + path, supabaseURL: base, userID: user))
+        XCTAssertThrowsError(try ObjectStoragePolicy.receiptPath(base + "/storage/v1/object/public/receipt-images/" + UUID().uuidString.lowercased() + "/foreign.jpg", supabaseURL: base, userID: user))
+        XCTAssertThrowsError(try ObjectStoragePolicy.receiptPath("file:///private/secret.jpg", supabaseURL: base, userID: user))
+    }
     func testOwnPathAcceptedAndForeignAndTraversalRejected() throws {
         let user = UUID(); let path = "\(user.uuidString.lowercased())/beleg.jpg"
         XCTAssertNoThrow(try ObjectStoragePolicy.validate(bucket: "receipt-images", path: path, userID: user))

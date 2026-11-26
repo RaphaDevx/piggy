@@ -195,6 +195,7 @@ struct DraftReviewView: View {
                 TextField("Geschäft", text: $draft.store_name)
                 TextField("Datum (JJJJ-MM-TT)", text: $draft.receipt_date).keyboardType(.numbersAndPunctuation)
                 DecimalField(title: "Gesamtbetrag", value: $draft.total_amount)
+                TextField("Ladenkategorie", text: Binding(get: { draft.store_category ?? "" }, set: { draft.store_category = $0 }))
                 TextField("Währung", text: $draft.currency).textInputAutocapitalization(.characters).autocorrectionDisabled()
                 ReceiptPaymentFields(method: $draft.payment_method, card: $draft.payment_card)
             }
@@ -231,6 +232,16 @@ struct DraftReviewView: View {
                     Section {
                         Text("Dieser Beleg ähnelt einem bereits gespeicherten Einkauf. Du entscheidest, ob es derselbe Einkauf ist.")
                     }
+                    Section("Neuer Scan") {
+                        Text(draft.store_name).font(.headline)
+                        Text("\(draft.receipt_date) · \(money(draft.total_amount, draft.currency))")
+                        if let image { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 240).accessibilityLabel("Neues Belegbild") }
+                        DisclosureGroup("Neue Artikel vergleichen") {
+                            ForEach(draft.items) { item in
+                                HStack { Text(item.name); Spacer(); Text(money(item.total_price, draft.currency)) }
+                            }
+                        }
+                    }
                     Section("Aus neuem Scan übernehmen") {
                         Toggle("Neues Foto verwenden", isOn: $mergeWithNewImage).disabled(image == nil)
                         Toggle("Neue Artikelliste verwenden", isOn: $mergeWithNewItems)
@@ -245,7 +256,7 @@ struct DraftReviewView: View {
                     }
                     Section {
                         Button("Als eigenen Einkauf speichern") { Task { await save(separateFrom: candidates.map(\.id)) } }
-                    } footer: { Text("Ein neuer Einkauf zählt zusätzlich zu deinen Ausgaben. Beim Ergänzen bleiben vorhandene Angaben, Artikel und Bilder erhalten; fehlende Angaben werden aus dem Scan übernommen.") }
+                    } footer: { Text("Ein neuer Einkauf zählt zusätzlich zu deinen Ausgaben. Beim Ergänzen bleiben vorhandene Angaben erhalten; fehlende werden ergänzt. Bild und Artikel folgen deiner Auswahl.") }
                     if let message { ScreenError(message: message) }
                     if saving { ProgressView("Beleg wird gespeichert …") }
                 }

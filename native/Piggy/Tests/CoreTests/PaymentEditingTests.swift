@@ -22,6 +22,13 @@ final class PaymentEditingTests: XCTestCase {
         draft.items = [DraftItem(name: "Brot", total_price: .nan)]
         XCTAssertThrowsError(try ReceiptRules.validate(draft))
     }
+    func testExistingUndatedReceiptCanStillHaveAmountCorrected() {
+        let draft = ReceiptDraft(store_name: "Coop", receipt_date: "", total_amount: 12)
+        XCTAssertThrowsError(try ReceiptRules.validate(draft))
+        XCTAssertNoThrow(try ReceiptRules.validate(draft, allowMissingDate: true))
+        var invalid = draft; invalid.receipt_date = "2026-02-30"
+        XCTAssertThrowsError(try ReceiptRules.validate(invalid, allowMissingDate: true))
+    }
     private func card(_ suffix: String = "5327", _ label: String? = "Mastercard · Privat") -> ProfileCard {
         ProfileCard(id: UUID(), user_id: UUID(), last_four: suffix, label: label)
     }

@@ -11,6 +11,20 @@ enum ObjectStorageBackend: String {
 
 enum ObjectStoragePolicy {
     static let buckets: Set<String> = ["receipts", "receipt-images", "bank-statements"]
+    static func receiptPath(_ raw: String, supabaseURL: String, userID: UUID) throws -> String {
+        var path = raw
+        if raw.contains("://") {
+            guard let url = URL(string: raw), let trusted = URL(string: supabaseURL),
+                  url.scheme == "https", url.host == trusted.host, url.user == nil, url.password == nil, url.port == nil else {
+                throw PiggyFailure.validation("Ungültige Belegadresse.")
+            }
+            let prefixes = ["public", "sign", "authenticated"].map { "/storage/v1/object/\($0)/receipt-images/" }
+            guard let prefix = prefixes.first(where: { url.path.hasPrefix($0) }) else { throw PiggyFailure.validation("Ungültiger Belegpfad.") }
+            path = String(url.path.dropFirst(prefix.count))
+        }
+        try validate(bucket: "receipt-images", path: path, userID: userID)
+        return path
+    }
     static func validate(bucket: String, path: String, userID: UUID) throws {
         let segments = path.split(separator: "/", omittingEmptySubsequences: false)
         guard buckets.contains(bucket), path.count <= 512,

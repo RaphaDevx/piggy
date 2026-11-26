@@ -89,8 +89,8 @@ extension PiggyStore {
         await reload(); return id
     }
     func signedImageURL(path: String) async throws -> URL {
-        guard !path.contains("://"), !path.hasPrefix("/"), !path.contains("..") else { throw PiggyFailure.validation("Ungültiger Belegpfad.") }
-        return try await signedObjectURL(bucket: "receipt-images", path: path)
+        let normalized = try ObjectStoragePolicy.receiptPath(path, supabaseURL: LaunchConfiguration.value("SUPABASE_URL"), userID: requireUser())
+        return try await signedObjectURL(bucket: "receipt-images", path: normalized)
     }
     func delete(receipt: Receipt) async throws {
         try await requireClient().rpc("delete_reviewed_receipt", params: ["p_receipt_id": receipt.id]).execute()
@@ -113,7 +113,7 @@ extension PiggyStore {
             row.total_price = item.total_price ?? 0; row.unit_price = item.unit_price ?? 0
             return row
         }
-        try ReceiptRules.validate(draft)
+        try ReceiptRules.validate(draft, allowMissingDate: true)
         let current: Receipt = try await client.from("receipts").select("*,receipt_items(*)")
             .eq("id", value: receipt.id.uuidString).eq("user_id", value: uid.uuidString).single().execute().value
         let existingIDs = Set(current.receipt_items.map(\.id))
@@ -130,7 +130,7 @@ extension PiggyStore {
         // All receipt metadata is one update; item edits are individually acknowledged.
         do {
             let _: MutationID = try await client.from("receipts").update([
-                "store_name": JSONValue.string(receipt.store_name), "receipt_date": .optional(receipt.receipt_date),
+                "store_name": JSONValue.string(receipt.store_name), "receipt_date": .optional(receipt.receipt_date?.isEmpty == true ? nil : receipt.receipt_date),
                 "total_amount": receipt.total_amount.map(JSONValue.number) ?? .null,
                 "currency": .string(receipt.currency), "notes": .optional(receipt.notes),
                 "store_category": .optional(receipt.store_category),
