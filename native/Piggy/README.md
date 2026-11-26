@@ -44,3 +44,10 @@ R2-Integration auf Apple verifiziert: lokaler K-Dev-Build `509eb0bb97e74f46`, Ve
 Der iPhone-Google-Login verwendet den vorhandenen iOS-Client direkt mit System-Anmeldefenster, PKCE, State und Nonce; Supabase prüft danach das ID-Token. Der Web-OAuth-Weg mit diesem iOS-Client führte reproduzierbar zu redirect_uri_mismatch. Vorhandene E-Mail-Konten sind wieder über «Mit E-Mail anmelden» zugänglich; keine neue Registrierung. Passwort-Zurücksetzen verwendet den exakten Supabase-Allowlist-Callback `piggy://auth/reset-password` und SDK-PKCE. Nutzer muss den Link auf demselben Gerät anfordern und öffnen.
 
 Lokaler Build `e96e423b1557357b` und Core-Tests erfolgreich; beide Callbackschemata im gebauten Artefakt verifiziert. Echter technischer E-Mail-Login HTTP200. Vollständiger Google-Consent und UI-Bedienung auf dem aktualisierten Gerät bleiben offen. Keine automatische Recovery-Mail oder Production-/TestFlight-Auslieferung. Details: `docs/verification/2026-11-26-native-login.md`.
+
+
+## Retina-Animationen (26.11.2026)
+
+Der gemeinsame Maskottchen-Player verwendet `app-motion-v3`: 864-Pixel-Master für alle drei Posen, transparenten Schattenauslauf und denselben ersten Frame für Reduced Motion. Die bestehende sichtbare Piggy-Grösse bleibt durch eine 1.18-fache transparente Zeichenfläche erhalten. Unabhängige PNG-Frames werden im Hintergrund mit einem Puffer von maximal sechs Bildern statt als komplettes Retina-Array dekodiert.
+
+Die Prüfung erfolgt mit `python3 scripts/validate_resources.py`, den Timeline-Tests und den Apple-ImageIO-Ressourcentests im Swift-Package. Renders und Release-Nachweis: [Retina-Verifikation](../../docs/verification/2026-11-26-retina-mascot.md). Den aktuellen Auslieferungsstatus dort lesen; ein erfolgreicher Simulator-Build allein bedeutet keine TestFlight-Freigabe.
