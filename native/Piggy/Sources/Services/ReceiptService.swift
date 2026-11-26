@@ -40,7 +40,7 @@ extension PiggyStore {
             "store_name": .string(draft.store_name), "receipt_date": .string(draft.receipt_date),
             "store_category": .optional(draft.store_category), "total_amount": .number(draft.total_amount),
             "currency": .string(draft.currency), "payment_method": .string(draft.payment_method),
-            "payment_card": .optional(draft.payment_card), "notes": .string(draft.notes),
+            "payment_card": .optional(PaymentCard.normalized(draft.payment_card, method: draft.payment_method, cards: cards)), "notes": .string(draft.notes),
             "raw_ocr_text": .string(draft.raw_ocr_text), "image_url": .optional(path),
             "receipt_items": .array(draft.items.map { .object([
                 "name": .string($0.name), "quantity": .number($0.quantity), "unit": .string($0.unit),
@@ -94,22 +94,30 @@ extension PiggyStore {
         var draft = ReceiptDraft()
         draft.store_name = receipt.store_name; draft.receipt_date = receipt.receipt_date ?? ""
         draft.total_amount = receipt.total_amount ?? 0; draft.currency = receipt.currency
+        draft.payment_card = receipt.payment_card
+        draft.items = receipt.receipt_items.map { item in
+            var row = DraftItem()
+            row.name = item.name; row.quantity = item.quantity ?? 1
+            row.total_price = item.total_price ?? 0; row.unit_price = item.unit_price ?? 0
+            return row
+        }
         try ReceiptRules.validate(draft)
         // All receipt metadata is one update; item edits are individually acknowledged.
         do {
-            try await client.from("receipts").update([
+            let _: MutationID = try await client.from("receipts").update([
                 "store_name": JSONValue.string(receipt.store_name), "receipt_date": .optional(receipt.receipt_date),
                 "total_amount": receipt.total_amount.map(JSONValue.number) ?? .null,
                 "currency": .string(receipt.currency), "notes": .optional(receipt.notes),
-                "payment_method": .optional(receipt.payment_method)
-            ]).eq("id", value: receipt.id.uuidString).eq("user_id", value: uid.uuidString).execute()
+                "payment_method": .optional(receipt.payment_method),
+                "payment_card": .optional(PaymentCard.normalized(receipt.payment_card, method: receipt.payment_method, cards: cards))
+            ]).eq("id", value: receipt.id.uuidString).eq("user_id", value: uid.uuidString).select("id").single().execute().value
             for item in receipt.receipt_items {
-                try await client.from("receipt_items").update([
+                let _: MutationID = try await client.from("receipt_items").update([
                     "name": JSONValue.string(item.name), "tags": .array(item.tags.map(JSONValue.string)),
                     "subcategory": .optional(item.subcategory), "total_price": item.total_price.map(JSONValue.number) ?? .null,
                     "quantity": item.quantity.map(JSONValue.number) ?? .null, "unit_price": item.unit_price.map(JSONValue.number) ?? .null,
                     "classified_at": .string(ISO8601DateFormatter().string(from: Date()))
-                ]).eq("id", value: item.id.uuidString).eq("receipt_id", value: receipt.id.uuidString).execute()
+                ]).eq("id", value: item.id.uuidString).eq("receipt_id", value: receipt.id.uuidString).select("id").single().execute().value
             }
         } catch {
             await reload()
@@ -118,6 +126,8 @@ extension PiggyStore {
         await reload()
     }
 }
+
+private struct MutationID: Decodable { let id: UUID }
 
 private struct ParsedReceipt: Decodable {
     var store_name: String?; var date: String?; var total_amount: Decimal?; var currency: String?
@@ -131,7 +141,8 @@ private struct ParsedReceipt: Decodable {
         var draft = ReceiptDraft()
         draft.store_name = store_name ?? ""; draft.receipt_date = date ?? draft.receipt_date
         draft.total_amount = total_amount ?? 0; draft.currency = currency ?? "CHF"
-        draft.payment_method = payment_method ?? "Unbekannt"; draft.payment_card = payment_card
+        draft.payment_method = payment_method ?? "Unbekannt"
+        draft.payment_card = PaymentCard.normalized(payment_card, method: payment_method, cards: []) ?? PaymentCard.fromOCR(rawText)
         draft.store_category = store_category; draft.raw_ocr_text = rawText
         draft.items = (items ?? []).map { item in
             var row = DraftItem(); row.name = item.name ?? "Artikel"; row.quantity = item.quantity ?? 1

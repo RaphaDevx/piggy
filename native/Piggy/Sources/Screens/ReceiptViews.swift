@@ -60,11 +60,17 @@ struct ReceiptDetailView: View {
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(receipt.store_name).font(.title.bold())
-                            Text(money(receipt.total_amount, receipt.currency)).font(.largeTitle.bold()).monospacedDigit()
+                            Button { editing = true } label: {
+                                HStack {
+                                    Text(money(receipt.total_amount, receipt.currency)).font(.largeTitle.bold()).monospacedDigit()
+                                    Image(systemName: "pencil").font(.body)
+                                }
+                            }.buttonStyle(.plain).disabled(busy)
+                                .accessibilityLabel("Gesamtbetrag bearbeiten: \(money(receipt.total_amount, receipt.currency))")
                             Text(receiptDate(receipt.receipt_date)).foregroundStyle(Theme.secondary)
                         }.padding(.vertical, 8)
                         if let payment = receipt.payment_method, !payment.isEmpty { LabeledContent("Zahlungsart", value: payment) }
-                        if let card = receipt.payment_card, !card.isEmpty { LabeledContent("Karte", value: card) }
+                        if let card = store.cardDisplay(receipt.payment_card, method: receipt.payment_method) { LabeledContent("Karte", value: card) }
                     }
                     if receipt.image_url != nil {
                         Section("Originalbeleg") {
@@ -89,7 +95,10 @@ struct ReceiptDetailView: View {
                                 HStack(alignment: .firstTextBaseline) {
                                     Text(item.name)
                                     Spacer()
-                                    Text(money(item.total_price, receipt.currency)).monospacedDigit()
+                                    Button { editing = true } label: {
+                                        Label(money(item.total_price, receipt.currency), systemImage: "pencil").monospacedDigit()
+                                    }.buttonStyle(.plain).disabled(busy)
+                                        .accessibilityLabel("Betrag für \(item.name) bearbeiten")
                                 }
                                 HStack {
                                     if let category = item.tags.first { Text(category) }
@@ -118,6 +127,7 @@ struct ReceiptDetailView: View {
                 .sheet(isPresented: $editing) { ReceiptEditView(receipt: receipt) }
                 .sheet(isPresented: $showingPhoto) { if let originalImage { PhotoPreview(image: originalImage) } }
                 .task(id: receipt.image_url) { await loadImage() }
+                .task { do { try await store.loadCards() } catch { message = error.localizedDescription } }
                 .confirmationDialog("Beleg endgültig löschen?", isPresented: $deleteConfirmation, titleVisibility: .visible) {
                     Button("Beleg löschen", role: .destructive) { Task { await delete(receipt) } }
                     Button("Abbrechen", role: .cancel) {}
@@ -176,12 +186,14 @@ struct ReceiptEditView: View {
                     TextField("Datum (JJJJ-MM-TT)", text: Binding(get: { receipt.receipt_date ?? "" }, set: { receipt.receipt_date = $0 }))
                     DecimalField(title: "Gesamtbetrag", value: Binding(get: { receipt.total_amount ?? 0 }, set: { receipt.total_amount = $0 }))
                     TextField("Währung", text: $receipt.currency).textInputAutocapitalization(.characters).autocorrectionDisabled()
-                    TextField("Zahlungsart", text: Binding(get: { receipt.payment_method ?? "" }, set: { receipt.payment_method = $0 }))
+                    ReceiptPaymentFields(method: Binding(get: { receipt.payment_method ?? "" }, set: { receipt.payment_method = $0 }), card: $receipt.payment_card)
                 }
                 Section("Artikel") {
                     ForEach($receipt.receipt_items) { $item in
                         VStack(alignment: .leading, spacing: 8) {
                             TextField("Artikelname", text: $item.name)
+                            DecimalField(title: "Menge", value: Binding(get: { item.quantity ?? 1 }, set: { item.quantity = $0 }))
+                            DecimalField(title: "Einzelpreis", value: Binding(get: { item.unit_price ?? 0 }, set: { item.unit_price = $0 }))
                             DecimalField(title: "Artikelbetrag", value: Binding(get: { item.total_price ?? 0 }, set: { item.total_price = $0 }))
                             CategoryPicker(category: Binding(get: { item.tags.first ?? "Diverses" }, set: { item.tags = [$0]; item.subcategory = nil }))
                         }.padding(.vertical, 4)
@@ -197,7 +209,10 @@ struct ReceiptEditView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() }.disabled(busy) }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { Task { await save() } } label: { if busy { ProgressView() } else { Text("Speichern").bold() } }
-                        .disabled(busy || receipt.store_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || receipt.currency.count != 3)
+                        .disabled(busy || receipt.store_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || receipt.currency.count != 3 ||
+                                  receipt.total_amount?.isNaN == true || receipt.receipt_items.contains {
+                                      $0.total_price?.isNaN == true || $0.quantity?.isNaN == true || $0.unit_price?.isNaN == true
+                                  })
                 }
             }
             .disabled(busy)

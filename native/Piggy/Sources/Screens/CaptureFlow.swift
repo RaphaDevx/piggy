@@ -189,7 +189,7 @@ struct DraftReviewView: View {
                 TextField("Datum (JJJJ-MM-TT)", text: $draft.receipt_date).keyboardType(.numbersAndPunctuation)
                 DecimalField(title: "Gesamtbetrag", value: $draft.total_amount)
                 TextField("Währung", text: $draft.currency).textInputAutocapitalization(.characters).autocorrectionDisabled()
-                TextField("Zahlungsart", text: $draft.payment_method)
+                ReceiptPaymentFields(method: $draft.payment_method, card: $draft.payment_card)
             }
             Section {
                 ForEach($draft.items) { $item in
@@ -243,11 +243,7 @@ struct DraftReviewView: View {
             }
         }
     }
-    private var valid: Bool {
-        !draft.store_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        draft.currency.trimmingCharacters(in: .whitespacesAndNewlines).count == 3 &&
-        draft.items.allSatisfy { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-    }
+    private var valid: Bool { (try? ReceiptRules.validate(draft)) != nil }
     @MainActor private func prepareSave() async {
         guard !saving, valid else { return }
         candidates = store.duplicateCandidates(for: draft)

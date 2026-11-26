@@ -22,10 +22,11 @@ enum ReceiptRules {
         }
     }
     static func validate(_ draft: ReceiptDraft) throws {
+        try PaymentCard.validate(draft.payment_card)
         guard !draft.store_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw PiggyFailure.validation("Bitte gib das Geschäft an.")
         }
-        guard draft.total_amount >= 0, draft.total_amount <= 10_000_000 else { throw PiggyFailure.validation("Bitte prüfe den Gesamtbetrag.") }
+        guard !draft.total_amount.isNaN, draft.total_amount >= 0, draft.total_amount <= 10_000_000 else { throw PiggyFailure.validation("Bitte prüfe den Gesamtbetrag.") }
         guard draft.currency.range(of: "^[A-Z]{3}$", options: .regularExpression) != nil else { throw PiggyFailure.validation("Bitte wähle eine gültige Währung.") }
         guard draft.receipt_date.range(of: "^\\d{4}-\\d{2}-\\d{2}$", options: .regularExpression) != nil else { throw PiggyFailure.validation("Bitte prüfe das Belegdatum.") }
         let calendar = DateFormatter()
@@ -35,7 +36,7 @@ enum ReceiptRules {
         guard let date = calendar.date(from: draft.receipt_date), calendar.string(from: date) == draft.receipt_date else {
             throw PiggyFailure.validation("Bitte prüfe das Belegdatum.")
         }
-        guard draft.items.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.quantity > 0 }) else {
+        guard draft.items.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !$0.quantity.isNaN && $0.quantity > 0 && !$0.total_price.isNaN && !$0.unit_price.isNaN }) else {
             throw PiggyFailure.validation("Bitte prüfe Namen und Mengen deiner Artikel.")
         }
     }

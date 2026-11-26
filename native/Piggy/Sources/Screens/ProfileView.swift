@@ -24,6 +24,9 @@ struct ProfileView: View {
                 Button("Name speichern") { run { try await store.updateName(name) } }.disabled(busy || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 if let profile = store.profile { LabeledContent("Piggy-Code", value: profile.piggy_code) }
             }
+            Section("Zahlungskarten") {
+                NavigationLink { PaymentCardsView() } label: { Label("Meine Karten", systemImage: "creditcard") }
+            }
             Section("Piggy Gold") {
                 Text(gold.isGold ? "Dein Gold-Abo ist aktiv." : "Piggy ohne Werbung und mit den Vorteilen von Gold.")
                 Button(gold.isGold ? "Gold verwalten" : "Gold entdecken") { showingGold = true }

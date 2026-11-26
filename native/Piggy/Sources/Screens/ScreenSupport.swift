@@ -118,10 +118,40 @@ struct BusyButton: View {
 struct DecimalField: View {
     let title: String
     @Binding var value: Decimal
+    @State private var text = ""
+    @FocusState private var focused: Bool
     var body: some View {
-        TextField(title, value: $value, format: .number.precision(.fractionLength(0...4)))
-            .keyboardType(.decimalPad)
-            .accessibilityLabel(title)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.subheadline).foregroundStyle(.secondary)
+            HStack {
+                TextField(title, text: $text)
+                    .keyboardType(.decimalPad)
+                    .focused($focused)
+                    .monospacedDigit()
+                    .accessibilityLabel(title)
+                    .onChange(of: text) { _, new in value = AmountInput.parse(new) ?? .nan }
+                if focused && !text.isEmpty {
+                    Button { text = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .foregroundStyle(.secondary).accessibilityLabel("\(title) leeren")
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+            }
+            if AmountInput.parse(text) == nil {
+                Text("Bitte eine Zahl mit Komma oder Punkt eingeben.").font(.footnote).foregroundStyle(.red)
+            }
+        }
+        .onAppear { text = AmountInput.text(value) }
+        .onChange(of: value) { _, new in
+            if !focused && !new.isNaN { text = AmountInput.text(new) }
+        }
+        .toolbar {
+            if focused {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Fertig") { focused = false }
+                }
+            }
+        }
     }
 }
 
