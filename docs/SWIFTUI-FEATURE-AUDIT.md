@@ -176,3 +176,10 @@ Auslieferung der kompakten Ansicht und nativen Zahlentastaturen: **1.0 (33)** in
 ## Manuelle Zusammenführung wieder erreichbar (27.11.2026)
 
 D04: Der bisherige SwiftUI-Vergleich war ausschliesslich über automatisch vorgeschlagene Paare erreichbar. Jetzt öffnet jeder Beleg über das Menü „Mit anderem Beleg zusammenführen …“ eine Suche nach einem zweiten eigenen Beleg. Unter „Duplikate prüfen“ gibt es zusätzlich „Belege manuell zusammenführen“ mit Auswahl von A und B. Abweichende OCR-Angaben und zuvor getrennt bestätigte Vorschläge verhindern die bewusste manuelle Auswahl nicht. Vergleich, Feld-/Bild-/Artikelauswahl, Vorschau und Bestätigung verwenden weiterhin den bestehenden geschützten Merge-RPC. A behält seine ID; B wird erst nach bestätigter erfolgreicher Transaktion entfernt. Backendkonflikte bleiben sichtbar.
+
+
+## Belegbild und Angaben gemeinsam sichtbar (27.11.2026)
+
+Die Belegübersicht zeigt das echte Originalbild kompakt neben Geschäft, Datum, bearbeitbarem Betrag, Zahlungsart/Karte und Artikelzahl. Im Merge-Vergleich stehen die Originale A/B mit Kerndaten nebeneinander. Tippen öffnet den vorhandenen vergrösserbaren Bildbetrachter mit frischem privatem Speicherlink. Fehlende Bilder und Ladefehler haben eigene Zustände. Grosse Bedienungshilfen-Schrift verwendet vertikale Anordnung; Artikel und vollständige Zusatzangaben bleiben in ihren bisherigen Bereichen.
+
+Händlerquittungen ohne Papier sind ein separater Produktplan in `docs/PAPERLESS-MERCHANT-RECEIPTS.md`, noch kein eingebauter Empfangskanal.

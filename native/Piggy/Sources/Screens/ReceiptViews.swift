@@ -83,20 +83,7 @@ struct ReceiptDetailView: View {
             if let receipt {
                 List {
                     Section {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(receipt.store_name).font(.title.bold())
-                            Button { editing = true } label: {
-                                HStack {
-                                    Text(money(receipt.total_amount, receipt.currency)).font(.largeTitle.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
-                                    Image(systemName: "pencil").font(.body)
-                                }
-                            }.buttonStyle(.plain).disabled(busy)
-                                .accessibilityLabel("Gesamtbetrag bearbeiten: \(money(receipt.total_amount, receipt.currency))")
-                            Text(receiptDate(receipt.receipt_date)).foregroundStyle(Theme.secondary)
-                        }.padding(.vertical, 8)
-                        if let payment = store.cardDisplay(receipt.payment_card, method: receipt.payment_method) ?? receipt.payment_method, !payment.isEmpty {
-                            LabeledContent("Bezahlt mit") { Text(payment).lineLimit(1).truncationMode(.middle) }
-                        }
+                        ReceiptOverview(receipt: receipt) { editing = true }.disabled(busy)
                     }
                     Section("Artikel") {
                         if receipt.receipt_items.isEmpty { Text("Keine einzelnen Artikel erfasst.").foregroundStyle(Theme.secondary) }

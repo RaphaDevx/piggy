@@ -56,6 +56,7 @@ struct DuplicatePairReview: View {
     var body: some View {
         Form {
             Section("Beide Originale vergleichen") {
+                ReceiptComparisonOverview(target: pair.target, source: pair.source)
                 NavigationLink("Beleg A ansehen") { ReceiptDetailView(receiptID: pair.target.id) }
                 NavigationLink("Beleg B ansehen") { ReceiptDetailView(receiptID: pair.source.id) }
                 Text("A bleibt als Beleg erhalten. Beim Zusammenführen wird B aus der aktiven Liste entfernt. Verknüpfungen werden erhalten oder der Vorgang wird bei Konflikten abgelehnt.")
@@ -174,7 +175,7 @@ struct ReceiptMergePicker: View {
                         }
                     }
                 }
-                Text("Die ID von A bleibt erhalten. Wähle danach Beleg B und prüfe, welche Angaben, welches Bild und welche Artikelliste übernommen werden. B wird erst nach deiner Bestätigung entfernt.").font(.footnote).foregroundStyle(.secondary)
+                Text("Beleg A bleibt erhalten. Wähle danach Beleg B und prüfe, welche Angaben, welches Bild und welche Artikelliste übernommen werden. B wird erst nach deiner Bestätigung entfernt.").font(.footnote).foregroundStyle(.secondary)
             }
             if loading { ProgressView("Belege werden aktualisiert …") }
             if let error { ScreenError(message: error, retry: { Task { await load() } }) }
