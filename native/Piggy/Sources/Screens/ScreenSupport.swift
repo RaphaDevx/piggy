@@ -74,12 +74,7 @@ struct ReceiptRow: View {
     let receipt: Receipt
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "receipt")
-                .font(.title3)
-                .foregroundStyle(Theme.text)
-                .frame(width: 44, height: 44)
-                .background(Theme.pink.opacity(0.22), in: RoundedRectangle(cornerRadius: 14))
-                .accessibilityHidden(true)
+            MerchantLogo(name: receipt.store_name)
             VStack(alignment: .leading, spacing: 4) {
                 Text(receipt.store_name).font(.headline)
                 Text(receiptDate(receipt.receipt_date)).font(.subheadline).foregroundStyle(Theme.secondary)

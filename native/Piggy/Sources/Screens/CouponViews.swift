@@ -149,7 +149,14 @@ private struct CouponDetailView: View {
             }
             if let error { ScreenError(message: error) }
         }.navigationTitle("Coupon")
-            .sheet(isPresented: $showPDF) { if let data = current.document { NavigationStack { PDFOriginalView(data: data).navigationTitle("Originalcoupon").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schliessen") { showPDF = false } } } } }
+            .sheet(isPresented: $showPDF) {
+                if let data = current.document {
+                    NavigationStack {
+                        PDFOriginalView(data: data).navigationTitle("Originalcoupon")
+                            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schliessen") { showPDF = false } } }
+                    }
+                }
+            }
             .sheet(isPresented: $showOriginal) { if let data = current.image, let image = UIImage(data: data) { PhotoPreview(image: image) } }
     }
     private var barcode: UIImage? {

@@ -72,14 +72,16 @@ enum ShareInbox {
         }.sorted { $0.createdAt > $1.createdAt }
     }
     static func data(_ record: SharedImport, owner: UUID, at root: URL) throws -> Data {
-        guard record.owner == nil || record.owner == owner else { throw CocoaError(.fileReadNoPermission) }
+        let persisted = try JSONDecoder().decode(SharedImport.self, from: Data(contentsOf: root.appendingPathComponent(record.id.uuidString).appendingPathComponent("record.json")))
+        guard persisted.id == record.id, persisted.owner == nil || persisted.owner == owner else { throw CocoaError(.fileReadNoPermission) }
         let url = root.appendingPathComponent(record.id.uuidString).appendingPathComponent("payload")
         let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
         guard let size = attrs[.size] as? NSNumber, size.intValue <= maxBytes else { throw CocoaError(.fileReadTooLarge) }
         return try Data(contentsOf: url)
     }
     static func remove(_ record: SharedImport, owner: UUID, at root: URL) throws {
-        guard record.owner == nil || record.owner == owner else { throw CocoaError(.fileWriteNoPermission) }
+        let persisted = try JSONDecoder().decode(SharedImport.self, from: Data(contentsOf: root.appendingPathComponent(record.id.uuidString).appendingPathComponent("record.json")))
+        guard persisted.id == record.id, persisted.owner == nil || persisted.owner == owner else { throw CocoaError(.fileWriteNoPermission) }
         try FileManager.default.removeItem(at: root.appendingPathComponent(record.id.uuidString))
     }
     static func purge(owner: UUID) throws {
