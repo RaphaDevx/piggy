@@ -56,12 +56,16 @@ for path in ['Sources/Core/ShareInbox.swift', 'Sources/Core/MerchantAndCoupon.sw
 for path in ['ShareExtension/Info.plist','ShareExtension/Share.entitlements']:
     source_refs.append(obj(path, '{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = '+q(path)+'; sourceTree = SOURCE_ROOT;}'))
 share_sources = obj('share-sources','{isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = '+seq(share_builds)+'; runOnlyForDeploymentPostprocessing = 0;}')
+share_privacy_ref = obj('ShareExtension/PrivacyInfo.xcprivacy', '{isa = PBXFileReference; lastKnownFileType = text.xml; path = ShareExtension/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT;}')
+source_refs.append(share_privacy_ref)
+share_privacy_build = obj('share-privacy-build', '{isa = PBXBuildFile; fileRef = '+share_privacy_ref+';}')
+share_resources = obj('share-resources', '{isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = '+seq([share_privacy_build])+'; runOnlyForDeploymentPostprocessing = 0;}')
 share_frameworks = obj('share-frameworks','{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;}')
 share_configs = []
 for mode in ['Debug','Release']:
     share_configs.append(obj('share-config:'+mode,'{isa = XCBuildConfiguration; buildSettings = {PRODUCT_NAME = PiggyShare; PRODUCT_BUNDLE_IDENTIFIER = com.heartbeat.piggy.share; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; TARGETED_DEVICE_FAMILY = 1; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; APPLICATION_EXTENSION_API_ONLY = YES; SKIP_INSTALL = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = ShareExtension/Info.plist; CODE_SIGN_ENTITLEMENTS = ShareExtension/Share.entitlements; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = H6X9JDXF96; MARKETING_VERSION = 1.0; CURRENT_PROJECT_VERSION = 28; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";}; name = '+mode+';}'))
 share_list = obj('share-configs','{isa = XCConfigurationList; buildConfigurations = '+seq(share_configs)+'; defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;}')
-share_target = obj('share-target','{isa = PBXNativeTarget; buildConfigurationList = '+share_list+'; buildPhases = '+seq([share_sources,share_frameworks])+'; buildRules = (); dependencies = (); name = PiggyShare; productName = PiggyShare; productReference = '+share_product+'; productType = "com.apple.product-type.app-extension";}')
+share_target = obj('share-target','{isa = PBXNativeTarget; buildConfigurationList = '+share_list+'; buildPhases = '+seq([share_sources,share_frameworks,share_resources])+'; buildRules = (); dependencies = (); name = PiggyShare; productName = PiggyShare; productReference = '+share_product+'; productType = "com.apple.product-type.app-extension";}')
 proxy = obj('share-proxy','{isa = PBXContainerItemProxy; containerPortal = '+uid('project')+'; proxyType = 1; remoteGlobalIDString = '+share_target+'; remoteInfo = PiggyShare;}')
 share_dependency = obj('share-dependency','{isa = PBXTargetDependency; target = '+share_target+'; targetProxy = '+proxy+';}')
 embed_build = obj('embed-share','{isa = PBXBuildFile; fileRef = '+share_product+'; settings = {ATTRIBUTES = (RemoveHeadersOnCopy,);};}')

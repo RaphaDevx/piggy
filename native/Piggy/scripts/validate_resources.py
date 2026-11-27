@@ -41,3 +41,12 @@ subprocess.run(['python3',str(root / 'scripts/generate_project.py')],check=True,
 assert project == (root / 'Piggy.xcodeproj/project.pbxproj').read_bytes(), 'Regenerate the project after adding sources'
 assert all(str(p.relative_to(root)) in project.decode() for p in (root / 'Sources').rglob('*.swift'))
 print(f'PASS: {len(manifest["assets"])} asset hashes, 17 variants, 222 Retina frames, transparent borders, 3 exact timelines and identical static fallbacks, opaque icon, plists and deterministic project inputs. Apple compilation not checked.')
+
+# The extension calls group UserDefaults and reads file metadata; its own bundle needs its manifest.
+for relative in ['Resources/PrivacyInfo.xcprivacy','ShareExtension/PrivacyInfo.xcprivacy']:
+    privacy = plistlib.loads((root / relative).read_bytes())
+    reasons = {row['NSPrivacyAccessedAPIType']: set(row['NSPrivacyAccessedAPITypeReasons']) for row in privacy['NSPrivacyAccessedAPITypes']}
+    assert '1C8F.1' in reasons['NSPrivacyAccessedAPICategoryUserDefaults'], relative
+    assert {'C617.1','3B52.1'} <= reasons['NSPrivacyAccessedAPICategoryFileTimestamp'], relative
+assert 'ShareExtension/PrivacyInfo.xcprivacy' in project.decode()
+print('PASS: app and share extension privacy manifests declare group defaults and file metadata reasons.')
