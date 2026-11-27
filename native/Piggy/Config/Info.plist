@@ -75,6 +75,8 @@
 	<string>$(SUPPORT_URL)</string>
 	<key>TERMS_URL</key>
 	<string>$(TERMS_URL)</string>
+	<key>PIGGY_COMPANIES</key>
+	<string>$(PIGGY_COMPANIES)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

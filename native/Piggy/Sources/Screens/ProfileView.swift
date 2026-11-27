@@ -27,6 +27,9 @@ struct ProfileView: View {
             Section("Zahlungskarten") {
                 NavigationLink { PaymentCardsView() } label: { Label("Meine Karten", systemImage: "creditcard") }
             }
+            if CompanyFeature.enabled {
+                Section("Geschäftlich") { NavigationLink("Firmen & Spesen") { CompanyHomeView().id(store.userID) } }
+            }
             Section("Piggy Gold") {
                 Text(gold.isGold ? "Dein Gold-Abo ist aktiv." : "Piggy ohne Werbung und mit den Vorteilen von Gold.")
                 Button(gold.isGold ? "Gold verwalten" : "Gold entdecken") { showingGold = true }

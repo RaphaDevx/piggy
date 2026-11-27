@@ -21,3 +21,6 @@ PIGGY_SHARE_BANK_ITEMS = NO
 
 // Only legacy reads may use Supabase; new files are always uploaded to R2.
 STORAGE_BACKEND = r2-with-fallback
+
+// Company pilot: enable only after backend and privacy/retention verification.
+PIGGY_COMPANIES = NO
