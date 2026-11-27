@@ -5,9 +5,11 @@ struct PiggyNativeApp: App {
     @StateObject private var store = PiggyStore()
     @StateObject private var gold = GoldManager()
     @StateObject private var ads = NativeAdsManager()
+    @StateObject private var library = PersonalLibrary()
     var body: some Scene {
         WindowGroup {
-            NativeRootView().environmentObject(store).environmentObject(gold).environmentObject(ads)
+            NativeRootView().environmentObject(store).environmentObject(gold).environmentObject(ads).environmentObject(library)
+                .onChange(of: store.userID, initial: true) { _, uid in library.activate(uid); ShareInbox.setActiveOwner(uid) }
                 .task { ads.attach(gold: gold) }
         }
     }
@@ -37,13 +39,18 @@ private struct NativeRootView: View {
             }
         }
         .onOpenURL { url in
+            if url.isFileURL {
+                do { try SharedImportService.enqueue(file: url, owner: store.userID ?? ShareInbox.activeOwner()) }
+                catch { recoveryError = error.localizedDescription }
+                return
+            }
             guard NativeAuthPolicy.isRecoveryCallback(url) else { return }
             Task {
                 do { try await store.receivePasswordRecovery(url) }
                 catch { recoveryError = "Der Link ist abgelaufen oder wurde auf einem anderen Gerät angefordert. Fordere auf diesem iPhone einen neuen Link an." }
             }
         }
-        .alert("Passwort-Link", isPresented: Binding(get: { recoveryError != nil }, set: { if !$0 { recoveryError = nil } })) {
+        .alert("Piggy", isPresented: Binding(get: { recoveryError != nil }, set: { if !$0 { recoveryError = nil } })) {
             Button("OK") { recoveryError = nil }
         } message: { Text(recoveryError ?? "") }
         .task { await store.start(); starting = false; await gold.configure(userID: store.userID) }

@@ -37,7 +37,8 @@ sources_phase = obj('sources','{isa = PBXSourcesBuildPhase; buildActionMask = 21
 resources_phase = obj('resources','{isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = '+seq(resource_builds)+'; runOnlyForDeploymentPostprocessing = 0;}')
 frameworks_phase = obj('frameworks','{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = '+seq(framework_builds)+'; runOnlyForDeploymentPostprocessing = 0;}')
 app = obj('app','{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Piggy.app; sourceTree = BUILT_PRODUCTS_DIR;}')
-products = obj('products','{isa = PBXGroup; children = '+seq([app])+'; name = Products; sourceTree = "<group>";}')
+share_product = obj('share-product', '{isa = PBXFileReference; explicitFileType = \"wrapper.app-extension\"; includeInIndex = 0; path = PiggyShare.appex; sourceTree = BUILT_PRODUCTS_DIR;}')
+products = obj('products','{isa = PBXGroup; children = '+seq([app,share_product])+'; name = Products; sourceTree = "<group>";}')
 configs = []
 project_configs = []
 for mode in ['Debug','Release']:
@@ -47,9 +48,27 @@ for mode in ['Debug','Release']:
     project_configs.append(obj('projectconfig:'+mode,'{isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_OPTIMIZATION_LEVEL = '+q('-Onone' if mode == 'Debug' else '-O')+'; SWIFT_ACTIVE_COMPILATION_CONDITIONS = '+q('DEBUG $(inherited)' if mode == 'Debug' else '$(inherited)')+'; DEBUG_INFORMATION_FORMAT = '+q('dwarf' if mode == 'Debug' else 'dwarf-with-dsym')+';}; name = '+mode+';}'))
 target_list = obj('targetconfigs','{isa = XCConfigurationList; buildConfigurations = '+seq(configs)+'; defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;}')
 project_list = obj('projectconfigs','{isa = XCConfigurationList; buildConfigurations = '+seq(project_configs)+'; defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;}')
-target = obj('target','{isa = PBXNativeTarget; buildConfigurationList = '+target_list+'; buildPhases = '+seq([sources_phase,frameworks_phase,resources_phase])+'; buildRules = (); dependencies = (); name = PiggyNative; packageProductDependencies = '+seq(dependencies)+'; productName = Piggy; productReference = '+app+'; productType = "com.apple.product-type.application";}')
+share_builds = []
+for path in ['Sources/Core/ShareInbox.swift', 'Sources/Core/MerchantAndCoupon.swift', 'ShareExtension/ShareViewController.swift']:
+    if uid(path) not in objects:
+        source_refs.append(obj(path, '{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = '+q(path)+'; sourceTree = SOURCE_ROOT;}'))
+    share_builds.append(obj('sharebuild:'+path, '{isa = PBXBuildFile; fileRef = '+uid(path)+';}'))
+for path in ['ShareExtension/Info.plist','ShareExtension/Share.entitlements']:
+    source_refs.append(obj(path, '{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = '+q(path)+'; sourceTree = SOURCE_ROOT;}'))
+share_sources = obj('share-sources','{isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = '+seq(share_builds)+'; runOnlyForDeploymentPostprocessing = 0;}')
+share_frameworks = obj('share-frameworks','{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;}')
+share_configs = []
+for mode in ['Debug','Release']:
+    share_configs.append(obj('share-config:'+mode,'{isa = XCBuildConfiguration; buildSettings = {PRODUCT_NAME = PiggyShare; PRODUCT_BUNDLE_IDENTIFIER = com.heartbeat.piggy.share; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; TARGETED_DEVICE_FAMILY = 1; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; APPLICATION_EXTENSION_API_ONLY = YES; SKIP_INSTALL = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = ShareExtension/Info.plist; CODE_SIGN_ENTITLEMENTS = ShareExtension/Share.entitlements; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = H6X9JDXF96; MARKETING_VERSION = 1.0; CURRENT_PROJECT_VERSION = 28; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";}; name = '+mode+';}'))
+share_list = obj('share-configs','{isa = XCConfigurationList; buildConfigurations = '+seq(share_configs)+'; defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;}')
+share_target = obj('share-target','{isa = PBXNativeTarget; buildConfigurationList = '+share_list+'; buildPhases = '+seq([share_sources,share_frameworks])+'; buildRules = (); dependencies = (); name = PiggyShare; productName = PiggyShare; productReference = '+share_product+'; productType = "com.apple.product-type.app-extension";}')
+proxy = obj('share-proxy','{isa = PBXContainerItemProxy; containerPortal = '+uid('project')+'; proxyType = 1; remoteGlobalIDString = '+share_target+'; remoteInfo = PiggyShare;}')
+share_dependency = obj('share-dependency','{isa = PBXTargetDependency; target = '+share_target+'; targetProxy = '+proxy+';}')
+embed_build = obj('embed-share','{isa = PBXBuildFile; fileRef = '+share_product+'; settings = {ATTRIBUTES = (RemoveHeadersOnCopy,);};}')
+embed_phase = obj('embed-phase','{isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = '+seq([embed_build])+'; name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0;}')
+target = obj('target','{isa = PBXNativeTarget; buildConfigurationList = '+target_list+'; buildPhases = '+seq([sources_phase,frameworks_phase,resources_phase,embed_phase])+'; buildRules = (); dependencies = '+seq([share_dependency])+'; name = PiggyNative; packageProductDependencies = '+seq(dependencies)+'; productName = Piggy; productReference = '+app+'; productType = "com.apple.product-type.application";}')
 group = obj('rootgroup','{isa = PBXGroup; children = '+seq(source_refs+resource_refs+[products])+'; sourceTree = "<group>";}')
-project = obj('project','{isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2600; TargetAttributes = {'+target+' = {CreatedOnToolsVersion = 26.0; SystemCapabilities = {com.apple.SignInWithApple = {enabled = 1;};};};};}; buildConfigurationList = '+project_list+'; compatibilityVersion = "Xcode 14.0"; developmentRegion = de; hasScannedForEncodings = 0; knownRegions = (de,en,Base,); mainGroup = '+group+'; packageReferences = '+seq(packages)+'; productRefGroup = '+products+'; projectDirPath = ""; projectRoot = ""; targets = '+seq([target])+';}')
+project = obj('project','{isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2600; TargetAttributes = {'+target+' = {CreatedOnToolsVersion = 26.0; SystemCapabilities = {com.apple.SignInWithApple = {enabled = 1;};};};};}; buildConfigurationList = '+project_list+'; compatibilityVersion = "Xcode 14.0"; developmentRegion = de; hasScannedForEncodings = 0; knownRegions = (de,en,Base,); mainGroup = '+group+'; packageReferences = '+seq(packages)+'; productRefGroup = '+products+'; projectDirPath = ""; projectRoot = ""; targets = '+seq([target,share_target])+';}')
 folder = root / 'Piggy.xcodeproj'
 folder.mkdir(exist_ok=True)
 (folder / 'project.pbxproj').write_text('// !$*UTF8*$!\n{archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n'+'\n'.join(k+' = '+v+';' for k,v in objects.items())+'\n}; rootObject = '+project+';}\n')

@@ -8,6 +8,22 @@
 	<string>de</string>
 	<key>CFBundleDisplayName</key>
 	<string>Piggy</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Quittungen und Coupons</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+				<string>public.image</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -49,6 +65,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Fotografiere deine Belege, um Ausgaben zu erfassen.</string>
 	<key>PIGGY_ADS_ENABLED</key>
@@ -59,6 +77,8 @@
 	<string>$(PIGGY_ANNUAL_ENABLED)</string>
 	<key>PIGGY_BANK_IMPORT</key>
 	<string>$(PIGGY_BANK_IMPORT)</string>
+	<key>PIGGY_COMPANIES</key>
+	<string>$(PIGGY_COMPANIES)</string>
 	<key>PIGGY_SHARE_BANK_ITEMS</key>
 	<string>$(PIGGY_SHARE_BANK_ITEMS)</string>
 	<key>PRIVACY_URL</key>
@@ -75,8 +95,6 @@
 	<string>$(SUPPORT_URL)</string>
 	<key>TERMS_URL</key>
 	<string>$(TERMS_URL)</string>
-	<key>PIGGY_COMPANIES</key>
-	<string>$(PIGGY_COMPANIES)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

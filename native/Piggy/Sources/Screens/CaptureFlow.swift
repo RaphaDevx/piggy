@@ -137,7 +137,7 @@ struct CaptureFlow: View {
     }
 }
 
-private struct DocumentCamera: UIViewControllerRepresentable {
+struct DocumentCamera: UIViewControllerRepresentable {
     let completed: (Result<[UIImage], Error>) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(completed) }
     func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
@@ -163,6 +163,7 @@ struct DraftReviewView: View {
     @State private var draft: ReceiptDraft
     let image: UIImage?
     let onSaved: () -> Void
+    let sourcePDF: Data?
     @State private var saving = false
     @State private var message: String?
     @State private var candidates: [Receipt] = []
@@ -172,11 +173,12 @@ struct DraftReviewView: View {
     @State private var mergeWithNewItems = false
     @State private var mergeConfirmation: Receipt?
     @State private var previewPhoto = false
-    init(draft: ReceiptDraft, image: UIImage?, warning: String? = nil, onSaved: @escaping () -> Void) {
+    init(draft: ReceiptDraft, image: UIImage?, warning: String? = nil, sourcePDF: Data? = nil, onSaved: @escaping () -> Void) {
         _draft = State(initialValue: draft)
         _message = State(initialValue: warning ?? draft.recognition_warning)
         self.image = image
         self.onSaved = onSaved
+        self.sourcePDF = sourcePDF
     }
     var body: some View {
         Form {
@@ -283,7 +285,7 @@ struct DraftReviewView: View {
         saving = true
         message = nil
         do {
-            _ = try await store.save(draft: draft, image: image, separateFrom: separateFrom)
+            _ = try await store.save(draft: draft, image: image, separateFrom: separateFrom, sourcePDF: sourcePDF)
             NotificationCenter.default.post(name: .init("piggy.receiptSaved"), object: nil)
             duplicateSheet = false
             onSaved()
@@ -295,7 +297,7 @@ struct DraftReviewView: View {
         saving = true
         message = nil
         do {
-            _ = try await store.merge(draft: draft, image: image, target: receipt, choices: ["image": .string(mergeWithNewImage ? "source" : (receipt.image_url == nil && image != nil ? "source" : "target")), "items": .string(mergeWithNewItems || receipt.receipt_items.isEmpty ? "source" : "target")])
+            _ = try await store.merge(draft: draft, image: image, target: receipt, choices: ["image": .string(mergeWithNewImage ? "source" : (receipt.image_url == nil && image != nil ? "source" : "target")), "items": .string(mergeWithNewItems || receipt.receipt_items.isEmpty ? "source" : "target")], sourcePDF: sourcePDF)
             duplicateSheet = false
             onSaved()
         } catch { message = error.localizedDescription }

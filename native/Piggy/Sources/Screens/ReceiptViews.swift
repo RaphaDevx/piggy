@@ -24,6 +24,8 @@ struct ReceiptListView: View {
     var body: some View {
         List {
             if store.busy && store.receipts.isEmpty { ProgressView("Belege werden geladen …") }
+            Section { NavigationLink { ShareInboxView() } label: { Label("Eingang – geteilte Dateien", systemImage: "tray") } }
+            Section { NavigationLink { CouponsView() } label: { Label("Coupons", systemImage: "ticket") } }
             Section { NavigationLink { DuplicatesView() } label: { Label("Duplikate prüfen", systemImage: "doc.on.doc") } }
             if !store.receipts.isEmpty {
                 DisclosureGroup("Filter") {

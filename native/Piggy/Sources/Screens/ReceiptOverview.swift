@@ -81,6 +81,7 @@ struct ReceiptOriginalThumbnail: View {
 struct ReceiptOverview: View {
     @EnvironmentObject private var store: PiggyStore
     @Environment(\.dynamicTypeSize) private var typeSize
+    @EnvironmentObject private var library: PersonalLibrary
     let receipt: Receipt
     let edit: () -> Void
     var body: some View {
@@ -90,7 +91,14 @@ struct ReceiptOverview: View {
                 .frame(width: typeSize.isAccessibilitySize ? nil : 104)
             VStack(alignment: .leading, spacing: 10) {
                 Label("Dein Einkauf", systemImage: "bag").font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                Text(receipt.store_name).font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: 8) {
+                    MerchantLogo(name: receipt.store_name)
+                    Text(receipt.store_name).font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
+                }
+                if let brand = library.brand(for: receipt.store_name, owner: store.userID) {
+                    if !brand.information.isEmpty { Text(brand.information).font(.caption).foregroundStyle(.secondary) }
+                    if let url = MerchantBrand.catalogURL(brand.catalog) { Link(destination: url) { Label("Produktkatalog", systemImage: "book") }.font(.subheadline) }
+                }
                 Text(receiptDate(receipt.receipt_date)).font(.subheadline).foregroundStyle(.secondary)
                 Button(action: edit) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {

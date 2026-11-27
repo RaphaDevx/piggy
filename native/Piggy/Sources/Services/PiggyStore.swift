@@ -145,11 +145,15 @@ final class PiggyStore: ObservableObject {
         catch { errorMessage = error.localizedDescription }
     }
     func deleteAccount(authorizationCode: String?) async throws {
+        let deletingUser = try requireUser()
         struct Deletion: Decodable { var deleted: Bool }
         var body: [String: JSONValue] = ["confirm": .string("DELETE")]
         if let authorizationCode { body["apple_authorization_code"] = .string(authorizationCode) }
         let result: Deletion = try await requireClient().functions.invoke("delete-account", options: .init(body: body))
         guard result.deleted else { throw PiggyFailure.service("Das Konto konnte nicht gelöscht werden.") }
+        try? PersonalLibrary.purge(deletingUser)
+        try? ShareInbox.purge(owner: deletingUser)
+        ShareInbox.setActiveOwner(nil)
         try? await client?.auth.signOut(scope: .local)
         clearAccount()
     }

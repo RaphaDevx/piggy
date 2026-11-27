@@ -23,6 +23,7 @@ struct ReceiptAdvancedView: View {
                         if let card = store.cardDisplay(receipt.payment_card, method: receipt.payment_method) { LabeledContent("Karte", value: card) }
                         if let rawCard = receipt.payment_card, !rawCard.isEmpty { LabeledContent("Kartenangabe des Belegs", value: rawCard) }
                     }
+                    Section("Anbieter") { NavigationLink("Logo, Anbieterinfo & Produktkatalog") { MerchantBrandEditor(name: receipt.store_name) } }
                     let details = ReceiptMetadata.details(receipt.extra_fields, raw: receipt.raw_ocr_text)
                     if !details.isEmpty {
                         Section("Angaben auf der Quittung") {
@@ -49,6 +50,12 @@ struct ReceiptAdvancedView: View {
                             Button("Bild neu laden") { Task { await loadImage() } }.disabled(busy)
                         }
                     }
+                    let originals = (receipt.extra_fields ?? [:]).keys.filter { $0.hasPrefix("_piggy_original_pdf_") }.sorted()
+                    if !originals.isEmpty { Section("Original-PDFs") {
+                        ForEach(originals, id: \.self) { key in
+                            if let wrapped = receipt.extra_fields?[key], let path = wrapped { PDFOriginalFileButton(path: path) }
+                        }
+                    } }
                     if let raw = receipt.raw_ocr_text, !raw.isEmpty {
                         Section {
                             Text(raw).textSelection(.enabled)

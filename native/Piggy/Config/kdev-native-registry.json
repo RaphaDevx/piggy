@@ -27,6 +27,20 @@
         "local",
         "production"
       ]
-    }
+    },
+    "capabilities": [
+      "APP_GROUPS"
+    ],
+    "appGroups": [
+      "group.com.heartbeat.piggy"
+    ],
+    "extensions": [
+      {
+        "bundleIdentifier": "com.heartbeat.piggy.share",
+        "capabilities": [
+          "APP_GROUPS"
+        ]
+      }
+    ]
   }
 }

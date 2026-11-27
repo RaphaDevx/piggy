@@ -91,7 +91,7 @@ enum ReceiptMetadata {
         let labels = Dictionary(uniqueKeysWithValues: ReceiptExtras.labels)
         return fields.compactMap { key, wrapped in
             guard let value = wrapped, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  !key.hasPrefix("parking_") else { return nil }
+                  !key.hasPrefix("parking_"), !key.hasPrefix("_piggy_") else { return nil }
             let title = labels[key] ?? (key.hasPrefix("printed:") ? String(key.dropFirst(8)) : key.replacingOccurrences(of: "_", with: " "))
             return Detail(key: key, title: title, value: value)
         }.sorted { a, b in a.title.localizedStandardCompare(b.title) == .orderedAscending }

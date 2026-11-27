@@ -19,7 +19,10 @@ extension PiggyStore {
             try VNImageRequestHandler(cgImage: cgImage).perform([request])
             return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
         }.value
-        guard !text.isEmpty else { throw PiggyFailure.validation("Kein lesbarer Text erkannt. Bitte fotografiere den Beleg bei gutem Licht erneut.") }
+        return try await processText(text, allowAI: allowAI)
+    }
+    func processText(_ text: String, allowAI: Bool) async throws -> ReceiptDraft {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw PiggyFailure.validation("Kein lesbarer Belegtext vorhanden.") }
         guard allowAI && aiConsent else { return LocalReceiptParser.parse(text) }
         struct ScanReply: Decodable { let result: ParsedReceipt }
         let uid = try requireUser()
@@ -57,10 +60,11 @@ extension PiggyStore {
             ]) })
         ])
     }
-    func save(draft: ReceiptDraft, image: UIImage?, separateFrom: [UUID]) async throws -> UUID {
+    func save(draft: ReceiptDraft, image: UIImage?, separateFrom: [UUID], sourcePDF: Data? = nil) async throws -> UUID {
         try ReceiptRules.validate(draft)
         let uid = try requireUser(); let client = try requireClient()
         let path = try await upload(image, user: uid)
+        let draft = try await attachPDF(sourcePDF, to: draft, user: uid)
         do {
             guard userID == uid else { throw PiggyFailure.signedOut }
             let id: UUID = try await client.rpc("save_separate_receipt_scan", params: [
@@ -74,7 +78,7 @@ extension PiggyStore {
             throw PiggyFailure.service("Die Speicherbestätigung fehlt. Prüfe zuerst deine Belegliste, bevor du erneut speicherst. " + error.localizedDescription)
         }
     }
-    func merge(draft: ReceiptDraft, image: UIImage?, target: Receipt, choices: [String: JSONValue] = [:]) async throws -> UUID {
+    func merge(draft: ReceiptDraft, image: UIImage?, target: Receipt, choices: [String: JSONValue] = [:], sourcePDF: Data? = nil) async throws -> UUID {
         try ReceiptRules.validate(draft)
         let uid = try requireUser(); let client = try requireClient()
         // Upload only when the user chose the new image, or when the existing image is missing.
@@ -82,11 +86,23 @@ extension PiggyStore {
         if case .string("source")? = choices["image"] { useNewImage = true }
         else { useNewImage = target.image_url == nil }
         let path = useNewImage ? try await upload(image, user: uid) : nil
+        let draft = try await attachPDF(sourcePDF, to: draft, user: uid)
         let id: UUID = try await client.rpc("merge_receipt_scan", params: [
             "p_target_id": .uuid(target.id), "p_scan": scanPayload(draft, path: path), "p_choices": .object(choices)
         ]).execute().value
         guard userID == uid else { throw PiggyFailure.signedOut }
         await reload(); return id
+    }
+    private func attachPDF(_ data: Data?, to draft: ReceiptDraft, user: UUID) async throws -> ReceiptDraft {
+        guard let data else { return draft }
+        guard data.count <= ShareInbox.maxBytes, data.starts(with: Data("%PDF-".utf8)) else { throw PiggyFailure.validation("Ungültiges Original-PDF.") }
+        let id = UUID().uuidString.lowercased()
+        let path = "\(user.uuidString.lowercased())/\(id).pdf"
+        try await uploadObject(bucket: "receipt-images", path: path, data: data, contentType: "application/pdf")
+        guard userID == user else { throw PiggyFailure.signedOut }
+        var next = draft; var extras = next.extra_fields ?? [:]
+        extras["_piggy_original_pdf_" + id] = path; next.extra_fields = extras
+        return next
     }
     func signedImageURL(path: String) async throws -> URL {
         let normalized = try ObjectStoragePolicy.receiptPath(path, supabaseURL: LaunchConfiguration.value("SUPABASE_URL"), userID: requireUser())
