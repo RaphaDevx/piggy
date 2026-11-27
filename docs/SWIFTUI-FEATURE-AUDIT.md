@@ -163,3 +163,11 @@ Eigene spätere Ausbaustufe nach den Kernreparaturen: konkrete lustige/fiktive Q
 ## Auslieferung dieser Runde
 
 **1.0 (32)** ist intern in TestFlight freigegeben: K-Dev `3595b72e0414fa9f`, Apple **VALID**, `released: true`, ausschliesslich **Internal Testers**, bestätigt 27.11.2026 00:39:46 CET. Quelle `92ad51b3`; alle fünf Build-/Apple-/Freigabegates bestanden. Der spätere Social-Media-Demomodus ist ausschliesslich geplant. Noch offene Punkte der Inventur werden durch diesen Release nicht als erledigt markiert.
+
+## Fortsetzung: kompakter Beleg und erweiterte Details
+
+Auftrag 27.11.: Zahlentastatur sicher abschliessen, klare einzeilige Artikel, Zusatzdaten aus der Hauptansicht auslagern und den gesamten erkannten Text erhalten. Umgesetzt in `d638e96f` und `aa012ac5`: native Tastaturleiste mit Fertig auch für Kartenendziffern; kompakte Artikel und Artikeldetails über «…»; eigene Ansicht «Weitere Details» mit Originalbild, Filiale/Adresse, Kasse/Kassierer, Zahlungsreferenzen und vollständigem OCR-Text. Bestehende/geleerte Angaben bleiben erhalten, numerische und unbekannte Metadaten werden toleriert. Die separaten Merge-Auswahlfelder bleiben mit der ausgerollten RPC-Whitelist kompatibel.
+
+Coretests und Simulatorbuild des finalen Codes `aa012ac5`, K-Dev `17a552227da2e5ae`, erfolgreich. Interne Production-Auslieferung `0fb8021bb59a3ef3` läuft. Quellen zu Zahlenformaten und genaue Abnahmegrenzen: [Verifikation](verification/2026-11-27-receipt-presentation.md). Keine vollständige Geräte- oder OCR-Erkennungsgarantie aus einem grünen Compilerlauf ableiten; die übrigen offenen Inventurpunkte bleiben bestehen.
+
+Auslieferung der kompakten Ansicht und nativen Zahlentastaturen: **1.0 (33)** intern bei Apple **VALID** und **Internal Testers** bestätigt, K-Dev `0fb8021bb59a3ef3`, Quelle `aa012ac5`, 27.11.2026 15:17:58 CET. Die bestehende Geräteprüfliste bleibt offen.
