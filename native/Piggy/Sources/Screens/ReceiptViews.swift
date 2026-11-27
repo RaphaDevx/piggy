@@ -73,6 +73,7 @@ struct ReceiptDetailView: View {
     @Environment(\.dismiss) private var dismiss
     let receiptID: UUID
     @State private var editing = false
+    @State private var merging = false
     @State private var deleteConfirmation = false
     @State private var busy = false
     @State private var message: String?
@@ -120,11 +121,18 @@ struct ReceiptDetailView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             ShareLink(item: receipt.shareText) { Label("Belegübersicht teilen", systemImage: "square.and.arrow.up") }
+                            Button { merging = true } label: { Label("Mit anderem Beleg zusammenführen …", systemImage: "doc.on.doc") }.disabled(busy)
                             Button("Beleg löschen", role: .destructive) { deleteConfirmation = true }.disabled(busy)
                         } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel("Weitere Belegaktionen")
                     }
                 }
                 .sheet(isPresented: $editing) { ReceiptEditView(receipt: receipt) }
+                .sheet(isPresented: $merging) {
+                    NavigationStack {
+                        ReceiptMergePicker(targetID: receipt.id, onMerged: { merging = false })
+                            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Schliessen") { merging = false } } }
+                    }
+                }
                 .task { do { try await store.loadCards() } catch { message = error.localizedDescription } }
                 .confirmationDialog("Beleg endgültig löschen?", isPresented: $deleteConfirmation, titleVisibility: .visible) {
                     Button("Beleg löschen", role: .destructive) { Task { await delete(receipt) } }

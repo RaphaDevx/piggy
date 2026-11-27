@@ -171,3 +171,8 @@ Auftrag 27.11.: Zahlentastatur sicher abschliessen, klare einzeilige Artikel, Zu
 Coretests und Simulatorbuild des finalen Codes `aa012ac5`, K-Dev `17a552227da2e5ae`, erfolgreich. Interne Production-Auslieferung `0fb8021bb59a3ef3` läuft. Quellen zu Zahlenformaten und genaue Abnahmegrenzen: [Verifikation](verification/2026-11-27-receipt-presentation.md). Keine vollständige Geräte- oder OCR-Erkennungsgarantie aus einem grünen Compilerlauf ableiten; die übrigen offenen Inventurpunkte bleiben bestehen.
 
 Auslieferung der kompakten Ansicht und nativen Zahlentastaturen: **1.0 (33)** intern bei Apple **VALID** und **Internal Testers** bestätigt, K-Dev `0fb8021bb59a3ef3`, Quelle `aa012ac5`, 27.11.2026 15:17:58 CET. Die bestehende Geräteprüfliste bleibt offen.
+
+
+## Manuelle Zusammenführung wieder erreichbar (27.11.2026)
+
+D04: Der bisherige SwiftUI-Vergleich war ausschliesslich über automatisch vorgeschlagene Paare erreichbar. Jetzt öffnet jeder Beleg über das Menü „Mit anderem Beleg zusammenführen …“ eine Suche nach einem zweiten eigenen Beleg. Unter „Duplikate prüfen“ gibt es zusätzlich „Belege manuell zusammenführen“ mit Auswahl von A und B. Abweichende OCR-Angaben und zuvor getrennt bestätigte Vorschläge verhindern die bewusste manuelle Auswahl nicht. Vergleich, Feld-/Bild-/Artikelauswahl, Vorschau und Bestätigung verwenden weiterhin den bestehenden geschützten Merge-RPC. A behält seine ID; B wird erst nach bestätigter erfolgreicher Transaktion entfernt. Backendkonflikte bleiben sichtbar.

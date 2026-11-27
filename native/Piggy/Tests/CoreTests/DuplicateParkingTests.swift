@@ -2,6 +2,17 @@ import XCTest
 @testable import PiggyCore
 
 final class DuplicateParkingTests: XCTestCase {
+    func testManualMergeAllowsOCRMismatchesButOnlyOwnOtherReceipts() {
+        let a = Receipt(store_name: "Coop", receipt_date: "2026-11-27", total_amount: 12)
+        var b = a; b.id = UUID(); b.store_name = "C00P"; b.receipt_date = nil; b.total_amount = 21
+        var foreign = b; foreign.id = UUID(); foreign.user_id = UUID()
+        XCTAssertTrue(ReceiptRules.duplicatePairs([a, b], dismissed: []).isEmpty)
+        let manual = ReceiptRules.manualMergeCandidates([a, b, foreign], owner: a.user_id, targetID: a.id, search: "")
+        XCTAssertEqual(manual.map(\.id), [b.id])
+        XCTAssertEqual(ReceiptRules.manualMergeCandidates([a, b], owner: a.user_id, targetID: a.id, search: " c00p ").map(\.id), [b.id])
+        XCTAssertTrue(ReceiptRules.manualMergeCandidates([a, b], owner: a.user_id, targetID: a.id, search: "Migros").isEmpty)
+    }
+
     func testSavedDuplicatesRespectOwnerCurrencyAndSeparateDecision() {
         var a = Receipt(store_name: "Mïgros", receipt_date: "2026-11-27", total_amount: 12, currency: "CHF")
         var b = a; b.id = UUID(); b.store_name = "MIGROS!"

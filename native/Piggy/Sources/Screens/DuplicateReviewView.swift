@@ -8,7 +8,8 @@ struct DuplicatesView: View {
     var body: some View {
         List {
             Section {
-                Text("Datum, Betrag, Währung und normalisierter Ladenname müssen übereinstimmen. Abweichende Angaben kannst du zuerst am Beleg korrigieren. Piggy führt nie automatisch zusammen.")
+                NavigationLink { ReceiptMergePicker() } label: { Label("Belege manuell zusammenführen", systemImage: "doc.on.doc") }
+                Text("Automatische Vorschläge vergleichen Datum, Betrag, Währung und Ladenname. Du kannst zwei Belege auch selbst auswählen, wenn Angaben abweichen. Piggy führt nie automatisch zusammen.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if loading { ProgressView("Belege werden geprüft …") }
@@ -39,6 +40,7 @@ struct DuplicatesView: View {
 
 struct DuplicatePairReview: View {
     let pair: DuplicatePair
+    var onMerged: (() -> Void)? = nil
     @EnvironmentObject private var store: PiggyStore
     @Environment(\.dismiss) private var dismiss
     @State private var fields: [String: String] = [:]
@@ -129,11 +131,75 @@ struct DuplicatePairReview: View {
     }
     private func merge() async {
         busy = true; defer { busy = false }
-        do { try await store.mergeDuplicates(pair, choices: choices); dismiss() } catch { self.error = error.localizedDescription }
+        do { try await store.mergeDuplicates(pair, choices: choices); if let onMerged { onMerged() } else { dismiss() } } catch { self.error = error.localizedDescription }
     }
     private func separate() async {
         busy = true; defer { busy = false }
         do { try await store.keepSeparate(pair); dismiss() } catch { self.error = error.localizedDescription }
+    }
+}
+
+
+/// Select two saved receipts even when OCR differences prevent an automatic suggestion.
+struct ReceiptMergePicker: View {
+    @EnvironmentObject private var store: PiggyStore
+    @State private var selectedTargetID: UUID?
+    @State private var search = ""
+    @State private var loading = false
+    @State private var error: String?
+    private let fixedTarget: Bool
+    let onMerged: (() -> Void)?
+    init(targetID: UUID? = nil, onMerged: (() -> Void)? = nil) {
+        _selectedTargetID = State(initialValue: targetID)
+        fixedTarget = targetID != nil
+        self.onMerged = onMerged
+    }
+    private var owned: [Receipt] { store.receipts.filter { $0.user_id == store.userID } }
+    private var target: Receipt? { owned.first { $0.id == selectedTargetID } }
+    private var candidates: [Receipt] {
+        guard let uid = store.userID else { return [] }
+        return ReceiptRules.manualMergeCandidates(store.receipts, owner: uid, targetID: selectedTargetID, search: search)
+    }
+    var body: some View {
+        List {
+            Section("Beleg A behalten") {
+                if fixedTarget {
+                    if let target { ReceiptRow(receipt: target) }
+                    else { Text("Der ursprüngliche Beleg ist nicht mehr verfügbar.").foregroundStyle(.secondary) }
+                } else {
+                    Picker("Beleg A", selection: $selectedTargetID) {
+                        Text("Beleg auswählen").tag(Optional<UUID>.none)
+                        ForEach(owned) { receipt in
+                            Text("\(receipt.store_name) · \(receiptDate(receipt.receipt_date)) · \(money(receipt.total_amount, receipt.currency))").tag(Optional(receipt.id))
+                        }
+                    }
+                }
+                Text("Die ID von A bleibt erhalten. Wähle danach Beleg B und prüfe, welche Angaben, welches Bild und welche Artikelliste übernommen werden. B wird erst nach deiner Bestätigung entfernt.").font(.footnote).foregroundStyle(.secondary)
+            }
+            if loading { ProgressView("Belege werden aktualisiert …") }
+            if let error { ScreenError(message: error, retry: { Task { await load() } }) }
+            if let target {
+                Section("Beleg B zum Vergleichen auswählen") {
+                    ForEach(candidates) { source in
+                        NavigationLink {
+                            DuplicatePairReview(pair: DuplicatePair(target: target, source: source), onMerged: onMerged)
+                        } label: { ReceiptRow(receipt: source) }
+                    }
+                    if candidates.isEmpty {
+                        Text(search.isEmpty ? "Kein weiterer eigener Beleg vorhanden." : "Keine passenden Belege. Versuche einen anderen Suchbegriff.").foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Belege zusammenführen")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $search, prompt: "Beleg B suchen")
+        .task { await load() }
+        .refreshable { await load() }
+    }
+    private func load() async {
+        loading = true; defer { loading = false }
+        do { try await store.refreshReceipts(); error = nil } catch { self.error = error.localizedDescription }
     }
 }
 
