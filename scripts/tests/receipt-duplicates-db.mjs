@@ -178,4 +178,11 @@ await scenario('adjustment survives replacing ordinary items and invalid scan ro
  assert.equal((await db.query('SELECT image_url FROM receipts WHERE id=$1',[A])).rows[0].image_url,'old-image');
  assert.equal((await db.query('SELECT count(*)::int n FROM private.receipt_merge_history')).rows[0].n,1);
 });
+await scenario('distinct private original PDF references survive saved receipt merge',async db=>{
+ await db.query("UPDATE receipts SET extra_fields=extra_fields || $2::jsonb WHERE id=$1",[A,{_piggy_original_pdf_a:U+'/a.pdf'}]);
+ await db.query("UPDATE receipts SET extra_fields=extra_fields || $2::jsonb WHERE id=$1",[B,{_piggy_original_pdf_b:U+'/b.pdf'}]);
+ await db.exec('SET ROLE authenticated'); await merge(db);
+ const extra=(await db.query('SELECT extra_fields FROM receipts WHERE id=$1',[A])).rows[0].extra_fields;
+ assert.equal(extra._piggy_original_pdf_a,U+'/a.pdf');assert.equal(extra._piggy_original_pdf_b,U+'/b.pdf');
+});
 console.log(`${passed} database scenarios passed (disposable PostgreSQL).`);

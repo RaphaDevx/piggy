@@ -183,3 +183,11 @@ D04: Der bisherige SwiftUI-Vergleich war ausschliesslich über automatisch vorge
 Die Belegübersicht zeigt das echte Originalbild kompakt neben Geschäft, Datum, bearbeitbarem Betrag, Zahlungsart/Karte und Artikelzahl. Im Merge-Vergleich stehen die Originale A/B mit Kerndaten nebeneinander. Tippen öffnet den vorhandenen vergrösserbaren Bildbetrachter mit frischem privatem Speicherlink. Fehlende Bilder und Ladefehler haben eigene Zustände. Grosse Bedienungshilfen-Schrift verwendet vertikale Anordnung; Artikel und vollständige Zusatzangaben bleiben in ihren bisherigen Bereichen.
 
 Händlerquittungen ohne Papier sind ein separater Produktplan in `docs/PAPERLESS-MERCHANT-RECEIPTS.md`, noch kein eingebauter Empfangskanal.
+
+## Logo, Share-Eingang und Coupons (27.11.2026)
+
+- Kleine persönliche Händlerlogos auch in bestehenden Beleglisten und der kompakten Übersicht; Anbieterinfo und freiwilliger HTTPS-Kataloglink. Anbieter-Selbstservice mit Verifikation noch geplant.
+- Echte eingebettete Share Extension für PDF/Bilder und als solche gekennzeichnete HTTPS-Links. Lokaler kontoabhängiger Eingang mit expliziter Beleg-/Couponwahl, kein automatischer Beleg. Apple-App-Group-/Profilfreigabe und TestFlight-Auslieferung stehen noch aus.
+- Vollständiges Original-PDF zusätzlich zur Bildvorschau privat gespeichert; interne Metadaten ausgeblendet, unterschiedliche PDF-Referenzen bleiben beim Merge erhalten. Belegimport mit 1–12 PDF-Seiten, 20 MB pro Datei. Sammel-PDFs vorab trennen.
+- Eigenständiger Couponbereich unter Belege mit Fotos/PDFs, lokaler QR-/Barcodeerkennung, geprüftem Datum/Bedingungen und persönlichem Verwendet-Status; auf diesem Gerät für das Konto gespeichert. Keine automatische Kasseneinlösung.
+- SumUp-Leseadapter getestet, keine aktive OAuth-/Händlerverbindung. Setup und Quellen: `docs/SHARE-LOGOS-COUPONS-SUMUP.md`; Prüfnachweis: `docs/verification/2026-11-27-share-brand-coupons.md`.
