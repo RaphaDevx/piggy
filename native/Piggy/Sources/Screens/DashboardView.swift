@@ -190,7 +190,7 @@ struct CategoryReceiptsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         ReceiptRow(receipt: receipt)
                         ForEach(receipt.receipt_items.filter { $0.tags.first == category }) { item in
-                            HStack { Text(item.name).font(.subheadline); Spacer(); Text(money(item.total_price, currency)).font(.subheadline.monospacedDigit()) }
+                            ReceiptArticleLine(item: item, currency: currency).font(.subheadline)
                         }
                     }
                 }

@@ -118,43 +118,79 @@ struct BusyButton: View {
 struct DecimalField: View {
     let title: String
     @Binding var value: Decimal
-    @State private var text = ""
-    @FocusState private var focused: Bool
+    var compact = false
+    var minimumFractionDigits = 0
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.subheadline).foregroundStyle(.secondary)
-            HStack {
-                TextField(title, text: $text)
-                    .keyboardType(.decimalPad)
-                    .focused($focused)
-                    .monospacedDigit()
-                    .accessibilityLabel(title)
-                    .onChange(of: text) { _, new in value = AmountInput.parse(new) ?? .nan }
-                if focused && !text.isEmpty {
-                    Button { text = "" } label: { Image(systemName: "xmark.circle.fill") }
-                        .foregroundStyle(.secondary).accessibilityLabel("\(title) leeren")
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-            }
-            if AmountInput.parse(text) == nil {
-                Text("Bitte eine Zahl mit Komma oder Punkt eingeben.").font(.footnote).foregroundStyle(.red)
+        VStack(alignment: .leading, spacing: compact ? 0 : 6) {
+            if !compact { Text(title).font(.subheadline).foregroundStyle(.secondary) }
+            NativeDecimalInput(value: $value, title: title, minimumFractionDigits: minimumFractionDigits)
+                .frame(minHeight: 44)
+            if value.isNaN {
+                if compact { Image(systemName: "exclamationmark.circle").foregroundStyle(.red).accessibilityLabel("Ungültige Zahl") }
+                else { Text("Bitte eine Zahl mit Komma oder Punkt eingeben.").font(.footnote).foregroundStyle(.red) }
             }
         }
-        .onAppear { text = AmountInput.text(value) }
-        .onChange(of: value) { _, new in
-            if !focused && !new.isNaN { text = AmountInput.text(new) }
+    }
+}
+
+/// The decimal keyboard has no return key. Its native input accessory exists for every
+/// numeric field, including fields inside sheets, independent of SwiftUI toolbar focus.
+private struct NativeDecimalInput: UIViewRepresentable {
+    @Binding var value: Decimal
+    @Environment(\.isEnabled) private var isEnabled
+    let title: String
+    let minimumFractionDigits: Int
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.keyboardType = .decimalPad
+        field.font = .preferredFont(forTextStyle: .body)
+        field.adjustsFontForContentSizeCategory = true
+        field.textAlignment = .right
+        field.clearButtonMode = .whileEditing
+        field.accessibilityLabel = title
+        field.placeholder = "0"
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        field.delegate = context.coordinator
+        field.addTarget(context.coordinator, action: #selector(Coordinator.changed(_:)), for: .editingChanged)
+        let bar = UIToolbar()
+        bar.items = [
+            UIBarButtonItem(title: "+/−", style: .plain, target: context.coordinator, action: #selector(Coordinator.toggleSign)),
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            UIBarButtonItem(title: "Fertig", style: .done, target: context.coordinator, action: #selector(Coordinator.done))
+        ]
+        bar.items?.first?.accessibilityLabel = "Vorzeichen ändern"
+        bar.items?.last?.accessibilityIdentifier = "piggy.number.done"
+        bar.sizeToFit()
+        field.inputAccessoryView = bar
+        context.coordinator.field = field
+        return field
+    }
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        context.coordinator.parent = self
+        uiView.accessibilityLabel = title
+        uiView.isEnabled = isEnabled
+        if !uiView.isFirstResponder && !value.isNaN {
+            uiView.text = AmountInput.editorText(value, minimumFractionDigits: minimumFractionDigits)
         }
-        .toolbar {
-            if focused {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Button("+/−") {
-                        if text.hasPrefix("-") { text.removeFirst() } else { text = "-" + text }
-                    }.accessibilityLabel("Vorzeichen ändern")
-                    Spacer()
-                    Button("Fertig") { focused = false }
-                }
-            }
+    }
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: NativeDecimalInput
+        weak var field: UITextField?
+        init(_ parent: NativeDecimalInput) { self.parent = parent }
+        @objc func changed(_ sender: UITextField) { parent.value = AmountInput.parse(sender.text ?? "") ?? .nan }
+        @objc func toggleSign() {
+            guard let field else { return }
+            let text = field.text ?? ""
+            field.text = text.hasPrefix("-") ? String(text.dropFirst()) : "-" + text
+            changed(field)
         }
+        @objc func done() { field?.resignFirstResponder() }
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            changed(textField)
+            if !parent.value.isNaN { textField.text = AmountInput.editorText(parent.value, minimumFractionDigits: parent.minimumFractionDigits) }
+        }
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool { textField.resignFirstResponder(); return true }
     }
 }
 

@@ -222,3 +222,32 @@ extension Receipt {
          receipt_items.map(\.name) + (extra_fields ?? [:]).values.compactMap { $0 }).joined(separator: " ")
     }
 }
+
+extension Receipt {
+    private enum CodingKeys: String, CodingKey {
+        case id, user_id, store_name, receipt_date, store_category, total_amount, currency,
+             payment_method, payment_card, image_url, original_image_url, raw_ocr_text,
+             notes, extra_fields, markdown_content, created_at, project_id, receipt_items
+    }
+    init(from decoder: Decoder) throws {
+        let box = try decoder.container(keyedBy: CodingKeys.self)
+        id = try box.decode(UUID.self, forKey: .id)
+        user_id = try box.decode(UUID.self, forKey: .user_id)
+        store_name = try box.decode(String.self, forKey: .store_name)
+        currency = try box.decode(String.self, forKey: .currency)
+        receipt_date = try box.decodeIfPresent(String.self, forKey: .receipt_date)
+        store_category = try box.decodeIfPresent(String.self, forKey: .store_category)
+        total_amount = try box.decodeIfPresent(Decimal.self, forKey: .total_amount)
+        payment_method = try box.decodeIfPresent(String.self, forKey: .payment_method)
+        payment_card = try box.decodeIfPresent(String.self, forKey: .payment_card)
+        image_url = try box.decodeIfPresent(String.self, forKey: .image_url)
+        original_image_url = try box.decodeIfPresent(String.self, forKey: .original_image_url)
+        raw_ocr_text = try box.decodeIfPresent(String.self, forKey: .raw_ocr_text)
+        notes = try box.decodeIfPresent(String.self, forKey: .notes)
+        extra_fields = try box.decodeIfPresent(ReceiptMetadata.Values.self, forKey: .extra_fields)?.fields
+        markdown_content = try box.decodeIfPresent(String.self, forKey: .markdown_content)
+        created_at = try box.decodeIfPresent(String.self, forKey: .created_at) ?? ""
+        project_id = try box.decodeIfPresent(UUID.self, forKey: .project_id)
+        receipt_items = try box.decodeIfPresent([ReceiptItem].self, forKey: .receipt_items) ?? []
+    }
+}

@@ -22,6 +22,7 @@ enum LocalReceiptParser {
             let parts = (1...3).compactMap { Range(match.range(at: $0), in: text).map { String(text[$0]) } }
             if parts.count == 3 { draft.receipt_date = "\(parts[2])-\(parts[1])-\(parts[0])" }
         }
+        draft.extra_fields = ReceiptMetadata.enriched(nil, raw: text)
         draft.payment_card = PaymentCard.fromOCR(text)
         if let card = draft.payment_card { draft.payment_method = PaymentCard.network(in: card) ?? "Karte" }
         // Do not invent article details from layout-ambiguous OCR lines.

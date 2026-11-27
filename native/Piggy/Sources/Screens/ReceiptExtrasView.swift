@@ -27,23 +27,34 @@ struct ReceiptBankSection: View {
 
 struct ReceiptExtrasEditor: View {
     @Binding var extras: [String: String?]?
+    @Binding var storeCategory: String?
     let rawText: String?
     let receiptDate: String?
+    @State private var expanded = false
     @State private var showParking = false
     private var parking: ParkingDetails { ParkingDetails.read(extras: extras, raw: rawText, receiptDate: receiptDate) }
     var body: some View {
-        Section("Zusatzangaben") {
-            ForEach(ReceiptExtras.labels, id: \.0) { key, title in
-                LabeledContent(title) {
-                    TextField(title, text: Binding(get: { (extras?[key] ?? nil) ?? "" }, set: { value in
-                        var fields = extras ?? [:]; fields[key] = .some(value.isEmpty ? nil : value); extras = fields
-                    })).multilineTextAlignment(.trailing)
+        Section {
+            DisclosureGroup("Weitere Details bearbeiten", isExpanded: $expanded) {
+                TextField("Ladenkategorie", text: Binding(get: { storeCategory ?? "" }, set: { storeCategory = $0 }))
+                ForEach(ReceiptExtras.labels, id: \.0) { key, title in
+                    LabeledContent(title) {
+                        TextField(title, text: Binding(get: {
+                            (ReceiptMetadata.enriched(extras, raw: rawText)[key] ?? nil) ?? ""
+                        }, set: { value in
+                            var fields = ReceiptMetadata.enriched(extras, raw: rawText)
+                            fields[key] = .some(value.isEmpty ? nil : value); extras = fields
+                        })).multilineTextAlignment(.trailing)
+                    }
                 }
+                if let rawText, !rawText.isEmpty {
+                    DisclosureGroup("Vollständiger erkannter Text") { Text(rawText).textSelection(.enabled) }
+                }
+                Toggle("Parkdetails bearbeiten", isOn: $showParking)
             }
         }
-        Section("Parkbeleg") {
-            Toggle("Parkdetails bearbeiten", isOn: $showParking)
-            if showParking || parking.hasDetails {
+        if showParking || parking.hasDetails {
+            Section("Parkbeleg") {
                 parkingInput("Ankunft", key: "parking_arrival", value: parking.arrival, hint: "JJJJ-MM-TT HH:mm")
                 parkingInput("Abfahrt", key: "parking_departure", value: parking.departure, hint: "JJJJ-MM-TT HH:mm")
                 parkingInput("Gedruckte Dauer in Minuten", key: "parking_duration_minutes", value: parking.printedMinutes, hint: "Optional")

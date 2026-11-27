@@ -194,30 +194,24 @@ struct DraftReviewView: View {
             Section("Beleg") {
                 TextField("Geschäft", text: $draft.store_name)
                 TextField("Datum (JJJJ-MM-TT)", text: $draft.receipt_date).keyboardType(.numbersAndPunctuation)
-                DecimalField(title: "Gesamtbetrag", value: $draft.total_amount)
-                TextField("Ladenkategorie", text: Binding(get: { draft.store_category ?? "" }, set: { draft.store_category = $0 }))
+                DecimalField(title: "Gesamtbetrag", value: $draft.total_amount, minimumFractionDigits: 2)
                 TextField("Währung", text: $draft.currency).textInputAutocapitalization(.characters).autocorrectionDisabled()
                 ReceiptPaymentFields(method: $draft.payment_method, card: $draft.payment_card)
             }
             Section {
                 ForEach($draft.items) { $item in
-                    VStack(alignment: .leading, spacing: 10) {
-                        TextField("Artikelname", text: $item.name)
-                        HStack {
-                            DecimalField(title: "Menge", value: $item.quantity)
-                            DecimalField(title: "Artikelbetrag", value: $item.total_price)
-                        }
-                        CategoryPicker(category: Binding(get: { item.tags.first ?? "Diverses" }, set: { item.tags = [$0]; item.subcategory = nil }))
-                    }.padding(.vertical, 5)
+                    ReceiptArticleEditor(name: $item.name, quantity: $item.quantity, total: $item.total_price,
+                        unit: $item.unit, unitPrice: $item.unit_price,
+                        category: Binding(get: { item.tags.first ?? "Diverses" }, set: { item.tags = [$0]; item.subcategory = nil }))
                 }
                 .onDelete { draft.items.remove(atOffsets: $0) }
                 Button { draft.items.append(DraftItem(name: "", quantity: 1, unit_price: 0, total_price: 0, tags: ["Diverses"], subcategory: nil)) } label: {
                     Label("Artikel hinzufügen", systemImage: "plus")
                 }
-            } header: { Text("Artikel prüfen") } footer: {
+            } header: { ReceiptArticleHeader() } footer: {
                 Text("Die Angaben der Erkennung können falsch sein. Vergleiche Artikel und Gesamtbetrag mit dem Original.")
             }
-            ReceiptExtrasEditor(extras: $draft.extra_fields, rawText: draft.raw_ocr_text, receiptDate: draft.receipt_date)
+            ReceiptExtrasEditor(extras: $draft.extra_fields, storeCategory: $draft.store_category, rawText: draft.raw_ocr_text, receiptDate: draft.receipt_date)
             Section("Notiz") { TextField("Optional", text: $draft.notes, axis: .vertical).lineLimit(3...6) }
             Section {
                 BusyButton(title: "Beleg speichern", busy: saving || checkingDuplicates, disabled: !valid) { Task { await prepareSave() } }

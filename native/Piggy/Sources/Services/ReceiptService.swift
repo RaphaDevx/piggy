@@ -49,7 +49,7 @@ extension PiggyStore {
             "currency": .string(draft.currency), "payment_method": .string(draft.payment_method),
             "payment_card": .optional(PaymentCard.normalized(draft.payment_card, method: draft.payment_method, cards: cards)), "notes": .string(draft.notes),
             "raw_ocr_text": .string(draft.raw_ocr_text), "image_url": .optional(path),
-            "extra_fields": .object(ParkingDetails.read(extras: draft.extra_fields, raw: draft.raw_ocr_text, receiptDate: draft.receipt_date).applying(to: draft.extra_fields).mapValues(JSONValue.optional)),
+            "extra_fields": .object(ParkingDetails.read(extras: draft.extra_fields, raw: draft.raw_ocr_text, receiptDate: draft.receipt_date).applying(to: ReceiptMetadata.enriched(draft.extra_fields, raw: draft.raw_ocr_text)).mapValues(JSONValue.optional)),
             "receipt_items": .array(draft.items.map { .object([
                 "name": .string($0.name), "quantity": .number($0.quantity), "unit": .string($0.unit),
                 "unit_price": .number($0.unit_price), "total_price": .number($0.total_price),
@@ -174,7 +174,7 @@ private struct MutationID: Decodable { let id: UUID }
 private struct ParsedReceipt: Decodable {
     var store_name: String?; var date: String?; var total_amount: Decimal?; var currency: String?
     var payment_method: String?; var payment_card: String?; var store_category: String?
-    var extra: [String: String?]?
+    var extra: ReceiptMetadata.Values?
     var items: [ParsedItem]?
     struct ParsedItem: Decodable {
         var name: String?; var quantity: Decimal?; var unit: String?; var unit_price: Decimal?
@@ -186,7 +186,7 @@ private struct ParsedReceipt: Decodable {
         draft.total_amount = total_amount ?? 0; draft.currency = currency ?? "CHF"
         draft.payment_method = payment_method ?? "Unbekannt"
         draft.payment_card = PaymentCard.normalized(payment_card, method: payment_method, cards: []) ?? PaymentCard.fromOCR(rawText)
-        draft.store_category = store_category; draft.raw_ocr_text = rawText; draft.extra_fields = extra
+        draft.store_category = store_category; draft.raw_ocr_text = rawText; draft.extra_fields = ReceiptMetadata.enriched(extra?.fields, raw: rawText)
         draft.items = (items ?? []).map { item in
             var row = DraftItem(); row.name = item.name ?? "Artikel"; row.quantity = item.quantity ?? 1
             row.unit = item.unit ?? "Stk"; row.unit_price = item.unit_price ?? 0

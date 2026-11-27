@@ -90,7 +90,11 @@ struct ParkingDetails: Hashable {
 }
 
 enum ReceiptExtras {
-    static let labels = [("cashier_number", "Kassen-/Kassierernummer"), ("receipt_number", "Bonnummer"),
-                         ("vat_number", "MwSt-/UID-Nummer"), ("store_address", "Adresse"),
-                         ("store_email", "E-Mail"), ("store_phone", "Telefon"), ("store_website", "Website")]
+    // The deployed merge RPC permits independent choices for these original seven keys.
+    static let mergeSelectableLabels = [("cashier_number", "Kassen-/Kassierernummer"), ("receipt_number", "Bonnummer"),
+                                       ("vat_number", "MwSt-/UID-Nummer"), ("store_address", "Adresse"),
+                                       ("store_email", "E-Mail"), ("store_phone", "Telefon"), ("store_website", "Website")]
+    static let labels = mergeSelectableLabels + [("cashier_name", "Kassierername"), ("register_number", "Kasse"),
+                                                 ("store_branch", "Filiale / Standort"), ("payment_terminal", "Zahlungsterminal"),
+                                                 ("payment_reference", "Zahlungsreferenz"), ("authorization_code", "Autorisierung")]
 }

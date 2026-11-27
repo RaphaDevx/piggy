@@ -76,9 +76,6 @@ struct ReceiptDetailView: View {
     @State private var deleteConfirmation = false
     @State private var busy = false
     @State private var message: String?
-    @State private var imageURL: URL?
-    @State private var originalImage: UIImage?
-    @State private var showingPhoto = false
     private var receipt: Receipt? { store.receipts.first { $0.id == receiptID } }
     var body: some View {
         Group {
@@ -89,65 +86,29 @@ struct ReceiptDetailView: View {
                             Text(receipt.store_name).font(.title.bold())
                             Button { editing = true } label: {
                                 HStack {
-                                    Text(money(receipt.total_amount, receipt.currency)).font(.largeTitle.bold()).monospacedDigit()
+                                    Text(money(receipt.total_amount, receipt.currency)).font(.largeTitle.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
                                     Image(systemName: "pencil").font(.body)
                                 }
                             }.buttonStyle(.plain).disabled(busy)
                                 .accessibilityLabel("Gesamtbetrag bearbeiten: \(money(receipt.total_amount, receipt.currency))")
                             Text(receiptDate(receipt.receipt_date)).foregroundStyle(Theme.secondary)
                         }.padding(.vertical, 8)
-                        if let payment = receipt.payment_method, !payment.isEmpty { LabeledContent("Zahlungsart", value: payment) }
-                        if let card = store.cardDisplay(receipt.payment_card, method: receipt.payment_method) { LabeledContent("Karte", value: card) }
-                    }
-                    if receipt.image_url != nil {
-                        Section("Originalbeleg") {
-                            if let imageURL {
-                                AsyncImage(url: imageURL) { phase in
-                                    switch phase {
-                                    case .success(let image): image.resizable().scaledToFit().frame(maxHeight: 220)
-                                    case .failure: Text("Das Belegbild konnte nicht geladen werden.")
-                                    default: ProgressView("Belegbild wird geladen …")
-                                    }
-                                }
-                                Button("Bild vergrössern") { Task { await openPhoto() } }.disabled(busy)
-                            } else {
-                                Button("Belegbild laden") { Task { await loadImage() } }
-                            }
+                        if let payment = store.cardDisplay(receipt.payment_card, method: receipt.payment_method) ?? receipt.payment_method, !payment.isEmpty {
+                            LabeledContent("Bezahlt mit") { Text(payment).lineLimit(1).truncationMode(.middle) }
                         }
                     }
                     Section("Artikel") {
                         if receipt.receipt_items.isEmpty { Text("Keine einzelnen Artikel erfasst.").foregroundStyle(Theme.secondary) }
                         ForEach(receipt.receipt_items) { item in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(alignment: .firstTextBaseline) {
-                                    Text(item.name)
-                                    Spacer()
-                                    Button { editing = true } label: {
-                                        Label(money(item.total_price, receipt.currency), systemImage: "pencil").monospacedDigit()
-                                    }.buttonStyle(.plain).disabled(busy)
-                                        .accessibilityLabel("Betrag für \(item.name) bearbeiten")
-                                }
-                                HStack {
-                                    if let category = item.tags.first { Text(category) }
-                                    if let quantity = item.quantity { Text("· \(NSDecimalNumber(decimal: quantity).stringValue) Stück") }
-                                }.font(.footnote).foregroundStyle(Theme.secondary)
-                            }.padding(.vertical, 4)
+                            Button { editing = true } label: { ReceiptArticleLine(item: item, currency: receipt.currency) }
+                                .buttonStyle(.plain).disabled(busy)
+                                .accessibilityHint("Öffnet die Bearbeitung")
                         }
                     }
                     let parking = ParkingDetails.read(extras: receipt.extra_fields, raw: receipt.raw_ocr_text, receiptDate: receipt.receipt_date)
                     if parking.hasDetails { ParkingSummary(details: parking, total: receipt.total_amount, currency: receipt.currency) }
-                    if let fields = receipt.extra_fields, !fields.isEmpty {
-                        Section("Zusatzangaben") {
-                            ForEach(ReceiptExtras.labels, id: \.0) { key, title in
-                                if let wrapped = fields[key], let value = wrapped, !value.isEmpty { LabeledContent(title, value: value) }
-                            }
-                        }
-                    }
-                    if let text = receipt.raw_ocr_text, !text.isEmpty {
-                        Section { DisclosureGroup("Erkannten Originaltext anzeigen") { Text(text).textSelection(.enabled) } }
-                    }
-                    if let text = receipt.markdown_content, !text.isEmpty {
-                        Section { DisclosureGroup("Belegtext anzeigen") { Text(text).textSelection(.enabled) } }
+                    Section {
+                        NavigationLink { ReceiptAdvancedView(receiptID: receipt.id) } label: { Label("Weitere Details", systemImage: "info.circle") }
                     }
                     if let notes = receipt.notes, !notes.isEmpty { Section("Notiz") { Text(notes) } }
                     if BankFeature.enabled { ReceiptBankSection(receiptID: receipt.id) }
@@ -168,8 +129,6 @@ struct ReceiptDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Bearbeiten") { editing = true }.disabled(busy) } }
                 .sheet(isPresented: $editing) { ReceiptEditView(receipt: receipt) }
-                .sheet(isPresented: $showingPhoto) { if let originalImage { PhotoPreview(image: originalImage) } }
-                .task(id: receipt.image_url) { await loadImage() }
                 .task { do { try await store.loadCards() } catch { message = error.localizedDescription } }
                 .confirmationDialog("Beleg endgültig löschen?", isPresented: $deleteConfirmation, titleVisibility: .visible) {
                     Button("Beleg löschen", role: .destructive) { Task { await delete(receipt) } }
@@ -179,25 +138,6 @@ struct ReceiptDetailView: View {
                 ContentUnavailableView("Beleg nicht verfügbar", systemImage: "receipt", description: Text("Er wurde gelöscht oder ist für dieses Konto nicht zugänglich."))
             }
         }
-    }
-    @MainActor private func loadImage() async {
-        guard let path = receipt?.image_url else { return }
-        do { imageURL = try await store.signedImageURL(path: path) }
-        catch { message = error.localizedDescription }
-    }
-    @MainActor private func openPhoto() async {
-        guard let imageURL else { return }
-        busy = true
-        defer { busy = false }
-        do {
-            let (data, response) = try await URLSession.shared.data(from: imageURL)
-            guard (response as? HTTPURLResponse)?.statusCode == 200, let image = UIImage(data: data) else {
-                message = "Das Belegbild konnte nicht geöffnet werden. Lade es bitte erneut."
-                return
-            }
-            originalImage = image
-            showingPhoto = true
-        } catch { message = error.localizedDescription }
     }
     @MainActor private func assignProject(_ id: UUID?, receipt: Receipt) async {
         busy = true
@@ -227,21 +167,18 @@ struct ReceiptEditView: View {
                 Section("Beleg") {
                     TextField("Geschäft", text: $receipt.store_name)
                     TextField("Datum (JJJJ-MM-TT)", text: Binding(get: { receipt.receipt_date ?? "" }, set: { receipt.receipt_date = $0 }))
-                    DecimalField(title: "Gesamtbetrag", value: Binding(get: { receipt.total_amount ?? 0 }, set: { receipt.total_amount = $0 }))
-                    TextField("Ladenkategorie", text: Binding(get: { receipt.store_category ?? "" }, set: { receipt.store_category = $0 }))
+                    DecimalField(title: "Gesamtbetrag", value: Binding(get: { receipt.total_amount ?? 0 }, set: { receipt.total_amount = $0 }), minimumFractionDigits: 2)
                     TextField("Währung", text: $receipt.currency).textInputAutocapitalization(.characters).autocorrectionDisabled()
                     ReceiptPaymentFields(method: Binding(get: { receipt.payment_method ?? "" }, set: { receipt.payment_method = $0 }), card: $receipt.payment_card)
                 }
-                Section("Artikel") {
+                Section {
                     ForEach($receipt.receipt_items) { $item in
-                        VStack(alignment: .leading, spacing: 8) {
-                            TextField("Artikelname", text: $item.name)
-                            DecimalField(title: "Menge", value: Binding(get: { item.quantity ?? 1 }, set: { item.quantity = $0 }))
-                            TextField("Einheit (Stk, kg, L …)", text: Binding(get: { item.unit ?? "" }, set: { item.unit = $0 }))
-                            DecimalField(title: "Einzelpreis", value: Binding(get: { item.unit_price ?? 0 }, set: { item.unit_price = $0 }))
-                            DecimalField(title: "Artikelbetrag", value: Binding(get: { item.total_price ?? 0 }, set: { item.total_price = $0 }))
-                            CategoryPicker(category: Binding(get: { item.tags.first ?? "Diverses" }, set: { item.tags = [$0]; item.subcategory = nil }))
-                        }.padding(.vertical, 4)
+                        ReceiptArticleEditor(name: $item.name,
+                            quantity: Binding(get: { item.quantity ?? 1 }, set: { item.quantity = $0 }),
+                            total: Binding(get: { item.total_price ?? 0 }, set: { item.total_price = $0 }),
+                            unit: Binding(get: { item.unit ?? "" }, set: { item.unit = $0 }),
+                            unitPrice: Binding(get: { item.unit_price ?? 0 }, set: { item.unit_price = $0 }),
+                            category: Binding(get: { item.tags.first ?? "Diverses" }, set: { item.tags = [$0]; item.subcategory = nil }))
                             .disabled(item.is_adjustment == true)
                             .deleteDisabled(item.is_adjustment == true)
                     }
@@ -253,8 +190,8 @@ struct ReceiptEditView: View {
                     Button { receipt.receipt_items.append(ReceiptItem(name: "Neuer Artikel", quantity: 1, unit: "Stk", unit_price: 0, total_price: 0, tags: ["Diverses"])) } label: {
                         Label("Artikel hinzufügen", systemImage: "plus")
                     }
-                }
-                ReceiptExtrasEditor(extras: $receipt.extra_fields, rawText: receipt.raw_ocr_text, receiptDate: receipt.receipt_date)
+                } header: { ReceiptArticleHeader() }
+                ReceiptExtrasEditor(extras: $receipt.extra_fields, storeCategory: $receipt.store_category, rawText: receipt.raw_ocr_text, receiptDate: receipt.receipt_date)
                 Section("Notiz") {
                     TextField("Optional", text: Binding(get: { receipt.notes ?? "" }, set: { receipt.notes = $0 }), axis: .vertical).lineLimit(3...6)
                 }

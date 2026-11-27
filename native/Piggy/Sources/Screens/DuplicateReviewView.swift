@@ -72,7 +72,7 @@ struct DuplicatePairReview: View {
                 }
             }
             Section("Zusatzangaben auswählen") {
-                ForEach(ReceiptExtras.labels, id: \.0) { key, title in
+                ForEach(ReceiptExtras.mergeSelectableLabels, id: \.0) { key, title in
                     let a = (pair.target.extra_fields?[key] ?? nil) ?? ""
                     let b = (pair.source.extra_fields?[key] ?? nil) ?? ""
                     if a != b {
@@ -101,7 +101,7 @@ struct DuplicatePairReview: View {
                     let value = field.value(side == "source" ? pair.source : pair.target)
                     if !value.isEmpty { LabeledContent(field.label, value: value) }
                 }
-                ForEach(ReceiptExtras.labels, id: \.0) { key, title in
+                ForEach(ReceiptExtras.mergeSelectableLabels, id: \.0) { key, title in
                     let a = (pair.target.extra_fields?[key] ?? nil) ?? ""
                     let b = (pair.source.extra_fields?[key] ?? nil) ?? ""
                     let side = extras[key] ?? (a.isEmpty ? "source" : "target")
