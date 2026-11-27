@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 const { PGlite } = await import(pathToFileURL(process.env.PIGGY_PGLITE_MODULE ?? '/tmp/piggy-duplicate-pg/node_modules/@electric-sql/pglite/dist/index.js'));
 const sql = name => readFileSync(new URL('../../supabase/migrations/' + name, import.meta.url),'utf8');
 const db = new PGlite();
@@ -58,6 +59,7 @@ try {
    const repeated=await action('prepare_export',{company_id:cid,submission_id:sid}); assert.equal(exp.export_id,repeated.export_id);
    assert.equal(exp.payload.abacus_transfer_confirmed,false); assert.equal(exp.payload.payment_confirmed,false);
    assert.equal(JSON.parse(exp.payload.canonical_snapshot).total_amount,24.5);
+   assert.equal(createHash('sha256').update(exp.payload.canonical_snapshot).digest('hex'),exp.payload.snapshot_sha256);
    const w=await action('workspace',{company_id:cid}); assert.equal(w.submissions[0].status,'approved'); assert.equal(w.submissions[0].events.filter(x=>x.event_type==='export_prepared').length,1);
  });
  await test('last administrator is protected and staff cannot change roles',async()=> {

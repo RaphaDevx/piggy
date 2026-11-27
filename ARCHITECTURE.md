@@ -112,3 +112,10 @@ Launchkonfiguration, Datenflussmeldung und noch offene echte Geräte-/Storeabnah
 ## Dateispeicher: R2, Auth und Datenbank: Supabase
 
 Seit 25.11.2026 liegen die bisherigen 333 Dateien auch im privaten EU-R2-Bucket `piggy-receipts`. `storage-url` prüft Supabase-Nutzertokens und eigene Dateipfade und stellt kurzlebige S3-URLs aus. Swift `ObjectStorageService` und Expo `objectStorage` laden neue Dateien nur nach R2; `r2-with-fallback` erlaubt lediglich alte Dateien aus Supabase zu lesen. `statement-worker` liest über den gemeinsamen Storage-Adapter; `delete-account` entfernt Nutzerdaten aus beiden Dateispeichern. R2-Schlüssel bleiben im Backend. DB-Pfade und Nutzerkonten sind unverändert. Installierte Altversionen brauchen ein Update; vor Abschalten der Supabase-Kopie erneut synchronisieren. Siehe [ADR 0005](docs/adr/0005-belege-auf-r2.md) und [Verifikation](docs/verification/2026-11-25-r2-storage.md).
+
+
+## Firmen-Spesen (vorbereitet, deaktiviert)
+
+ADR [0006](docs/adr/0006-company-expense-pilot.md) beschreibt den neuen Firmenbereich. SwiftUI `CompanyViews` → `CompanyService` → RPC `company_workspace` übernimmt Firma, Mitgliedschaft, Einreichung und Prüfung. Edge `company-expenses` archiviert Originalbilder unter separatem R2-Präfix und bestätigt deren Hash über die nur für den Service erreichbare RPC `company_archive_complete`. Snapshot, Ereignisse und Export werden serverseitig festgehalten. Ein neutraler JSON-Export ist keine Abacus-Übertragung und keine Auszahlung.
+
+`PIGGY_COMPANIES = NO` bleibt Standard. Migration und Edge Function sind noch nicht live ausgerollt. Vor Aktivierung muss insbesondere der Konflikt zwischen unveränderlicher Firmenhistorie und bestehender Konto-Löschung gelöst werden; weitere Abnahmeschritte und Partnerdossier: [Firmenpilot](docs/ABACUS-COMPANY-PILOT.md).

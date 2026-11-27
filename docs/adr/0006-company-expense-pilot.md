@@ -8,7 +8,7 @@ Noch keine Pilotfirma und keine Abacus-Testinstallation. Firmen sollen Mitarbeit
 
 ## Entscheidung
 
-Bestehende Firmen-/Mitgliedschaftstabellen werden durch atomare authentifizierte RPCs ergänzt. Direkte Clientschreibrechte auf Firmen, Mitgliedschaften und Speseneinreichungen entfallen. Neue Firmen bekommen Einstellungen und einen ersten Admin in derselben Transaktion. Einladungen enthalten einen zufälligen 128-Bit-Code, dessen SHA256 serverseitig gespeichert wird; Gültigkeit sieben Tage, Rotation ersetzt ihn. Ein Beitritt erzeugt ausschliesslich die Mitgliedsrolle.
+Bestehende Firmen-/Mitgliedschaftstabellen werden durch atomare authentifizierte RPCs ergänzt. Direkte Clientschreibrechte auf Firmen, Mitgliedschaften und Speseneinreichungen entfallen. Neue Firmen bekommen Einstellungen und einen ersten Admin in derselben Transaktion. Einladungen enthalten einen zufälligen UUIDv4-Code, dessen SHA256 serverseitig gespeichert wird; Gültigkeit sieben Tage, Rotation ersetzt ihn. Ein Beitritt erzeugt ausschliesslich die Mitgliedsrolle.
 
 Mitarbeitende sehen ihre eigenen Einreichungen; Admin und Buchhaltung sehen die Einreichungen ihrer Firma. Eigenfreigabe ist auch für Admins verboten. Eine optionale Verpflegungsgrenze verhindert die Freigabe eines überhöhten Gesamtbetrags. Teilzahlungen und Fremdwährungsumrechnung sind nicht implementiert.
 
