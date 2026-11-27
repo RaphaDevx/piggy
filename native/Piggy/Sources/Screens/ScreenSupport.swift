@@ -174,6 +174,9 @@ private struct NativeDecimalInput: UIViewRepresentable {
             uiView.text = AmountInput.editorText(value, minimumFractionDigits: minimumFractionDigits)
         }
     }
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextField, context: Context) -> CGSize? {
+        CGSize(width: proposal.width ?? 100, height: max(44, (uiView.font?.lineHeight ?? 22) + 12))
+    }
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: NativeDecimalInput
         weak var field: UITextField?
@@ -187,9 +190,46 @@ private struct NativeDecimalInput: UIViewRepresentable {
         }
         @objc func done() { field?.resignFirstResponder() }
         func textFieldDidEndEditing(_ textField: UITextField) {
-            changed(textField)
+            // Merely opening an old high-precision value must not round or invalidate it.
+            if textField.text != AmountInput.editorText(parent.value, minimumFractionDigits: parent.minimumFractionDigits) { changed(textField) }
             if !parent.value.isNaN { textField.text = AmountInput.editorText(parent.value, minimumFractionDigits: parent.minimumFractionDigits) }
         }
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool { textField.resignFirstResponder(); return true }
+    }
+}
+
+/// Digit codes stay strings so leading zeroes (e.g. card suffix 0042) are preserved.
+struct NumberCodeField: UIViewRepresentable {
+    let title: String
+    @Binding var text: String
+    @Environment(\.isEnabled) private var isEnabled
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.font = .preferredFont(forTextStyle: .body)
+        field.adjustsFontForContentSizeCategory = true
+        field.keyboardType = .numberPad; field.textAlignment = .right
+        field.delegate = context.coordinator
+        field.clearButtonMode = .whileEditing
+        field.addTarget(context.coordinator, action: #selector(Coordinator.changed(_:)), for: .editingChanged)
+        let bar = UIToolbar()
+        bar.items = [UIBarButtonItem(systemItem: .flexibleSpace), UIBarButtonItem(title: "Fertig", style: .done, target: context.coordinator, action: #selector(Coordinator.done))]
+        bar.sizeToFit(); field.inputAccessoryView = bar
+        context.coordinator.field = field
+        return field
+    }
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        context.coordinator.parent = self
+        uiView.isEnabled = isEnabled; uiView.accessibilityLabel = title
+        if uiView.text != text { uiView.text = text }
+    }
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: NumberCodeField
+        weak var field: UITextField?
+        init(_ parent: NumberCodeField) { self.parent = parent }
+        @objc func changed(_ field: UITextField) { parent.text = field.text ?? "" }
+        @objc func done() { field?.resignFirstResponder() }
+        func textFieldDidEndEditing(_ textField: UITextField) { changed(textField) }
         func textFieldShouldReturn(_ textField: UITextField) -> Bool { textField.resignFirstResponder(); return true }
     }
 }

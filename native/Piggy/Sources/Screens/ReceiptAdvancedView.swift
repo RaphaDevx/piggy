@@ -60,6 +60,14 @@ struct ReceiptAdvancedView: View {
                     if let markdown = receipt.markdown_content, !markdown.isEmpty {
                         Section("Weiterer Belegtext") { Text(markdown).textSelection(.enabled) }
                     }
+                    if BankFeature.enabled { ReceiptBankSection(receiptID: receipt.id) }
+                    Section("Gemeinsam") {
+                        NavigationLink { SplitReceiptView(receipt: receipt) } label: { Label("Ausgabe aufteilen", systemImage: "person.2") }
+                        Picker("Projekt", selection: Binding(get: { receipt.project_id }, set: { id in Task { await assignProject(id, receipt: receipt) } })) {
+                            Text("Kein Projekt").tag(UUID?.none)
+                            ForEach(store.projects) { Text("\($0.emoji) \($0.name)").tag(Optional($0.id)) }
+                        }.disabled(busy)
+                    }
                     if let error { ScreenError(message: error, retry: { Task { await loadImage() } }) }
                 }
                 .task(id: receipt.image_url ?? receipt.original_image_url) { await loadImage() }
@@ -68,6 +76,10 @@ struct ReceiptAdvancedView: View {
         .navigationTitle("Weitere Details")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingPhoto) { if let originalImage { PhotoPreview(image: originalImage) } }
+    }
+    private func assignProject(_ id: UUID?, receipt: Receipt) async {
+        busy = true; defer { busy = false }
+        do { try await store.assign(receiptID: receipt.id, projectID: id); error = nil } catch { self.error = error.localizedDescription }
     }
     private func loadImage() async {
         guard let path = receipt?.image_url ?? receipt?.original_image_url else { return }

@@ -111,23 +111,19 @@ struct ReceiptDetailView: View {
                         NavigationLink { ReceiptAdvancedView(receiptID: receipt.id) } label: { Label("Weitere Details", systemImage: "info.circle") }
                     }
                     if let notes = receipt.notes, !notes.isEmpty { Section("Notiz") { Text(notes) } }
-                    if BankFeature.enabled { ReceiptBankSection(receiptID: receipt.id) }
-                    Section("Gemeinsam") {
-                        NavigationLink { SplitReceiptView(receipt: receipt) } label: { Label("Ausgabe aufteilen", systemImage: "person.2") }
-                        Picker("Projekt", selection: Binding(get: { receipt.project_id }, set: { id in Task { await assignProject(id, receipt: receipt) } })) {
-                            Text("Kein Projekt").tag(UUID?.none)
-                            ForEach(store.projects) { Text("\($0.emoji) \($0.name)").tag(Optional($0.id)) }
-                        }.disabled(busy)
-                    }
-                    Section {
-                        ShareLink(item: receipt.shareText) { Label("Belegübersicht teilen", systemImage: "square.and.arrow.up") }
-                        Button("Beleg löschen", role: .destructive) { deleteConfirmation = true }.disabled(busy)
-                    }
                     if let message { Section { ScreenError(message: message) } }
                 }
                 .navigationTitle("Beleg")
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Bearbeiten") { editing = true }.disabled(busy) } }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) { Button("Bearbeiten") { editing = true }.disabled(busy) }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            ShareLink(item: receipt.shareText) { Label("Belegübersicht teilen", systemImage: "square.and.arrow.up") }
+                            Button("Beleg löschen", role: .destructive) { deleteConfirmation = true }.disabled(busy)
+                        } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel("Weitere Belegaktionen")
+                    }
+                }
                 .sheet(isPresented: $editing) { ReceiptEditView(receipt: receipt) }
                 .task { do { try await store.loadCards() } catch { message = error.localizedDescription } }
                 .confirmationDialog("Beleg endgültig löschen?", isPresented: $deleteConfirmation, titleVisibility: .visible) {
@@ -138,12 +134,6 @@ struct ReceiptDetailView: View {
                 ContentUnavailableView("Beleg nicht verfügbar", systemImage: "receipt", description: Text("Er wurde gelöscht oder ist für dieses Konto nicht zugänglich."))
             }
         }
-    }
-    @MainActor private func assignProject(_ id: UUID?, receipt: Receipt) async {
-        busy = true
-        do { try await store.assign(receiptID: receipt.id, projectID: id); message = nil }
-        catch { message = error.localizedDescription }
-        busy = false
     }
     @MainActor private func delete(_ receipt: Receipt) async {
         busy = true
@@ -196,6 +186,7 @@ struct ReceiptEditView: View {
                     TextField("Optional", text: Binding(get: { receipt.notes ?? "" }, set: { receipt.notes = $0 }), axis: .vertical).lineLimit(3...6)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Beleg bearbeiten")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -72,8 +72,7 @@ struct PaymentCardEditView: View {
                         ForEach(PaymentCard.networks, id: \.self) { Text($0).tag($0) }
                     }
                     LabeledContent("Letzte vier Ziffern") {
-                        TextField("5327", text: $lastFour).keyboardType(.numberPad).multilineTextAlignment(.trailing)
-                            .accessibilityLabel("Letzte vier Kartenziffern")
+                        NumberCodeField(title: "Letzte vier Kartenziffern", text: $lastFour).frame(width: 100).frame(minHeight: 44)
                     }
                 } footer: { Text("Nur die letzten vier Ziffern eingeben. Keine vollständige Kartennummer und keinen Sicherheitscode.") }
                 if let error { ScreenError(message: error) }

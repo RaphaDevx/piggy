@@ -217,6 +217,7 @@ struct DraftReviewView: View {
                 BusyButton(title: "Beleg speichern", busy: saving || checkingDuplicates, disabled: !valid) { Task { await prepareSave() } }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .disabled(saving)
         .interactiveDismissDisabled(saving)
         .sheet(isPresented: $previewPhoto) { if let image { PhotoPreview(image: image) } }
