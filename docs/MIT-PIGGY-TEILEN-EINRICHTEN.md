@@ -1,10 +1,10 @@
 # «Mit Piggy teilen» einrichten
 
-Stand: 27. November 2026.
+Stand: 28. November 2026.
 
 Ziel: In Fotos, Dateien oder einer PDF-Ansicht auf **Teilen → Piggy** tippen. Danach die Datei in Piggy als Quittung oder Coupon übernehmen.
 
-**Aktueller Stand:** Share Extension und Dateieingang sind im Code vorhanden. Apple-Prüfbuild mit eingebetteter Erweiterung und 59 Coretests bestanden. Die App-Group-Zuordnung im Developer-Portal, die zentrale Signierungskonfiguration und der neue TestFlight-Build sind noch nicht als erledigt bestätigt. Diese Anleitung ist keine Bestätigung einer bereits erfolgten Freischaltung.
+**Aktueller Stand:** Piggy **1.0 (35)** ist für `Internal Testers` in TestFlight freigegeben. Apple bestätigt `VALID`; Haupt-App und Share Extension sind mit derselben App Group signiert. Der neue Build enthält den Share-Eingang, PDFs und Coupons. Die folgende Anleitung dokumentiert die einmalige Einrichtung und die noch auszuführenden Tests auf dem iPhone. Prüfnachweis: [TestFlight-Build 35](verification/2026-11-28-testflight-share.md).
 
 ## 1. Was bei Apple benötigt wird
 

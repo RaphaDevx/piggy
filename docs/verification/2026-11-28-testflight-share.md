@@ -1,24 +1,25 @@
-# TestFlight mit Share Extension: Startvorbereitung
+# Piggy 1.0 (35): TestFlight mit Share Extension
 
-Stand 28.11.2026. Neuer TestFlight-Build ausdrücklich beauftragt; **noch kein Production-Job gestartet**.
+Stand: 28.11.2026. Production-Job `0484e01e06ae8783` über K-Dev, explizite Zielgruppe `Internal Testers`. Quellstand `67e56d0cba5fada3bd253b5a151dad72ac27e788`.
 
-- Der Nutzer bestätigt, die Apple-App-Group-Einrichtung vorgenommen zu haben. Providerseitige Profilprüfung erfolgt erst im Production-Build; diese ist damit noch nicht bewiesen.
-- Bestehender Quellstand mit Share Extension zuletzt erfolgreich als Simulatorprodukt gebaut: Job `595ceea75db2a616`, 59 Coretests und eingebettete Extension geprüft.
-- Zentrale Registry `/storage/Public/K-Dev/Dashboard/config/projects.json`: ausschliesslich beim bestehenden Eintrag `buildRegistry.piggy-native` die drei vorbereiteten Felder `capabilities`, `appGroups`, `extensions` ergänzt. Andere Werte und bereits bestehende fremde Änderungen erhalten; keine fremden Dashboard-Änderungen gestaged/committet.
-- Die Registrydatei lässt sich mit der vorhandenen K-Dev-Konfigurationsvalidierung laden.
-- `node --test /storage/Public/K-Dev/Dashboard/tests/native-multitarget.test.js`: 13 Tests bestanden, einschliesslich Profilen für mehrere Targets und App-Group-Abweichungen.
-- `GET /api/project-check/piggy-native`: grün. Mac-Worker online und frei.
+## Bestätigte Vorbereitung
 
-## Aktueller externer Schritt
+Die zentrale Registry wurde ausschliesslich um die drei Share-Signierungsfelder des bestehenden `piggy-native`-Eintrags ergänzt. Nach dem vom Nutzer ausgeführten `kdev restart` bestätigt die aktive Registry beide Bundle-IDs und `group.com.heartbeat.piggy`. Keine fremden Dashboard-Änderungen gestaged oder committet. Die 13 vorhandenen Multitarget-Tests bestehen.
 
-Der laufende K-Dev-Core verwendet noch seine beim Start geladene alte Registry. `GET /api/build/registry` bestätigt: Share-Felder fehlen noch im aktiven Prozess. Der Neustartversuch `kdev restart` unter dem Projektkonto `chad` scheitert an fehlender sudo-Berechtigung. Keine Berechtigungsumgehung, kein Neustart der Agent-Sitzungen.
+K-Dev hat Profile für App `com.heartbeat.piggy` und Extension `com.heartbeat.piggy.share` erstellt. 59 Swift-Coretests, Simulator-Kompilierung, signiertes Archiv und IPA-Export bestanden. Im tatsächlichen IPA-Paket geprüft: beide Targets Buildnummer35, beide eingebetteten Profile mit der gemeinsamen App Group, Extension unter `PlugIns/PiggyShare.appex`.
 
-Einmal unter dem berechtigten Benutzer Raphael ausführen:
+## Datenschutzdeklarationen
 
-```bash
-kdev restart
-```
+Bei der Paketprüfung von Build34 fehlte ein eigenes Privacy Manifest in der neuen Extension und die passende App-Group-Begründung. Dessen Freigabe wurde deshalb nach Upload abgebrochen (Job `a157dcf0036c5b28`, `cancelled`); keine erfolgreiche Gruppenfreigabe für Build34 behauptet.
 
-Der Befehl startet laut installiertem Host-CLI ausschliesslich `kdev-core` neu; Agent-Sitzungen bleiben erhalten.
+Korrektur: App und Extension deklarieren Gruppen-UserDefaults mit `1C8F.1`; Dateimetadaten im eigenen/Group-Container mit `C617.1` und ausdrücklich ausgewählten Dateien mit `3B52.1`. Die bestehende App-only-Begründung `CA92.1` bleibt für die Haupt-App erhalten. Die neue Resource-Phase bettet das Extension-Manifest ein. Validator prüft beide Manifeste; beide sind zusätzlich im IPA35 geprüft. Grundlage: [Apples erlaubte API-Begründungen](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype).
 
-Danach aktive Registry erneut über API nachlesen und den nativen Production-Build über K-Dev mit expliziter Gruppe `Internal Testers` starten. Die vorgegebene Registry enthält zusätzlich eine externe Gruppe; diese nicht ungeprüft übernehmen. Erfolg erst bei Apple `VALID` und bestätigtem internem Gruppenzugriff melden. Aktuell keine neue Versions-/Buildnummer und keine Freigabe behauptet.
+## Artefakt und Upload
+
+`piggy-native-1.0-35.ipa`, SHA256 `74153e2802f5854c774722555e61c94526b7539a82d2017d03eabd8140dec64f`. Upload von Apple angenommen am 28.11.2026 um00:03:14 UTC; Delivery-ID `bb810f80-857b-4de0-946a-b8a06d33490c`.
+
+## Apple-Verarbeitung und interne Freigabe
+
+**Erfolgreich abgeschlossen:** `status:succeeded`, `processingState:VALID`, `released:true`, Version1.0, Build35. Apple-Build-ID `bb810f80-857b-4de0-946a-b8a06d33490c`. Bestätigte Gruppe: `Internal Testers`, intern, ID`a64f98a8-c50e-44fd-9dbe-7b4d150fb9a3`. Freigabe am28.11.2026 um00:05:55 UTC (01:05:55 Europe/Zurich). Alle Gates (`checks`, `simulatorBuild`, `appleUpload`, `appleProcessing`, `testflight`) bestanden. Kein öffentlicher App-Store-Release und keine externe Testgruppe freigegeben.
+
+Der Build enthält manuelle Beleg-Zusammenführung, gemeinsame Bild-/Datenansicht, persönliche Logos/Kataloglinks, Share-Eingang mit PDF-Original und separate lokale Coupons. Firmen-/Abacus- und SumUp-Liveanbindung bleiben deaktiviert bzw. nicht eingerichtet. Kein interaktiver Gerätetest oder Kassenscanner-Test in diesem Buildauftrag.

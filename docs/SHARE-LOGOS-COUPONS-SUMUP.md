@@ -1,6 +1,6 @@
 # Piggy: Logos, Teilen-Eingang, Coupons und SumUp
 
-Stand 27.11.2026. App-Code vorbereitet; Signierung und Test auf echten Geräten sind gesonderte Freigabeschritte. Keine SumUp-Verbindung oder Anbieterregistrierung live eingerichtet.
+Stand 28.11.2026. Piggy1.0(35) mit Share Extension ist für Internal Testers in TestFlight freigegeben; AppleVALID und gemeinsame App Group bestätigt. Tests auf echten Geräten bleiben ein gesonderter Abnahmeschritt. Keine SumUp-Verbindung oder Anbieterregistrierung live eingerichtet.
 
 ## So wird es benutzt
 
@@ -22,10 +22,10 @@ Einmalige technische Einrichtung im **Apple-Developer-Portal**, nicht bloss auf 
 1. App-ID für `com.heartbeat.piggy.share` im richtigen Team registrieren, falls noch nicht vorhanden.
 2. App Group `group.com.heartbeat.piggy` registrieren und **beiden** IDs `com.heartbeat.piggy` und `com.heartbeat.piggy.share` zuweisen.
 3. Beide Provisioning-Profile mit der App Group erstellen/erneuern und den Build mit eingebetteter, separat korrekt signierter Erweiterung exportieren.
-4. In der zentralen K-Dev-Buildregistry die im Repository vorbereiteten Zusatzfelder aus `native/Piggy/Config/kdev-native-registry.json` übernehmen: App `capabilities:["APP_GROUPS"]`, `appGroups:["group.com.heartbeat.piggy"]`, Extension `com.heartbeat.piggy.share` mit `APP_GROUPS`. Bestehende übrige Registry-Werte erhalten. Die zentrale Registry wurde in dieser Projekt-Session nicht geändert.
+4. In der zentralen K-Dev-Buildregistry die im Repository vorbereiteten Zusatzfelder aus `native/Piggy/Config/kdev-native-registry.json` übernehmen: App `capabilities:["APP_GROUPS"]`, `appGroups:["group.com.heartbeat.piggy"]`, Extension `com.heartbeat.piggy.share` mit `APP_GROUPS`. Bestehende übrige Registry-Werte erhalten. Die drei Zusatzfelder wurden am28.11.2026 für den bestehenden piggy-native-Eintrag übernommen und nach Dienst-Neustart aktiv geprüft.
 5. K-Dev-Prüfbuild und anschliessend gezielt beauftragter TestFlight-Build. Vor öffentlichem Release die bestehende Datenschutzdarstellung, App-Privacy-Angaben und Review-Hinweise mit dem tatsächlichen Verhalten abgleichen.
 
-Apple verlangt für die Portal-Einrichtung Account Holder oder Admin. Offizielle Schritte: [App Group registrieren](https://developer.apple.com/help/account/identifiers/register-an-app-group/), [Capability zuweisen](https://developer.apple.com/help/account/identifiers/enable-app-capabilities/), [Provisioning Profile](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile). Der vorhandene K-Dev-Worker unterstützt Extension-Profile, meldet eine fehlende App-Group-Zuordnung jedoch als manuellen Portal-Schritt. Es wurde in dieser Session keine erfolgreiche Apple-Registrierung behauptet.
+Apple verlangt für die Portal-Einrichtung Account Holder oder Admin. Offizielle Schritte: [App Group registrieren](https://developer.apple.com/help/account/identifiers/register-an-app-group/), [Capability zuweisen](https://developer.apple.com/help/account/identifiers/enable-app-capabilities/), [Provisioning Profile](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile). Der vorhandene K-Dev-Worker unterstützt Extension-Profile, meldet eine fehlende App-Group-Zuordnung jedoch als manuellen Portal-Schritt. Die beiden Profile und ihre App-Group-Zuordnung wurden im IPA35 geprüft; Apple bestätigt die interne TestFlight-Freigabe. [Nachweis](verification/2026-11-28-testflight-share.md).
 
 Nach Installation des passenden Builds: Eine Datei öffnen → Teilen → gegebenenfalls Mehr/Bearbeiten → Piggy als Favorit hinzufügen. Die genaue Auswahl hängt von der Quell-App ab. Die Erweiterung öffnet die Haupt-App nicht über einen privaten API-Trick; sie bestätigt die lokale Ablage und fordert zum Öffnen von Piggy auf.
 
